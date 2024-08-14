@@ -166,6 +166,9 @@ impl MoveSmith {
                     if callee == caller {
                         continue;
                     }
+                    if !acquires_map.contains_key(callee) {
+                        continue;
+                    }
                     let callee_acquires = acquires_map.get(callee).unwrap();
                     for acq in callee_acquires.borrow().iter() {
                         if !caller_acquires.borrow().contains(acq) {
@@ -318,10 +321,16 @@ impl MoveSmith {
         info!("Done generating function skeletons");
 
         Ok(Module {
-            uses: vec![Use {
-                address: "0x1".to_string(),
-                module: Identifier::new_str("vector", IDKinds::Module),
-            }],
+            uses: vec![
+                Use {
+                    address: "0x1".to_string(),
+                    module: Identifier::new_str("vector", IDKinds::Module),
+                },
+                Use {
+                    address: "0xCAFE".to_string(),
+                    module: Identifier::new_str("FuzzStore::record_value", IDKinds::Function),
+                },
+            ],
             name,
             functions,
             structs,
@@ -378,6 +387,30 @@ impl MoveSmith {
         }
 
         Ok(())
+    }
+
+    fn generate_record_value_expr(&self, id: &Identifier) -> Expression {
+        let var = match self.env().type_pool.get_type(id).unwrap() {
+            Type::Ref(_) | Type::MutRef(_) => Expression::Variable(VariableAccess {
+                name: id.clone(),
+                copy: false,
+            }),
+            _ => Expression::Reference(Box::new(Expression::Variable(VariableAccess {
+                name: id.clone(),
+                copy: false,
+            }))),
+        };
+        Expression::FunctionCall(FunctionCall {
+            name: Identifier::new_str("record_value", IDKinds::Function),
+            type_args: TypeArgs::default(),
+            args: vec![
+                Expression::Variable(VariableAccess {
+                    name: self.env().type_pool.get_signer_ref_var(),
+                    copy: false,
+                }),
+                var,
+            ],
+        })
     }
 
     /// Generate a runner function for a callee function.
@@ -984,7 +1017,7 @@ impl MoveSmith {
                 stmts.push(self.generate_additional_operation(u, parent_scope)?);
                 num_addtional -= 1;
             } else {
-                stmts.push(self.generate_statement(u, parent_scope)?);
+                stmts.extend(self.generate_statement(u, parent_scope)?);
             }
 
             trace!("Done generating statement #{}", i + 1);
@@ -1004,15 +1037,27 @@ impl MoveSmith {
     }
 
     /// Generate a random statement.
-    fn generate_statement(&self, u: &mut Unstructured, parent_scope: &Scope) -> Result<Statement> {
+    fn generate_statement(
+        &self,
+        u: &mut Unstructured,
+        parent_scope: &Scope,
+    ) -> Result<Vec<Statement>> {
         let weights = vec![6, 4, 6];
         let idx = choose_idx_weighted(u, &weights)?;
-        match idx {
-            0 => Ok(Statement::Decl(self.generate_declaration(u, parent_scope)?)),
-            1 => Ok(Statement::Expr(self.generate_expression(u, parent_scope)?)),
-            2 => Ok(self.generate_vector_operation(u, parent_scope)?),
+        Ok(match idx {
+            0 => {
+                let dec = self.generate_declaration(u, parent_scope)?;
+                let record = self.generate_record_value_expr(&dec.names[0]);
+                vec![Statement::Decl(dec), Statement::Expr(record)]
+            },
+            1 => self
+                .generate_expression(u, parent_scope)?
+                .into_iter()
+                .map(|e| Statement::Expr(e))
+                .collect(),
+            2 => vec![self.generate_vector_operation(u, parent_scope)?],
             _ => panic!("Invalid statement type"),
-        }
+        })
     }
 
     fn generate_new_vector_literal(
@@ -1331,7 +1376,67 @@ impl MoveSmith {
             args.push(self.generate_expression_of_type(u, parent_scope, &typ, true, true)?);
         }
 
-        let res_op = Expression::Resource(ResourceOperation { kind, typ, args });
+        let mut check_exists = Expression::Resource(ResourceOperation {
+            kind: RK::Exists,
+            typ: typ.clone(),
+            args: vec![Expression::Variable(VariableAccess {
+                name: self.env().type_pool.get_address_var(),
+                copy: false,
+            })],
+        });
+
+        if matches!(kind, RK::MoveTo) {
+            check_exists = Expression::UnaryOperation(UnaryOperation::Not(Box::new(check_exists)));
+        }
+
+        let block_name = Identifier::new_str("_exist_check", IDKinds::Block);
+
+        let resource_expr = Expression::Resource(ResourceOperation {
+            kind: kind.clone(),
+            typ: typ.clone(),
+            args: args.clone(),
+        });
+
+        let res_op = match kind {
+            RK::MoveTo => Expression::IfElse(Box::new(IfExpr {
+                condition: check_exists,
+                body: Block {
+                    name: block_name,
+                    stmts: vec![Statement::Expr(resource_expr)],
+                    return_expr: None,
+                },
+                else_expr: None,
+            })),
+            RK::MoveFrom | RK::BorrowGlobal | RK::BorrowGlobalMut => {
+                self.env_mut().expr_depth.set_max_depth(0);
+                let fall_back =
+                    self.generate_expression_of_type(u, parent_scope, &typ, false, true)?;
+                let fall_back_expr = match kind {
+                    RK::MoveFrom => fall_back,
+                    RK::BorrowGlobal => Expression::Reference(Box::new(fall_back)),
+                    RK::BorrowGlobalMut => Expression::MutReference(Box::new(fall_back)),
+                    _ => panic!("Invalid resource operation"),
+                };
+                self.env_mut().expr_depth.reset_max_depth();
+                Expression::IfElse(Box::new(IfExpr {
+                    condition: check_exists,
+                    body: Block {
+                        name: block_name.clone(),
+                        stmts: vec![],
+                        return_expr: Some(resource_expr),
+                    },
+                    else_expr: Some(ElseExpr {
+                        typ: Some(typ.clone()),
+                        body: Block {
+                            name: block_name,
+                            stmts: vec![],
+                            return_expr: Some(fall_back_expr),
+                        },
+                    }),
+                }))
+            },
+            RK::Exists => resource_expr,
+        };
 
         Ok(match name {
             Some(name) => Statement::Decl(Declaration {
@@ -1437,15 +1542,15 @@ impl MoveSmith {
         &self,
         u: &mut Unstructured,
         parent_scope: &Scope,
-    ) -> Result<Expression> {
+    ) -> Result<Vec<Expression>> {
         trace!("Generating expression from scope: {:?}", parent_scope);
         // Increment the expression depth
         // Reached the maximum depth, generate a dummy number literal
         if self.env().expr_depth.reached_depth_limit() {
             warn!("Max expr depth reached in scope: {:?}", parent_scope);
-            return Ok(Expression::NumberLiteral(
+            return Ok(vec![Expression::NumberLiteral(
                 self.generate_number_literal(u, None, None, None)?,
-            ));
+            )]);
         }
 
         self.env_mut().expr_depth.increase_depth();
@@ -1482,15 +1587,17 @@ impl MoveSmith {
             weights
         );
 
-        let expr = match idx {
+        let exprs = match idx {
             // Generate a binary operation
-            0 => Expression::BinaryOperation(Box::new(self.generate_binary_operation(
+            0 => vec![Expression::BinaryOperation(Box::new(
+                self.generate_binary_operation(u, parent_scope, None)?,
+            ))],
+            // Generate an if-else expression with unit type
+            1 => vec![Expression::IfElse(Box::new(self.generate_if(
                 u,
                 parent_scope,
                 None,
-            )?)),
-            // Generate an if-else expression with unit type
-            1 => Expression::IfElse(Box::new(self.generate_if(u, parent_scope, None)?)),
+            )?))],
             // Generate a block
             2 => {
                 let ret_typ = match bool::arbitrary(u)? {
@@ -1500,22 +1607,24 @@ impl MoveSmith {
                     false => None,
                 };
                 let block = self.generate_block(u, parent_scope, None, ret_typ)?;
-                Expression::Block(Box::new(block))
+                vec![Expression::Block(Box::new(block))]
             },
             // Generate a function call
             3 => {
                 let call = self.generate_function_call(u, parent_scope)?;
                 match call {
-                    Some(c) => Expression::FunctionCall(c),
+                    Some(c) => vec![Expression::FunctionCall(c)],
                     None => panic!("No callable functions"),
                 }
             },
             // Generate an assignment expression
             4 => {
                 let assign = self.generate_assignment(u, parent_scope)?;
-                match assign {
-                    Some(a) => Expression::Assign(Box::new(a)),
-                    None => panic!("No assignable variables"),
+                if let Some(a) = assign {
+                    let record = self.generate_record_value_expr(&a.name);
+                    vec![Expression::Assign(Box::new(a)), record]
+                } else {
+                    panic!("No assignable variables")
                 }
             },
             _ => panic!("Invalid expression type"),
@@ -1523,7 +1632,7 @@ impl MoveSmith {
 
         // Decrement the expression depth
         self.env_mut().expr_depth.decrease_depth();
-        Ok(expr)
+        Ok(exprs)
     }
 
     // TODO: the concretization system can be simplified and moved to a separate place
@@ -1942,10 +2051,7 @@ impl MoveSmith {
         self.env_mut().expr_depth.increase_depth();
 
         // TODO: merge this into the other selections
-        if u.ratio(
-            (self.env().config.return_abort_possibility * 1000.0) as u64,
-            1000u64,
-        )? {
+        if u.ratio(2u16, 10000u16)? {
             let can_use_return = match &self.env().curr_func_signature {
                 Some(sig) => !sig.inline,
                 None => false,

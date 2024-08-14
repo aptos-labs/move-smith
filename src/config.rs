@@ -88,8 +88,6 @@ pub struct GenerationConfig {
 
     // Maximum number of bytes to construct hex or byte string
     pub hex_byte_str_size: RandomNumber,
-
-    pub return_abort_possibility: f32,
 }
 
 impl Default for Config {

@@ -8,6 +8,9 @@ use crate::{
 };
 use std::{collections::BTreeSet, vec};
 
+static PROLOGUE: &str = include_str!("prologue.move");
+static EPILOGUE: &str = include_str!("epilogue.move");
+
 /// Generates Move source code from an AST.
 /// `emit_code_lines` should be implemented for each AST node.
 pub trait CodeGenerator {
@@ -74,6 +77,8 @@ impl CodeGenerator for Identifier {
 impl CodeGenerator for CompileUnit {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code = Vec::new();
+        code.push(PROLOGUE.to_string());
+        code.push('\n'.to_string());
         for m in &self.modules {
             code.extend(m.emit_code_lines());
         }
@@ -88,7 +93,7 @@ impl CodeGenerator for CompileUnit {
                 r.name
             ));
         }
-
+        code.push(EPILOGUE.to_string());
         code
     }
 }
@@ -412,6 +417,7 @@ impl CodeGenerator for Expression {
             Expression::Block(block) => block.emit_code_lines(),
             Expression::Assign(assignment) => assignment.emit_code_lines(),
             Expression::BinaryOperation(binop) => binop.emit_code_lines(),
+            Expression::UnaryOperation(uop) => uop.emit_code_lines(),
             Expression::IfElse(if_expr) => if_expr.emit_code_lines(),
             Expression::Reference(expr) => vec![format!("&({})", expr.inline())],
             Expression::Dereference(expr) => vec![format!("*({})", expr.inline())],
@@ -424,6 +430,14 @@ impl CodeGenerator for Expression {
                 None => vec!["(return)".to_string()],
             },
             Expression::Abort(e) => vec![format!("(abort {})", e.inline())],
+        }
+    }
+}
+
+impl CodeGenerator for UnaryOperation {
+    fn emit_code_lines(&self) -> Vec<String> {
+        match self {
+            UnaryOperation::Not(e) => vec![format!("!({})", e.inline())],
         }
     }
 }

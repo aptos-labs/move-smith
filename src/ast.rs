@@ -180,6 +180,7 @@ pub enum Expression {
     Block(Box<Block>),
     Assign(Box<Assignment>),
     BinaryOperation(Box<BinaryOperation>),
+    UnaryOperation(UnaryOperation),
     IfElse(Box<IfExpr>),
     Reference(Box<Expression>),
     Dereference(Box<Expression>),
@@ -191,6 +192,12 @@ pub enum Expression {
     Resource(ResourceOperation),
     VectorOperation(VectorOperation),
     VectorLiteral(VectorLiteral),
+}
+
+/// An expression.
+#[derive(Debug, Clone)]
+pub enum UnaryOperation {
+    Not(Box<Expression>),
 }
 
 #[derive(Debug, Clone)]

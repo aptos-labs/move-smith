@@ -26,13 +26,15 @@ static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(local\s+`[^`]+`|module\s+'[^']+')|type\s+`[^`]+`|Some\([^\)]+\)").unwrap()
 });
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub struct ErrorLine(pub String);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TransactionalTestError {
     #[serde(skip)]
     pub full_log: String,
+    #[serde(skip)]
+    pub hash_diff: Vec<ErrorLine>,
     pub v1_errors: BTreeSet<ErrorLine>,
     pub v2_errors: BTreeSet<ErrorLine>,
 }
@@ -164,6 +166,10 @@ impl ErrorPool {
             return true;
         }
 
+        if !error.hash_diff.is_empty() {
+            return false;
+        }
+
         for ignore_str in self.ignore_strs.iter() {
             if error.full_log.contains(ignore_str) {
                 return true;
@@ -220,6 +226,18 @@ impl ErrorLine {
             || line.contains("bug:")
             || line.contains("panic")
     }
+
+    fn is_hash_line(line: &str) -> bool {
+        line.contains("acc:")
+    }
+
+    fn from_hash_line(line: &str) -> Self {
+        Self(line.split("acc:").last().unwrap().trim().to_string())
+    }
+
+    fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl Display for TransactionalTestError {
@@ -244,21 +262,39 @@ impl TransactionalTestError {
     pub fn from_log(full_log: &str, v1_log: &[String], v2_log: &[String]) -> Option<Self> {
         let mut v1_errors = BTreeSet::new();
         let mut v2_errors = BTreeSet::new();
+        let mut v1_hash = ErrorLine::default();
+        let mut v2_hash = ErrorLine::default();
         for line in v1_log.iter() {
             if ErrorLine::is_error_line(line) {
                 v1_errors.insert(ErrorLine::from_log_line(line));
+            }
+            if ErrorLine::is_hash_line(line) {
+                v1_hash = ErrorLine::from_hash_line(line);
             }
         }
         for line in v2_log.iter() {
             if ErrorLine::is_error_line(line) {
                 v2_errors.insert(ErrorLine::from_log_line(line));
             }
+            if ErrorLine::is_hash_line(line) {
+                v2_hash = ErrorLine::from_hash_line(line);
+            }
         }
+
+        let mut hash_diff = vec![];
+        if !v1_hash.is_empty() && !v2_hash.is_empty() && v1_hash == v2_hash {
+            v1_errors.insert(v1_hash.clone());
+            v2_errors.insert(v2_hash.clone());
+            hash_diff.push(v1_hash);
+            hash_diff.push(v2_hash);
+        }
+
         if v1_errors.is_empty() && v2_errors.is_empty() {
             None
         } else {
             Some(Self {
                 full_log: full_log.to_string(),
+                hash_diff,
                 v1_errors,
                 v2_errors,
             })

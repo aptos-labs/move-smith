@@ -46,4 +46,3 @@ type_depth = { min = 1, target = 4, max = 50 }
 
 generation_timeout_sec = 5
 allow_recursive_calls = false
-return_abort_possibility = 0.02
