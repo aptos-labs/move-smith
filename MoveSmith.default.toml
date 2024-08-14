@@ -1,0 +1,49 @@
+[fuzz]
+ignore_strs = [
+    "exceeded maximal local count",
+    "cannot mutably borrow since immutable references exist",
+]
+known_error_dir = "ignore_errors"
+runs = ["opt"]
+transactional_timeout_sec = 10
+
+[fuzz.compiler_settings.opt]
+enable = ["optimize"]
+disable = []
+
+[fuzz.compiler_settings.no-opt]
+enable = []
+disable = ["optimize", "acquires-check"]
+
+[fuzz.compiler_settings.opt-no-simp]
+enable = ["optimize"]
+disable = ["ast-simplify", "acquires-check"]
+
+[generation]
+num_runs_per_func = { min = 1, target = 3, max = 10 }
+
+num_inline_funcs = { min = 1, target = 1, max = 1 }
+
+num_modules = { min = 1, target = 1, max = 1 }
+num_functions_in_module = { min = 3, target = 7, max = 255 }
+num_structs_in_module = { min = 3, target = 8, max = 255 }
+
+num_fields_in_struct = { min = 0, target = 4, max = 255 }
+num_fields_of_struct_type = { min = 1, target = 5, max = 255 }
+num_type_params_in_struct = { min = 0, target = 2, max = 32 }
+
+num_stmts_in_func = { min = 0, target = 8, max = 30 }
+num_stmts_in_block = { min = 0, target = 4, max = 30 }
+num_additional_operations_in_func = { min = 0, target = 4, max = 16 }
+num_params_in_func = { min = 0, target = 4, max = 255 }
+num_type_params_in_func = { min = 0, target = 2, max = 32 }
+
+num_calls_in_script = { min = 0, target = 20, max = 50 }
+hex_byte_str_size = { min = 1, target = 32, max = 512 }
+
+expr_depth = { min = 1, target = 3, max = 10 }
+type_depth = { min = 1, target = 4, max = 50 }
+
+generation_timeout_sec = 5
+allow_recursive_calls = false
+return_abort_possibility = 0.02

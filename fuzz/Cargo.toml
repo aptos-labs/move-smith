@@ -1,0 +1,37 @@
+[package]
+name = "move-smith-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+afl = "*"
+arbitrary = { workspace = true }
+libfuzzer-sys = "0.4.7"
+move-smith = { path = ".." }
+once_cell = { workspace = true }
+rand = { workspace = true }
+
+[[bin]]
+name = "transactional"
+path = "fuzz_targets/transactional.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "afl-transactional"
+path = "fuzz_targets/afl_transactional.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "random"
+path = "fuzz_targets/random.rs"
+test = false
+doc = false
+bench = false
