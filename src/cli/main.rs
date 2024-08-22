@@ -115,7 +115,7 @@ fn handle_generate(env: &MoveSmithEnv, cmd: &Generate) {
 
     let files = (0..cmd.num)
         .map(|i| match cmd.package {
-            true => cmd.output_dir.join(format!("Package-{}.", i)),
+            true => cmd.output_dir.join(format!("Package-{}", i)),
             false => cmd.output_dir.join(format!("MoveSmith-{}.move", i)),
         })
         .collect::<Vec<PathBuf>>();

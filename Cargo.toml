@@ -5,6 +5,11 @@ description = "A Move source code level fuzzer."
 license = "Apache-2.0"
 edition = "2021"
 
+[features]
+default = []
+git_deps = ["move-compiler-v2", "move-model", "move-package", "move-transactional-test-runner"]
+local_deps = ["move-compiler-v2-local", "move-model-local", "move-package-local", "move-transactional-test-runner-local"]
+
 [dependencies]
 anyhow = { workspace = true }
 arbitrary = { workspace = true }
@@ -14,10 +19,6 @@ env_logger = { workspace = true }
 glob = { workspace = true }
 indicatif = { workspace = true }
 log = { workspace = true }
-move-compiler-v2 = { workspace = true }
-move-model = { workspace = true }
-move-package = { workspace = true }
-move-transactional-test-runner = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rand = { workspace = true }
@@ -28,6 +29,14 @@ serde = { workspace = true }
 tempfile = { workspace = true }
 tokio = { workspace = true }
 toml = { workspace = true }
+move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-compiler-v2", optional = true }
+move-model = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-model", optional = true }
+move-package = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-package", optional = true }
+move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-transactional-test-runner", optional = true }
+move-compiler-v2-local = { path = "../aptos-core/third_party/move/move-compiler-v2", package = "move-compiler-v2", optional = true }
+move-model-local = { path = "../aptos-core/third_party/move/move-model", package = "move-model", optional = true }
+move-package-local = { path = "../aptos-core/third_party/move/tools/move-package", package = "move-package", optional = true }
+move-transactional-test-runner-local = { path = "../aptos-core/third_party/move/testing-infra/transactional-test-runner", package = "move-transactional-test-runner", optional = true }
 
 [workspace.dependencies]
 anyhow = "1.0.86"
@@ -48,10 +57,6 @@ serde = { version = "1.0.207", features = ["derive"] }
 tempfile = "3.12.0"
 tokio = "1.39.2"
 toml = "0.8.19"
-move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-compiler-v2" }
-move-model = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-model" }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-package" }
-move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-transactional-test-runner" }
 
 [workspace]
 members = ["fuzz"]
@@ -59,7 +64,14 @@ members = ["fuzz"]
 [lib]
 name = "move_smith"
 path = "src/lib.rs"
+required-features = ["git_deps"]
 
 [[bin]]
 name = "move-smith"
 path = "src/cli/main.rs"
+required-features = ["git_deps"]
+
+[[bin]]
+name = "move-smith-local"
+path = "src/cli/main.rs"
+required-features = ["local_deps"]
