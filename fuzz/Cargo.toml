@@ -11,7 +11,7 @@ cargo-fuzz = true
 afl = "*"
 arbitrary = { workspace = true }
 libfuzzer-sys = "0.4.7"
-move-smith = { path = ".." }
+move-smith = { path = "..", features = ["git_deps"] }
 once_cell = { workspace = true }
 rand = { workspace = true }
 
