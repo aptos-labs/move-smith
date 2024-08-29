@@ -8,6 +8,7 @@ pub mod cli;
 pub mod codegen;
 pub mod config;
 pub mod env;
+pub mod execution;
 pub mod move_smith;
 pub mod names;
 pub mod runner;

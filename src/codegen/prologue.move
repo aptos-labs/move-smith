@@ -9,9 +9,10 @@ module 0xCAFE::FuzzStore {
         acc: vector<u8>
     }
 
-    fun init_accumulated_hash(s: signer) {
+    fun init_accumulated_hash(s: signer): bool {
         let sref = &s;
         internal_init_accumulated_hash(sref);
+        true
     }
 
     fun internal_init_accumulated_hash(sref: &signer) {

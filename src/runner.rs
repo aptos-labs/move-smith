@@ -8,10 +8,10 @@ use anyhow::Result;
 use glob::glob;
 #[cfg(feature = "git_deps")]
 use move_model::metadata::LanguageVersion;
-#[cfg(feature = "git_deps")]
-use move_transactional_test_runner::{vm_test_harness, vm_test_harness::TestRunConfig};
 #[cfg(feature = "local_deps")]
 use move_model_local::metadata::LanguageVersion;
+#[cfg(feature = "git_deps")]
+use move_transactional_test_runner::{vm_test_harness, vm_test_harness::TestRunConfig};
 #[cfg(feature = "local_deps")]
 use move_transactional_test_runner_local::{vm_test_harness, vm_test_harness::TestRunConfig};
 use once_cell::sync::Lazy;

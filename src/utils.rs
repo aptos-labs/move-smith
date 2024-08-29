@@ -7,10 +7,10 @@ use arbitrary::{Result, Unstructured};
 use log::{error, info};
 #[cfg(feature = "git_deps")]
 use move_model::metadata::{CompilerVersion, LanguageVersion};
-#[cfg(feature = "git_deps")]
-use move_package::BuildConfig;
 #[cfg(feature = "local_deps")]
 use move_model_local::metadata::{CompilerVersion, LanguageVersion};
+#[cfg(feature = "git_deps")]
+use move_package::BuildConfig;
 #[cfg(feature = "local_deps")]
 use move_package_local::BuildConfig;
 use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -94,8 +94,7 @@ pub fn get_move_smith_path() -> PathBuf {
 // TODO: get path from cli args
 pub fn get_aptos_framework_path() -> String {
     let crate_dir = get_move_smith_path();
-    let relative_path =
-        crate_dir.join("../aptos-core/aptos-move/framework/aptos-framework/");
+    let relative_path = crate_dir.join("../aptos-core/aptos-move/framework/aptos-framework/");
     let absolute_path = relative_path.canonicalize().unwrap();
     absolute_path.to_str().unwrap().to_string()
 }

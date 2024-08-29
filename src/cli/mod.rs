@@ -1,7 +1,12 @@
+pub mod check;
 pub mod common;
+pub mod compile;
+pub mod generate;
+pub mod raw2move;
+pub mod run;
 
 use crate::config::Config;
-use clap::{ArgGroup, Args, Parser, Subcommand};
+use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -23,7 +28,7 @@ pub struct GlobalOptions {
         default_value = "MoveSmith.toml"
     )]
     pub config: PathBuf,
-    #[arg(long, short, value_name = "NUM_JOBS", default_value = "8")]
+    #[arg(long, short, value_name = "NUM_JOBS", default_value = "16")]
     pub jobs: usize,
 }
 
@@ -42,9 +47,19 @@ pub enum Command {
 pub struct Run {
     #[arg(value_name = "FILE")]
     pub file: String,
-    /// Show the log of the execution regardless of result
-    #[arg(short, long)]
-    pub silent: bool,
+    /// Format to show the output
+    #[arg(value_name = "MODE", short, long, default_value = "canonicalized")]
+    pub output: OutputMode,
+    #[arg(long, default_value = "opt")]
+    pub use_setting: String,
+}
+
+#[derive(ValueEnum, Debug, Clone)]
+pub enum OutputMode {
+    None,
+    Canonicalized,
+    Raw,
+    Split,
 }
 
 #[derive(Args, Debug)]
