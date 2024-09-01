@@ -77,11 +77,11 @@ impl ResultChunkKind {
 impl TransactionalResult {
     pub fn from_run_result(res: &Result<(), Box<dyn Error>>, duration: Duration) -> Self {
         let mut result = Self::default();
+        result.duration = duration;
         match res {
             Ok(_) => {
                 result.log = "Success".to_string();
                 result.status = ResultStatus::Success;
-                result.duration = duration;
             },
             Err(e) => {
                 let log = format!("{:?}", e);
@@ -230,6 +230,10 @@ impl ResultChunk {
             }
         }
 
+        if top.contains("invalid transfer") || top.contains("cannot transfer") {
+            return "... cannot transfer ...".to_string();
+        }
+
         if (full.contains("Invalid acquiring") && full.contains("still being borrowed"))
             || (top.contains("function acquires global")
                 && top.contains("which is currently borrowed"))
@@ -238,9 +242,21 @@ impl ResultChunk {
         }
 
         if top.contains("mutable ownership violated")
-            || top.contains("which is still mutably borrowed")
+            || (top.contains("cannot mutably borrow")
+                && top.contains("since it is already borrowed"))
         {
-            return "... cannot copy while mutably borrowed ...".to_string();
+            return "... cannot mutably borrow while borrowed ...".to_string();
+        }
+
+        if top.contains("referential transparency violated")
+            || (top.contains("cannot borrow")
+                && top.contains("since it is already mutably borrowed"))
+        {
+            return "... cannot borrow while mutably borrowed ...".to_string();
+        }
+
+        if top.contains("cannot extract") {
+            return "... cannot extract ...".to_string();
         }
 
         if top.contains("cannot extract resource") || top.contains("function acquires global") {

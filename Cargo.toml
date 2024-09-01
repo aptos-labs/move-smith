@@ -29,13 +29,13 @@ env_logger = { workspace = true }
 glob = { workspace = true }
 indicatif = { workspace = true }
 log = { workspace = true }
-move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-compiler-v2", optional = true }
+move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-compiler-v2", optional = true }
 move-compiler-v2-local = { path = "../aptos-core/third_party/move/move-compiler-v2", package = "move-compiler-v2", optional = true }
-move-model = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-model", optional = true }
+move-model = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-model", optional = true }
 move-model-local = { path = "../aptos-core/third_party/move/move-model", package = "move-model", optional = true }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-package", optional = true }
+move-package = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-package", optional = true }
 move-package-local = { path = "../aptos-core/third_party/move/tools/move-package", package = "move-package", optional = true }
-move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", branch = "move-smith-patches", package = "move-transactional-test-runner", optional = true }
+move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true }
 move-transactional-test-runner-local = { path = "../aptos-core/third_party/move/testing-infra/transactional-test-runner", package = "move-transactional-test-runner", optional = true }
 num-bigint = { workspace = true }
 num_cpus = { workspace = true }

@@ -27,7 +27,7 @@ pub struct TransactionalInput {
 impl Report for TransactionalInput {
     fn to_report(&self, _format: &ReportFormat) -> String {
         match &self.file {
-            Some(file) => format!("{:?}", file),
+            Some(file) => format!("{}", file.to_string_lossy()),
             None => "".to_string(),
         }
     }

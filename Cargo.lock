@@ -20,7 +20,7 @@ dependencies = [
 [[package]]
 name = "abstract-domain-derive"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -429,6 +429,7 @@ dependencies = [
  "anstyle",
  "clap_lex",
  "strsim",
+ "terminal_size",
 ]
 
 [[package]]
@@ -1388,17 +1389,17 @@ dependencies = [
 [[package]]
 name = "move-abigen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "bcs",
  "heck 0.4.1",
  "log",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "serde",
 ]
 
@@ -1419,13 +1420,13 @@ dependencies = [
 [[package]]
 name = "move-binary-format"
 version = "0.0.3"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "backtrace",
  "indexmap 1.9.3",
- "move-bytecode-spec 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-bytecode-spec 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
  "ref-cast",
  "serde",
  "variant_count",
@@ -1438,7 +1439,7 @@ version = "0.0.1"
 [[package]]
 name = "move-borrow-graph"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 
 [[package]]
 name = "move-bytecode-source-map"
@@ -1457,15 +1458,15 @@ dependencies = [
 [[package]]
 name = "move-bytecode-source-map"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "bcs",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "serde",
 ]
 
@@ -1481,7 +1482,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-spec"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "once_cell",
  "quote",
@@ -1502,11 +1503,11 @@ dependencies = [
 [[package]]
 name = "move-bytecode-utils"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
  "petgraph",
  "serde-reflection",
 ]
@@ -1527,12 +1528,12 @@ dependencies = [
 [[package]]
 name = "move-bytecode-verifier"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "fail",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-borrow-graph 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-borrow-graph 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
  "petgraph",
  "serde",
  "typed-arena",
@@ -1557,13 +1558,13 @@ dependencies = [
 [[package]]
 name = "move-command-line-common"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "difference",
  "dirs-next",
  "hex",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
  "num-bigint 0.3.3",
  "once_cell",
  "serde",
@@ -1599,22 +1600,22 @@ dependencies = [
 [[package]]
 name = "move-compiler"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "bcs",
  "clap",
  "codespan-reporting",
  "hex",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-borrow-graph 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-to-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-borrow-graph 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-to-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "once_cell",
  "petgraph",
  "regex",
@@ -1656,9 +1657,9 @@ dependencies = [
 [[package]]
 name = "move-compiler-v2"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
- "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "anyhow",
  "bcs",
  "clap",
@@ -1668,20 +1669,23 @@ dependencies = [
  "im",
  "itertools",
  "log",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-disassembler 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-stackless-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-borrow-graph 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-disassembler 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-stackless-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "num",
  "once_cell",
  "petgraph",
+ "strum",
+ "strum_macros",
 ]
 
 [[package]]
@@ -1708,7 +1712,7 @@ dependencies = [
 [[package]]
 name = "move-core-types"
 version = "0.0.4"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1748,18 +1752,18 @@ dependencies = [
 [[package]]
 name = "move-coverage"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "bcs",
  "clap",
  "codespan",
  "colored",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "petgraph",
  "serde",
 ]
@@ -1783,18 +1787,18 @@ dependencies = [
 [[package]]
 name = "move-disassembler"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "clap",
  "colored",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-coverage 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-coverage 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
 ]
 
 [[package]]
@@ -1818,7 +1822,7 @@ dependencies = [
 [[package]]
 name = "move-docgen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "clap",
@@ -1826,9 +1830,9 @@ dependencies = [
  "codespan-reporting",
  "itertools",
  "log",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "once_cell",
  "regex",
  "serde",
@@ -1848,12 +1852,12 @@ dependencies = [
 [[package]]
 name = "move-errmapgen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "serde",
 ]
 
@@ -1875,16 +1879,16 @@ dependencies = [
 [[package]]
 name = "move-ir-compiler"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "bcs",
  "clap",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-to-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-to-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "serde_json",
 ]
 
@@ -1908,18 +1912,18 @@ dependencies = [
 [[package]]
 name = "move-ir-to-bytecode"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "codespan-reporting",
  "log",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-to-bytecode-syntax 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-to-bytecode-syntax 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "ouroboros",
 ]
 
@@ -1938,14 +1942,14 @@ dependencies = [
 [[package]]
 name = "move-ir-to-bytecode-syntax"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "hex",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
 ]
 
 [[package]]
@@ -1963,12 +1967,12 @@ dependencies = [
 [[package]]
 name = "move-ir-types"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "hex",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "once_cell",
  "serde",
 ]
@@ -2001,7 +2005,7 @@ dependencies = [
 [[package]]
 name = "move-model"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "codespan",
@@ -2009,14 +2013,14 @@ dependencies = [
  "internment",
  "itertools",
  "log",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-disassembler 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-disassembler 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "num",
  "num-traits",
  "once_cell",
@@ -2060,23 +2064,23 @@ dependencies = [
 [[package]]
 name = "move-package"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "clap",
  "colored",
  "itertools",
- "move-abigen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-utils 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler-v2 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-docgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-abigen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-utils 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler-v2 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-docgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "named-lock",
  "once_cell",
  "petgraph",
@@ -2120,7 +2124,7 @@ dependencies = [
 [[package]]
 name = "move-prover"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "atty",
@@ -2128,16 +2132,16 @@ dependencies = [
  "codespan-reporting",
  "itertools",
  "log",
- "move-abigen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler-v2 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-docgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-errmapgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-prover-boogie-backend 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-prover-bytecode-pipeline 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-stackless-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-abigen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler-v2 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-docgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-errmapgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-prover-boogie-backend 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-prover-bytecode-pipeline 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-stackless-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "once_cell",
  "serde",
  "simplelog",
@@ -2175,7 +2179,7 @@ dependencies = [
 [[package]]
 name = "move-prover-boogie-backend"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2184,13 +2188,13 @@ dependencies = [
  "futures",
  "itertools",
  "log",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-prover-bytecode-pipeline 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-stackless-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-prover-bytecode-pipeline 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-stackless-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "num",
  "once_cell",
  "pretty",
@@ -2220,17 +2224,17 @@ dependencies = [
 [[package]]
 name = "move-prover-bytecode-pipeline"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
- "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "anyhow",
  "codespan-reporting",
  "itertools",
  "log",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-stackless-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-stackless-bytecode 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "serde",
 ]
 
@@ -2249,13 +2253,13 @@ dependencies = [
 [[package]]
 name = "move-resource-viewer"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "hex",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-utils 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-utils 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
  "serde",
 ]
 
@@ -2272,13 +2276,13 @@ dependencies = [
  "indicatif",
  "log",
  "move-compiler-v2 0.1.0",
- "move-compiler-v2 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-compiler-v2 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "move-model 0.1.0",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "move-package 0.1.0",
- "move-package 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-package 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "move-transactional-test-runner 0.1.0",
- "move-transactional-test-runner 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-transactional-test-runner 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "num-bigint 0.4.6",
  "num_cpus",
  "once_cell",
@@ -2325,17 +2329,17 @@ dependencies = [
 [[package]]
 name = "move-stackless-bytecode"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
- "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "codespan-reporting",
  "ethnum",
  "im",
  "itertools",
  "log",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "num",
  "paste",
  "petgraph",
@@ -2366,20 +2370,20 @@ dependencies = [
 [[package]]
 name = "move-stdlib"
 version = "0.1.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "hex",
  "log",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-docgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-errmapgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-prover 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-vm-runtime 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-vm-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-docgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-errmapgen 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-prover 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-vm-runtime 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-vm-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "sha2 0.9.9",
  "sha3",
  "smallvec",
@@ -2397,7 +2401,7 @@ dependencies = [
 [[package]]
 name = "move-symbol-pool"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "once_cell",
  "serde",
@@ -2435,27 +2439,27 @@ dependencies = [
 [[package]]
 name = "move-transactional-test-runner"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "clap",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-compiler-v2 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-disassembler 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-compiler 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-resource-viewer 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-stdlib 0.1.1 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-vm-runtime 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-vm-test-utils 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-vm-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-source-map 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler 0.0.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-compiler-v2 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-disassembler 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-compiler 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-ir-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-model 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-resource-viewer 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-stdlib 0.1.1 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-symbol-pool 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-vm-runtime 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-vm-test-utils 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-vm-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "once_cell",
  "regex",
  "tempfile",
@@ -2488,7 +2492,7 @@ dependencies = [
 [[package]]
 name = "move-vm-runtime"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "better_any",
  "bytes",
@@ -2496,10 +2500,10 @@ dependencies = [
  "hashbrown 0.14.5",
  "lazy_static",
  "lru",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-vm-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-verifier 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-vm-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "once_cell",
  "parking_lot",
  "serde",
@@ -2526,14 +2530,14 @@ dependencies = [
 [[package]]
 name = "move-vm-test-utils"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "anyhow",
  "bytes",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-bytecode-utils 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-vm-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-bytecode-utils 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-vm-types 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "once_cell",
  "serde",
 ]
@@ -2557,14 +2561,14 @@ dependencies = [
 [[package]]
 name = "move-vm-types"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches#b042ac18d5c0782640415946fbd490480a99f2f6"
+source = "git+https://github.com/aptos-labs/aptos-core.git#6a130c1cca274a5cfdb4a65b441cd5fe61b6c15b"
 dependencies = [
  "bcs",
  "bytes",
  "derivative",
  "itertools",
- "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
- "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
+ "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "move-core-types 0.0.4 (git+https://github.com/aptos-labs/aptos-core.git)",
  "serde",
  "smallbitvec",
  "smallvec",
@@ -3227,6 +3231,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustversion"
+version = "1.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
+
+[[package]]
 name = "ryu"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3464,6 +3474,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
+name = "strum"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
+
+[[package]]
+name = "strum_macros"
+version = "0.24.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e385be0d24f186b4ce2f9982191e7101bb737312ad61c1f2f984f34bcf85d59"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3533,6 +3562,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bab24d30b911b2376f3a13cc2cd443142f0c81dda04c118693e35b3835757755"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "terminal_size"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21bebf2b7c9e0a515f6e0f8c51dc0f8e4696391e6f1ff30379559f8365fb0df7"
+dependencies = [
+ "rustix",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
