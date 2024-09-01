@@ -1,4 +1,4 @@
-use crate::execution::{ExecutionResult, ReportFormat, ResultCompareMode};
+use crate::execution::{ExecutionResult, Report, ReportFormat, ResultCompareMode};
 use anyhow::Result;
 use log::{debug, error};
 use once_cell::sync::Lazy;
@@ -6,17 +6,19 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, error::Error, fmt::Display, time::Duration};
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct TransactionalResult {
     pub log: String,
     pub splitted_logs: Vec<String>,
     pub status: ResultStatus,
+    /// Each element in the outer vector represents a run (e.g. V1 is one run, V2 is another run)
+    /// and each element in the inner vector represents a chunk of output (e.g. a warning or an error block)
     pub chunks: Vec<Vec<ResultChunk>>,
     pub hashes: Vec<String>,
     pub duration: Duration,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub enum ResultStatus {
     Success,
     Failure,
@@ -24,7 +26,7 @@ pub enum ResultStatus {
     Unknown,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, Eq, Deserialize, Serialize, Hash)]
 pub struct ResultChunk {
     pub original: String,
     pub canonical: String,
@@ -32,7 +34,13 @@ pub struct ResultChunk {
     pub lines: Vec<String>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+impl PartialEq for ResultChunk {
+    fn eq(&self, other: &Self) -> bool {
+        self.canonical == other.canonical
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub enum ResultChunkKind {
     #[default]
     Task,
@@ -46,7 +54,7 @@ pub enum ResultChunkKind {
 
 impl ResultChunkKind {
     pub fn try_from_str(msg: &str) -> Option<Self> {
-        return if msg.contains("warning") {
+        if msg.contains("warning") {
             Some(Self::Warning)
         } else if msg.contains("task") {
             Some(Self::Task)
@@ -62,41 +70,40 @@ impl ResultChunkKind {
             Some(Self::Panic)
         } else {
             None
-        };
+        }
     }
 }
 
 impl TransactionalResult {
     pub fn from_run_result(res: &Result<(), Box<dyn Error>>, duration: Duration) -> Self {
+        let mut result = Self::default();
         match res {
-            Ok(_) => Self {
-                log: "Success".to_string(),
-                status: ResultStatus::Success,
-                splitted_logs: vec![],
-                chunks: vec![],
-                hashes: vec![],
-                duration,
+            Ok(_) => {
+                result.log = "Success".to_string();
+                result.status = ResultStatus::Success;
+                result.duration = duration;
             },
             Err(e) => {
                 let log = format!("{:?}", e);
                 let (v1_log, v1_trimmed, v2_log, v2_trimmed) = Self::split_diff_log(&log);
                 let v1_chunks = ResultChunk::log_to_chunck(&v1_trimmed);
                 let v2_chunks = ResultChunk::log_to_chunck(&v2_trimmed);
-                let hashes = vec![
-                    Self::extract_hash(&v1_chunks),
-                    Self::extract_hash(&v2_chunks),
-                ];
-                let status = Self::check_chunks(&[v1_chunks.clone(), v2_chunks.clone()]);
-                Self {
-                    log,
-                    splitted_logs: vec![v1_log, v2_log],
-                    chunks: vec![v1_chunks, v2_chunks],
-                    status,
-                    hashes,
-                    duration,
-                }
+                result.log = log;
+                result.splitted_logs = vec![v1_log, v2_log];
+                result.chunks = vec![v1_chunks, v2_chunks];
             },
         }
+        result.initialize();
+        result
+    }
+
+    // Initialize the status and hashes fields after the chunks are set
+    fn initialize(&mut self) {
+        if self.chunks.is_empty() {
+            return;
+        }
+        self.hashes = self.chunks.iter().map(|e| Self::extract_hash(e)).collect();
+        self.status = Self::check_chunks(&self.chunks);
     }
 
     fn check_chunks(runs: &[Vec<ResultChunk>]) -> ResultStatus {
@@ -180,7 +187,7 @@ impl ResultChunk {
     fn log_to_chunck(log: &[String]) -> Vec<ResultChunk> {
         let mut chunks = vec![];
         for line in log.iter() {
-            if let Some(kind) = ResultChunkKind::try_from_str(&line) {
+            if let Some(kind) = ResultChunkKind::try_from_str(line) {
                 chunks.push(ResultChunk {
                     original: line.clone(),
                     canonical: String::new(),
@@ -189,13 +196,13 @@ impl ResultChunk {
                 });
             } else if let Some(last_chunk) = chunks.last_mut() {
                 last_chunk.lines.push(line.clone());
-                last_chunk.original.push_str("\n");
+                last_chunk.original.push('\n');
                 last_chunk.original.push_str(line);
             } else {
                 error!("cannot parse line: {:?}", line);
             }
         }
-        chunks.retain(|e| e.kind != ResultChunkKind::Warning);
+        chunks.retain(|e| e.kind != ResultChunkKind::Warning && e.kind != ResultChunkKind::Task);
         chunks
             .iter_mut()
             .for_each(|e| e.canonical = e.get_canonicalized_msg());
@@ -206,7 +213,7 @@ impl ResultChunk {
         let top = match self.kind {
             ResultChunkKind::VMError => self.lines.get(1).unwrap().trim(),
             ResultChunkKind::Hash => self.lines.get(1).unwrap().split(":").nth(1).unwrap().trim(),
-            _ => self.lines.get(0).unwrap(),
+            _ => self.lines.first().unwrap(),
         }
         .to_string();
 
@@ -271,17 +278,42 @@ impl Display for TransactionalResult {
 
 impl ExecutionResult for TransactionalResult {
     fn is_bug(&self) -> bool {
-        return self.status != ResultStatus::Success;
+        self.status != ResultStatus::Success
     }
 
-    fn similar(&self, other: &Self, mode: ResultCompareMode) -> bool {
-        unimplemented!()
+    fn similar(&self, other: &Self, mode: &ResultCompareMode) -> bool {
+        match mode {
+            ResultCompareMode::Exact => self.chunks == other.chunks,
+            ResultCompareMode::SameError => {
+                let left_errors = collect_errors(&self.chunks);
+                let right_errors = collect_errors(&other.chunks);
+                left_errors == right_errors
+            },
+        }
     }
+}
 
-    fn to_report(&self, format: ReportFormat) -> String {
+impl Report for TransactionalResult {
+    fn to_report(&self, format: &ReportFormat) -> String {
         match format {
             ReportFormat::Text => self.to_string(),
             _ => unimplemented!(),
         }
     }
+}
+
+fn collect_errors(chunks: &[Vec<ResultChunk>]) -> Vec<BTreeSet<String>> {
+    chunks
+        .iter()
+        .map(|e| {
+            e.iter()
+                .filter(|e| {
+                    e.kind == ResultChunkKind::Error
+                        || e.kind == ResultChunkKind::VMError
+                        || e.kind == ResultChunkKind::Bug
+                })
+                .map(|e| e.canonical.clone())
+                .collect()
+        })
+        .collect()
 }

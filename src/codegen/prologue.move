@@ -16,12 +16,11 @@ module 0xCAFE::FuzzStore {
     }
 
     fun internal_init_accumulated_hash(sref: &signer) {
-        let acc = AccumulatedHash { acc: vector::empty() };
+        let acc = AccumulatedHash { acc: vector::singleton(0) };
         move_to<AccumulatedHash>(sref, acc);
     }
 
     public fun record_value<T>(sref: &signer, x: &T) acquires AccumulatedHash {
-        let addr = signer::address_of(sref);
         let acc = borrow_global_mut<AccumulatedHash>(signer::address_of(sref));
         vector::append(&mut acc.acc, bcs::to_bytes(x));
         acc.acc = hash::sha3_256(acc.acc);

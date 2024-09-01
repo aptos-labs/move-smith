@@ -14,10 +14,13 @@ pub fn handle_compile(env: &MoveSmithEnv, cmd: &Compile) {
     let code = fs::read_to_string(&cmd.file).unwrap();
     println!("Loaded code from file: {:?}", cmd.file);
 
-    let setting = env.config.get_compiler_setting(&cmd.use_setting).unwrap();
+    let setting = env
+        .config
+        .get_compiler_setting(&env.cli.global_options.use_setting)
+        .unwrap();
     println!(
         "Using fuzz.compiler_settings.{} from {}",
-        cmd.use_setting,
+        env.cli.global_options.use_setting,
         env.cli.global_options.config.display()
     );
 

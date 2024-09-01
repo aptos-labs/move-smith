@@ -5,7 +5,7 @@ pub mod generate;
 pub mod raw2move;
 pub mod run;
 
-use crate::config::Config;
+use crate::{config::Config, execution::ReportFormat};
 use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
@@ -28,8 +28,15 @@ pub struct GlobalOptions {
         default_value = "MoveSmith.toml"
     )]
     pub config: PathBuf,
-    #[arg(long, short, value_name = "NUM_JOBS", default_value = "16")]
+    #[arg(long, short, value_name = "NUM_JOBS", default_value_t = default_jobs())]
     pub jobs: usize,
+    #[arg(long, default_value = "opt")]
+    pub use_setting: String,
+}
+
+fn default_jobs() -> usize {
+    let num_cores = num_cpus::get();
+    std::cmp::max((num_cores as f64 * 0.8).floor() as usize, 1)
 }
 
 #[derive(Subcommand, Debug)]
@@ -50,8 +57,6 @@ pub struct Run {
     /// Format to show the output
     #[arg(value_name = "MODE", short, long, default_value = "canonicalized")]
     pub output: OutputMode,
-    #[arg(long, default_value = "opt")]
-    pub use_setting: String,
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -70,8 +75,6 @@ pub struct Compile {
     pub no_v1: bool,
     #[arg(long, default_value = "false")]
     pub no_v2: bool,
-    #[arg(long, default_value = "opt")]
-    pub use_setting: String,
 }
 
 #[derive(Args, Debug)]
@@ -99,8 +102,6 @@ pub struct Generate {
     pub skip_run: bool,
     #[arg(long)]
     pub ignore_error: bool,
-    #[arg(long, default_value = "opt")]
-    pub use_setting: String,
 }
 
 #[derive(Args, Debug)]
@@ -125,8 +126,10 @@ pub struct Cov {
 pub struct Check {
     #[arg(value_name = "CORPUS_DIR")]
     pub corpus_dir: PathBuf,
-    #[arg(short, long, default_value = "report.toml")]
-    pub output_file: PathBuf,
+    #[arg(short, long, default_value = "reports")]
+    pub output_dir: PathBuf,
+    #[arg(short, long, default_value = "text")]
+    pub format: ReportFormat,
 }
 
 #[derive(Debug)]

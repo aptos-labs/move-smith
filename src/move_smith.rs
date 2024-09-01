@@ -1053,7 +1053,7 @@ impl MoveSmith {
             1 => self
                 .generate_expression(u, parent_scope)?
                 .into_iter()
-                .map(|e| Statement::Expr(e))
+                .map(Statement::Expr)
                 .collect(),
             2 => vec![self.generate_vector_operation(u, parent_scope)?],
             _ => panic!("Invalid statement type"),

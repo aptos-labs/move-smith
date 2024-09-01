@@ -8,7 +8,7 @@ use crate::{
     config::GenerationConfig,
     execution::{
         transactional::{TransactionalExecutor, TransactionalInput},
-        ExecutionResult, Executor,
+        ExecutionManager,
     },
     utils::create_move_package,
 };
@@ -48,20 +48,20 @@ pub fn handle_generate(env: &MoveSmithEnv, cmd: &Generate) {
 
     if !cmd.skip_run {
         println!("[2/2] Running transactional tests...");
-        let runner = TransactionalExecutor {};
+        let executor = ExecutionManager::<TransactionalExecutor>::default();
         let setting = env
             .config
-            .get_compiler_setting(cmd.use_setting.as_str())
+            .get_compiler_setting(env.cli.global_options.use_setting.as_str())
             .unwrap();
         let pb = get_progress_bar_with_msg(cmd.num, "Running");
         let timer = Instant::now();
         let results = codes
             .par_iter()
             .map(|code| {
-                let input = TransactionalInput::new_from_str(code, &setting);
-                let result = runner.execute_one(&input);
+                let input = TransactionalInput::new_from_str(code, setting);
+                let result = executor.execute_check_new_bug(&input);
                 pb.inc(1);
-                result.is_bug()
+                result.unwrap_or(false)
             })
             .collect::<Vec<bool>>();
         pb.finish_and_clear();

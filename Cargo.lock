@@ -2280,6 +2280,7 @@ dependencies = [
  "move-transactional-test-runner 0.1.0",
  "move-transactional-test-runner 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git?branch=move-smith-patches)",
  "num-bigint 0.4.6",
+ "num_cpus",
  "once_cell",
  "rand 0.8.5",
  "rand_distr",
@@ -2677,6 +2678,16 @@ checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
  "libm",
+]
+
+[[package]]
+name = "num_cpus"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
+dependencies = [
+ "hermit-abi 0.3.9",
+ "libc",
 ]
 
 [[package]]
