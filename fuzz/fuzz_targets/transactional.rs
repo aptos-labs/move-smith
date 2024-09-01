@@ -5,7 +5,14 @@
 
 use arbitrary::Unstructured;
 use libfuzzer_sys::fuzz_target;
-use move_smith::{config::Config, runner::Runner, CodeGenerator, MoveSmith};
+use move_smith::{
+    config::Config,
+    execution::{
+        transactional::{TransactionalExecutor, TransactionalInput},
+        ExecutionManager,
+    },
+    CodeGenerator, MoveSmith,
+};
 use once_cell::sync::Lazy;
 use std::{env, fs::OpenOptions, io::Write, path::PathBuf, sync::Mutex, time::Instant};
 
@@ -17,8 +24,8 @@ static CONFIG: Lazy<Config> = Lazy::new(|| {
     Config::from_toml_file_or_default(&config_path)
 });
 
-static RUNNER: Lazy<Mutex<Runner>> =
-    Lazy::new(|| Mutex::new(Runner::new_with_known_errors(&CONFIG.fuzz, false)));
+static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalExecutor>>> =
+    Lazy::new(|| Mutex::new(ExecutionManager::<TransactionalExecutor>::default()));
 
 fuzz_target!(|data: &[u8]| {
     let u = &mut Unstructured::new(data);
@@ -43,7 +50,12 @@ fuzz_target!(|data: &[u8]| {
 
         let code = smith.get_compile_unit().emit_code();
         let start = Instant::now();
-        let results = RUNNER.lock().unwrap().run_transactional_test(&code);
+        let mut results = vec![];
+        for (_, setting) in CONFIG.fuzz.runs() {
+            let input = TransactionalInput::new_from_str(&code, &setting);
+            let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
+            results.push(bug);
+        }
         let elapsed = start.elapsed();
 
         profile_s.push_str(&format!(
@@ -51,8 +63,8 @@ fuzz_target!(|data: &[u8]| {
             elapsed.as_millis()
         ));
 
-        for r in results.iter() {
-            let status = match r.result {
+        for bug in results.iter() {
+            let status = match bug {
                 Ok(_) => "success",
                 Err(_) => "error",
             };
@@ -66,15 +78,21 @@ fuzz_target!(|data: &[u8]| {
             .open("move-smith-profile.txt")
             .unwrap();
         file.write_all(profile_s.as_bytes()).unwrap();
-
-        RUNNER.lock().unwrap().keep_and_check_results(&results);
+        if results.into_iter().any(|r| r.unwrap()) {
+            panic!("Found bug")
+        }
     } else {
         match smith.generate(u) {
             Ok(()) => (),
             Err(_) => return,
         };
         let code = smith.get_compile_unit().emit_code();
-        let results = RUNNER.lock().unwrap().run_transactional_test(&code);
-        RUNNER.lock().unwrap().keep_and_check_results(&results);
+        for (_, setting) in CONFIG.fuzz.runs() {
+            let input = TransactionalInput::new_from_str(&code, &setting);
+            let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
+            if bug.unwrap() {
+                panic!("Found bug")
+            }
+        }
     }
 });

@@ -5,7 +5,14 @@
 extern crate afl;
 
 use arbitrary::Unstructured;
-use move_smith::{config::Config, runner::Runner, CodeGenerator, MoveSmith};
+use move_smith::{
+    config::Config,
+    execution::{
+        transactional::{TransactionalExecutor, TransactionalInput},
+        ExecutionManager,
+    },
+    CodeGenerator, MoveSmith,
+};
 use once_cell::sync::Lazy;
 use std::{env, path::PathBuf, sync::Mutex};
 
@@ -16,8 +23,8 @@ static CONFIG: Lazy<Config> = Lazy::new(|| {
     Config::from_toml_file_or_default(&config_path)
 });
 
-static RUNNER: Lazy<Mutex<Runner>> =
-    Lazy::new(|| Mutex::new(Runner::new_with_known_errors(&CONFIG.fuzz, false)));
+static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalExecutor>>> =
+    Lazy::new(|| Mutex::new(ExecutionManager::<TransactionalExecutor>::default()));
 
 fn main() {
     fuzz!(|data: &[u8]| {
@@ -28,7 +35,12 @@ fn main() {
             Err(_) => return,
         };
         let code = smith.get_compile_unit().emit_code();
-        let results = RUNNER.lock().unwrap().run_transactional_test(&code);
-        RUNNER.lock().unwrap().keep_and_check_results(&results);
+        for (_, setting) in CONFIG.fuzz.runs() {
+            let input = TransactionalInput::new_from_str(&code, &setting);
+            let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
+            if bug.unwrap() {
+                panic!("Found bug")
+            }
+        }
     });
 }
