@@ -6,14 +6,14 @@
 use crate::{
     cli::{raw2move::raw2move, MoveSmithEnv, OutputMode, Run},
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInput},
+        transactional::{TransactionalExecutor, TransactionalInput, TransactionalResult},
         ExecutionManager,
     },
 };
 use std::{fs, path::PathBuf};
 
 pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
-    let executor = ExecutionManager::<TransactionalExecutor>::default();
+    let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::default();
     let setting = env
         .config
         .get_compiler_setting(env.cli.global_options.use_setting.as_str())

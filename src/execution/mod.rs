@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     fs,
@@ -30,32 +31,37 @@ pub enum ResultCompareMode {
     SameError,
 }
 
-pub trait ExecutionResult: Eq + Hash + Clone + Report {
+pub trait ExecutionResult: Report {
     fn is_bug(&self) -> bool;
     fn similar(&self, other: &Self, mode: &ResultCompareMode) -> bool;
 }
 /// An executor is responsible for execute tests, parse their results, and avoid duplications
-pub trait Executor: Default {
+pub trait Executor<R: ExecutionResult> {
     type Input: Clone + Report;
-    type ExecutionResult: ExecutionResult;
 
     /// Execute one test
-    fn execute_one(&self, input: &Self::Input) -> Self::ExecutionResult;
+    fn execute_one(&self, input: &Self::Input) -> R;
 }
 
 /// An execution manager is responsible for saving and clustering the results of test executions
-pub struct ExecutionManager<E: Executor> {
+pub struct ExecutionManager<R: ExecutionResult + Eq + Hash + Clone, E: Executor<R>> {
     save_input: bool,
+    save_to_disk_path: Option<PathBuf>,
     compare_mode: ResultCompareMode,
     pub executor: E,
-    pub pool: Mutex<HashSet<E::ExecutionResult>>,
-    pub input_map: Mutex<HashMap<E::ExecutionResult, Vec<E::Input>>>,
+    pub pool: Mutex<HashSet<R>>,
+    pub input_map: Mutex<HashMap<R, Vec<E::Input>>>,
 }
 
-impl<E: Executor> Default for ExecutionManager<E> {
+impl<R, E> Default for ExecutionManager<R, E>
+where
+    R: ExecutionResult + Eq + Hash + Clone,
+    E: Executor<R> + Default,
+{
     fn default() -> Self {
         Self {
             save_input: false,
+            save_to_disk_path: None,
             compare_mode: ResultCompareMode::SameError,
             executor: E::default(),
             pool: Mutex::new(HashSet::new()),
@@ -64,7 +70,11 @@ impl<E: Executor> Default for ExecutionManager<E> {
     }
 }
 
-impl<E: Executor> ExecutionManager<E> {
+impl<R, E> ExecutionManager<R, E>
+where
+    R: ExecutionResult + Eq + Hash + Clone + Serialize + for<'de> Deserialize<'de>,
+    E: Executor<R> + Default,
+{
     pub fn new() -> Self {
         Self::default()
     }
@@ -77,7 +87,11 @@ impl<E: Executor> ExecutionManager<E> {
         self.save_input = save_input;
     }
 
-    pub fn add_result(&self, result: &E::ExecutionResult, input: Option<&E::Input>) {
+    pub fn set_save_to_disk_path(&mut self, path: Option<PathBuf>) {
+        self.save_to_disk_path = path;
+    }
+
+    pub fn add_result(&self, result: &R, input: Option<&E::Input>) {
         let mut pool = self.pool.lock().unwrap();
         let mut map = self.input_map.lock().unwrap();
 
@@ -95,7 +109,7 @@ impl<E: Executor> ExecutionManager<E> {
         }
     }
 
-    pub fn seen_similar_result(&self, result: &E::ExecutionResult) -> bool {
+    pub fn seen_similar_result(&self, result: &R) -> bool {
         for r in self.pool.lock().unwrap().iter() {
             if result.similar(r, &self.compare_mode) {
                 return true;
@@ -104,12 +118,12 @@ impl<E: Executor> ExecutionManager<E> {
         false
     }
 
-    pub fn execute_without_save(&self, input: &E::Input) -> Result<E::ExecutionResult> {
+    pub fn execute_without_save(&self, input: &E::Input) -> Result<R> {
         Ok(self.executor.execute_one(input))
     }
 
     /// Execute a test and save the result to the pool
-    pub fn execute(&self, input: &E::Input) -> Result<E::ExecutionResult> {
+    pub fn execute(&self, input: &E::Input) -> Result<R> {
         let result = self.execute_without_save(input);
         if let Ok(result) = &result {
             self.add_result(result, Some(input));
@@ -161,5 +175,14 @@ impl<E: Executor> ExecutionManager<E> {
             },
             _ => unimplemented!(),
         }
+    }
+
+    pub fn save_result_to_disk(&self, result: &R, output_file: &Path) {
+        fs::write(&output_file, serde_json::to_string(result).unwrap()).unwrap();
+    }
+
+    pub fn load_result_from_disk(&self, input: &Path) -> R {
+        let content = fs::read_to_string(input).unwrap();
+        serde_json::from_str(&content).unwrap()
     }
 }

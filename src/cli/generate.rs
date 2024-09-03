@@ -7,7 +7,7 @@ use crate::{
     cli::{common::get_progress_bar_with_msg, raw2move::raw2move, Generate, MoveSmithEnv},
     config::GenerationConfig,
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInput},
+        transactional::{TransactionalExecutor, TransactionalInput, TransactionalResult},
         ExecutionManager,
     },
     utils::create_move_package,
@@ -35,7 +35,7 @@ pub fn handle_generate(env: &MoveSmithEnv, cmd: &Generate) {
     let codes = files
         .par_iter()
         .zip(seeds.par_iter())
-        .progress_with(get_progress_bar_with_msg(cmd.num, "Generatin"))
+        .progress_with(get_progress_bar_with_msg(cmd.num, "Generating"))
         .map(|(file, seed)| {
             generate_move_with_seed(&env.config.generation, file, *seed, cmd.package)
         })
@@ -48,7 +48,7 @@ pub fn handle_generate(env: &MoveSmithEnv, cmd: &Generate) {
 
     if !cmd.skip_run {
         println!("[2/2] Running transactional tests...");
-        let executor = ExecutionManager::<TransactionalExecutor>::default();
+        let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::default();
         let setting = env
             .config
             .get_compiler_setting(env.cli.global_options.use_setting.as_str())

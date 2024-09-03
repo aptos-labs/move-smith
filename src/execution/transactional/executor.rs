@@ -60,8 +60,7 @@ impl TransactionalInput {
     }
 }
 
-impl Executor for TransactionalExecutor {
-    type ExecutionResult = TransactionalResult;
+impl Executor<TransactionalResult> for TransactionalExecutor {
     type Input = TransactionalInput;
 
     fn execute_one(&self, input: &TransactionalInput) -> TransactionalResult {

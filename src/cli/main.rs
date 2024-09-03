@@ -13,6 +13,7 @@ fn main() {
     let env = MoveSmithEnv::from_cli();
     rayon::ThreadPoolBuilder::new()
         .num_threads(env.cli.global_options.jobs)
+        .stack_size(8 * 1024 * 1024)
         .build_global()
         .unwrap();
     match &env.cli.command {

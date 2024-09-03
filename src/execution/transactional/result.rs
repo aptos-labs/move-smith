@@ -8,6 +8,7 @@ use std::{collections::BTreeSet, error::Error, fmt::Display, time::Duration};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct TransactionalResult {
+    #[serde(skip)]
     pub log: String,
     pub splitted_logs: Vec<String>,
     pub status: ResultStatus,
@@ -28,9 +29,11 @@ pub enum ResultStatus {
 
 #[derive(Default, Debug, Clone, Eq, Deserialize, Serialize, Hash)]
 pub struct ResultChunk {
+    #[serde(skip)]
     pub original: String,
     pub canonical: String,
     pub kind: ResultChunkKind,
+    #[serde(skip)]
     pub lines: Vec<String>,
 }
 
@@ -50,6 +53,7 @@ pub enum ResultChunkKind {
     Panic,
     Warning,
     Hash,
+    Return,
 }
 
 impl ResultChunkKind {
@@ -68,6 +72,8 @@ impl ResultChunkKind {
             Some(Self::Bug)
         } else if msg.starts_with("panic") {
             Some(Self::Panic)
+        } else if msg.starts_with("return") {
+            Some(Self::Return)
         } else {
             None
         }

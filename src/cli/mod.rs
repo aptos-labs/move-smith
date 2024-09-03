@@ -130,6 +130,12 @@ pub struct Check {
     pub output_dir: PathBuf,
     #[arg(short, long, default_value = "text")]
     pub format: ReportFormat,
+    /// Regenerate the Move file from the raw input even if it already exists
+    #[arg(long, default_value = "false")]
+    pub regenerate: bool,
+    /// Re-run the Move file even if an `.output` or `.error` file already exists
+    #[arg(long, default_value = "false")]
+    pub rerun: bool,
 }
 
 #[derive(Debug)]
