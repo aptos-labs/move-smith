@@ -123,18 +123,27 @@ where
         let mut pool = self.pool.lock().unwrap();
         let mut map = self.input_map.lock().unwrap();
 
-        for r in pool.iter() {
+        let similar = pool.iter().any(|r| result.similar(r, &self.compare_mode));
+        if !similar {
+            pool.insert(result.clone());
+        }
+
+        if !self.save_input {
+            return;
+        }
+
+        for (r, v) in map.iter_mut() {
             if result.similar(r, &self.compare_mode) {
+                if let Some(input) = input {
+                    v.push(input.clone());
+                }
                 return;
             }
         }
-
-        pool.insert(result.clone());
-        if self.save_input {
-            if let Some(input) = input {
-                map.entry(result.clone()).or_default().push(input.clone());
-            }
-        }
+        map.insert(result.clone(), match input {
+            Some(input) => vec![input.clone()],
+            None => vec![],
+        });
     }
 
     pub fn seen_similar_result(&self, result: &R) -> bool {
