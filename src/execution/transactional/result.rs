@@ -4,11 +4,12 @@ use log::{debug, error};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, error::Error, fmt::Display, time::Duration};
+use std::{
+    collections::BTreeSet, error::Error, fmt::Display, panic::PanicHookInfo, time::Duration,
+};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct TransactionalResult {
-    #[serde(skip)]
     pub log: String,
     pub splitted_logs: Vec<String>,
     pub status: ResultStatus,
@@ -23,6 +24,7 @@ pub struct TransactionalResult {
 pub enum ResultStatus {
     Success,
     Failure,
+    Panic,
     #[default]
     Unknown,
 }
@@ -286,6 +288,10 @@ impl ResultChunk {
 
 impl Display for TransactionalResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if matches!(self.status, ResultStatus::Panic) {
+            writeln!(f, "{}", self.log)?;
+            return Ok(());
+        }
         for (i, chunk) in self.chunks.iter().enumerate() {
             writeln!(f, "\n#{} output:", i + 1)?;
             for chunk in chunk.iter() {
@@ -299,11 +305,26 @@ impl Display for TransactionalResult {
 }
 
 impl ExecutionResult for TransactionalResult {
+    fn from_panic(panic: &PanicHookInfo) -> Self {
+        let log = format!("panicked: {}", panic.location().unwrap());
+        Self {
+            log,
+            status: ResultStatus::Panic,
+            ..Default::default()
+        }
+    }
+
     fn is_bug(&self) -> bool {
         self.status != ResultStatus::Success
     }
 
     fn similar(&self, other: &Self, mode: &ResultCompareMode) -> bool {
+        if matches!(self.status, ResultStatus::Panic) && matches!(other.status, ResultStatus::Panic)
+        {
+            let left_loc = self.log.lines().next().unwrap();
+            let right_loc = other.log.lines().next().unwrap();
+            return left_loc == right_loc;
+        }
         match mode {
             ResultCompareMode::Exact => self.chunks == other.chunks,
             ResultCompareMode::SameError => {

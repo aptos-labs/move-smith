@@ -6,7 +6,9 @@
 use crate::{
     cli::{raw2move::raw2move, MoveSmithEnv, OutputMode, Run},
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInput, TransactionalResult},
+        transactional::{
+            result::ResultStatus, TransactionalExecutor, TransactionalInput, TransactionalResult,
+        },
         ExecutionManager,
     },
 };
@@ -48,16 +50,20 @@ pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
             println!("Duration: {:?}", result.duration);
         },
         OutputMode::Split => {
-            println!("V1 output:");
-            println!(
-                "{}",
-                result.splitted_logs.first().unwrap_or(&"empty".to_string())
-            );
-            println!("\nV2 output:");
-            println!(
-                "{}",
-                result.splitted_logs.get(1).unwrap_or(&"empty".to_string())
-            );
+            if matches!(result.status, ResultStatus::Panic) {
+                println!("{}", result.log);
+            } else {
+                println!("V1 output:");
+                println!(
+                    "{}",
+                    result.splitted_logs.first().unwrap_or(&"empty".to_string())
+                );
+                println!("\nV2 output:");
+                println!(
+                    "{}",
+                    result.splitted_logs.get(1).unwrap_or(&"empty".to_string())
+                );
+            }
             println!("{:?}", result.status);
             println!("Duration: {:?}", result.duration);
         },

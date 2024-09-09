@@ -130,6 +130,9 @@ pub struct Check {
     pub output_dir: PathBuf,
     #[arg(short, long, default_value = "text")]
     pub format: ReportFormat,
+    /// Ignore the files whose any contains any of the given strings
+    #[arg(short, long, default_value = "timeout")]
+    pub ignore: Vec<String>,
     /// Regenerate the Move file from the raw input even if it already exists
     #[arg(long, default_value = "false")]
     pub regenerate: bool,

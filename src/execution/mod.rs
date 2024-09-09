@@ -5,8 +5,10 @@ use std::{
     collections::{HashMap, HashSet},
     fs,
     hash::Hash,
+    panic::{self, AssertUnwindSafe, PanicHookInfo},
     path::{Path, PathBuf},
-    sync::Mutex,
+    sync::{Arc, Mutex},
+    thread::ThreadId,
 };
 
 pub mod transactional;
@@ -32,6 +34,7 @@ pub enum ResultCompareMode {
 }
 
 pub trait ExecutionResult: Report {
+    fn from_panic(panic: &PanicHookInfo) -> Self;
     fn is_bug(&self) -> bool;
     fn similar(&self, other: &Self, mode: &ResultCompareMode) -> bool;
 }
@@ -40,6 +43,7 @@ pub trait Executor<R: ExecutionResult> {
     type Input: Clone + Report;
 
     /// Execute one test
+    /// This function should be thread-safe but can panic
     fn execute_one(&self, input: &Self::Input) -> R;
 }
 
@@ -51,14 +55,28 @@ pub struct ExecutionManager<R: ExecutionResult + Eq + Hash + Clone, E: Executor<
     pub executor: E,
     pub pool: Mutex<HashSet<R>>,
     pub input_map: Mutex<HashMap<R, Vec<E::Input>>>,
+
+    trace_map: Arc<Mutex<HashMap<ThreadId, R>>>,
+    original_panic_hook: Option<Box<dyn Fn(&PanicHookInfo) + Send + Sync>>,
 }
 
 impl<R, E> Default for ExecutionManager<R, E>
 where
-    R: ExecutionResult + Eq + Hash + Clone,
+    R: ExecutionResult + Eq + Hash + Clone + Send + Sync + 'static,
     E: Executor<R> + Default,
 {
     fn default() -> Self {
+        let original_panic_hook = Some(panic::take_hook());
+        let trace_map = Arc::new(Mutex::new(HashMap::new()));
+        let trace_map_ref = trace_map.clone();
+        panic::set_hook(Box::new(move |panic| {
+            let thread_id = std::thread::current().id();
+            let panic_result = R::from_panic(panic);
+            trace_map_ref
+                .lock()
+                .unwrap()
+                .insert(thread_id, panic_result);
+        }));
         Self {
             save_input: false,
             save_to_disk_path: None,
@@ -66,13 +84,23 @@ where
             executor: E::default(),
             pool: Mutex::new(HashSet::new()),
             input_map: Mutex::new(HashMap::new()),
+            trace_map,
+            original_panic_hook,
         }
     }
 }
 
 impl<R, E> ExecutionManager<R, E>
 where
-    R: ExecutionResult + Eq + Hash + Clone + Serialize + for<'de> Deserialize<'de>,
+    R: ExecutionResult
+        + Eq
+        + Hash
+        + Clone
+        + Serialize
+        + for<'de> Deserialize<'de>
+        + Send
+        + Sync
+        + 'static,
     E: Executor<R> + Default,
 {
     pub fn new() -> Self {
@@ -119,7 +147,17 @@ where
     }
 
     pub fn execute_without_save(&self, input: &E::Input) -> Result<R> {
-        Ok(self.executor.execute_one(input))
+        let catch_result =
+            panic::catch_unwind(AssertUnwindSafe(|| self.executor.execute_one(input)));
+        match catch_result {
+            Ok(result) => Ok(result),
+            Err(_) => {
+                let thread_id = std::thread::current().id();
+                let panic_result = self.trace_map.lock().unwrap().remove(&thread_id).unwrap();
+                self.add_result(&panic_result, None);
+                Ok(panic_result)
+            },
+        }
     }
 
     /// Execute a test and save the result to the pool
@@ -184,5 +222,15 @@ where
     pub fn load_result_from_disk(&self, input: &Path) -> R {
         let content = fs::read_to_string(input).unwrap();
         serde_json::from_str(&content).unwrap()
+    }
+}
+
+impl<R, E> Drop for ExecutionManager<R, E>
+where
+    R: ExecutionResult + Eq + Hash + Clone,
+    E: Executor<R>,
+{
+    fn drop(&mut self) {
+        panic::set_hook(self.original_panic_hook.take().unwrap());
     }
 }

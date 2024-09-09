@@ -11,11 +11,11 @@ use crate::{
     },
 };
 use core::panic;
-use glob::glob;
 use indicatif::HumanDuration;
 use rand::{seq::SliceRandom, thread_rng};
 use rayon::prelude::*;
 use std::{
+    collections::BTreeSet,
     fs,
     path::{Path, PathBuf},
     sync::Mutex,
@@ -30,33 +30,46 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
         panic!("Corpus dir does not exist");
     }
 
-    let mut all_inputs = vec![];
-    let patterns = ["crash*", "oom*", "*.raw"];
-    let ignore_patterns = [".move", ".output", ".error"];
-    for pattern in &patterns {
-        let search_pattern = format!("{}/**/{}", corpus_dir.display(), pattern);
-        for entry in glob(&search_pattern).expect("Failed to read glob pattern") {
-            match entry {
-                Ok(path) => {
-                    if ignore_patterns
-                        .iter()
-                        .all(|p| !path.as_os_str().to_str().unwrap().ends_with(p))
-                    {
-                        all_inputs.push(path);
-                    }
-                },
-                Err(e) => println!("{:?}", e),
+    let mut raw_inputs = vec![];
+    let mut move_inputs = vec![];
+    let mut ignore_patterns = vec![".output", ".error"];
+    ignore_patterns.extend(cmd.ignore.iter().map(|s| s.as_str()));
+
+    for entry in fs::read_dir(corpus_dir).unwrap() {
+        let path = entry.unwrap().path();
+        if !path.is_file() {
+            continue;
+        }
+        for s in &ignore_patterns {
+            if path.display().to_string().contains(s) {
+                continue;
             }
         }
+
+        match path.extension() {
+            Some(ext) => {
+                if ext == "raw" {
+                    raw_inputs.push(path);
+                } else if ext == "move" {
+                    move_inputs.push(path);
+                }
+            },
+            None => raw_inputs.push(path),
+        }
     }
-    println!("[1/4] Found {} crashing input files", all_inputs.len());
+
+    println!(
+        "[1/5] Found {} raw input files and {} Move files",
+        raw_inputs.len(),
+        move_inputs.len(),
+    );
 
     let num_parse = Mutex::new(0usize);
     let num_parse_err = Mutex::new(0usize);
 
-    println!("[2/4] Getting Move files...");
-    let pb = get_progress_bar_with_msg(all_inputs.len() as u64, "Generating");
-    let all_moves: Vec<PathBuf> = all_inputs
+    println!("[2/5] Converting raw inputs files...");
+    let pb = get_progress_bar_with_msg(raw_inputs.len() as u64, "Generating");
+    let mut all_moves: BTreeSet<PathBuf> = raw_inputs
         .par_iter()
         .filter_map(|input_file| {
             let move_file = input_file.with_extension("move");
@@ -86,21 +99,19 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
             }
         })
         .collect();
+    all_moves.extend(move_inputs.into_iter());
 
     pb.finish_and_clear();
 
-    println!("[2/4] Parsed {} raw inputs", num_parse.lock().unwrap(),);
+    println!("[2/5] Converted {} raw inputs", num_parse.lock().unwrap(),);
     println!(
-        "[2/4] {} input files cannot be parsed due to errors",
+        "[2/5] {} input files cannot be parsed due to errors",
         num_parse_err.lock().unwrap()
     );
-    println!(
-        "[2/4] {} Move files loaded/generated in {}",
-        all_moves.len(),
-        HumanDuration(timer.elapsed())
-    );
 
-    println!("[3/4] Loading existing results...");
+    println!("[2/5] Obtained {} Move files in total", all_moves.len(),);
+
+    println!("[3/5] Loading existing results...");
     let pb = get_progress_bar_with_msg(all_moves.len() as u64, "Loading");
     let mut executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::default();
     executor.set_save_input(true);
@@ -109,6 +120,7 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
         .get_compiler_setting(env.cli.global_options.use_setting.as_str())
         .unwrap();
 
+    let loaded_num = Mutex::new(0usize);
     let mut to_execute: Vec<(PathBuf, TransactionalInput)> = all_moves
         .par_iter()
         .filter_map(|move_file| {
@@ -120,15 +132,19 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
             } else {
                 let result = executor.load_result_from_disk(&output_file);
                 executor.add_result(&result, Some(&input));
+                *loaded_num.lock().unwrap() += 1;
                 None
             }
         })
         .collect();
     pb.finish_and_clear();
+    println!(
+        "[3/5] Loaded {} existing results...",
+        loaded_num.lock().unwrap(),
+    );
+
+    println!("[4/5] (Re-)Executing {} Move files", to_execute.len(),);
     to_execute.shuffle(&mut thread_rng());
-
-    println!("[3/4] {} Move files to (re)execute", to_execute.len(),);
-
     let pb = get_progress_bar_with_msg(to_execute.len() as u64, "Executing");
     to_execute.par_iter().for_each(|(move_file, input)| {
         let output_file = move_file.with_extension("output");
@@ -146,17 +162,18 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
         }
         pb.inc(1);
     });
+    pb.finish_and_clear();
 
-    println!("[3/4] Executed {} files", to_execute.len(),);
+    println!("[4/5] Executed {} files", to_execute.len(),);
 
     println!(
-        "[4/4] Clustered {} runs into {} new errors",
+        "[5/5] Clustered {} runs into {} new errors",
         all_moves.len(),
         executor.pool.lock().unwrap().len(),
     );
 
     let to_open = executor.generate_report(&cmd.format, &cmd.output_dir);
 
-    println!("[4/4] Saved report to: {:?}", to_open);
+    println!("[5/5] Saved report to: {:?}", to_open);
     println!("Done checking in {}", HumanDuration(timer.elapsed()));
 }

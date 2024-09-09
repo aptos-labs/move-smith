@@ -11,7 +11,7 @@ use move_model_local::metadata::LanguageVersion;
 use move_transactional_test_runner::{vm_test_harness, vm_test_harness::TestRunConfig};
 #[cfg(feature = "local_deps")]
 use move_transactional_test_runner_local::{vm_test_harness, vm_test_harness::TestRunConfig};
-use std::{panic, path::PathBuf, time::Instant};
+use std::{path::PathBuf, time::Instant};
 use tempfile::TempDir;
 
 #[derive(Default)]
@@ -72,19 +72,12 @@ impl Executor<TransactionalResult> for TransactionalExecutor {
             v2_experiments: experiments,
         };
 
-        let prev_hook = panic::take_hook();
-        panic::set_hook(Box::new(|_| {}));
         let start = Instant::now();
-        let result = match panic::catch_unwind(|| {
-            vm_test_harness::run_test_with_config_and_exp_suffix(vm_test_config, &path, &None)
-        }) {
-            Ok(res) => res,
-            Err(e) => Err(anyhow::anyhow!("{:?}", e).into()),
-        };
+        let result =
+            vm_test_harness::run_test_with_config_and_exp_suffix(vm_test_config, &path, &None);
         let duration = start.elapsed();
-        panic::set_hook(prev_hook);
-
         let output = TransactionalResult::from_run_result(&result, duration);
+
         dir.close().unwrap();
         output
     }
