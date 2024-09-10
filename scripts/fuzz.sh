@@ -12,7 +12,7 @@
 MOVE_SMITH_DIR=$(realpath $(dirname $0)/..)
 APTOS_DIR=$(realpath $MOVE_SMITH_DIR/../../../..)
 
-JOBS=10
+JOBS=32
 TMUX_SESSION="afl_fuzzing"
 
 function create_log() {
