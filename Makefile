@@ -1,4 +1,9 @@
-all: move-smith move-smith-local
+debug: move-smith move-smith-local
+
+release:
+	cargo clean
+	cargo build --bin move-smith --features git_deps --release
+	cargo build --bin move-smith-local --features local_deps --release
 
 move-smith:
 	cargo build --bin move-smith --features git_deps

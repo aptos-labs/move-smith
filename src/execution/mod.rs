@@ -163,7 +163,6 @@ where
             Err(_) => {
                 let thread_id = std::thread::current().id();
                 let panic_result = self.trace_map.lock().unwrap().remove(&thread_id).unwrap();
-                self.add_result(&panic_result, None);
                 Ok(panic_result)
             },
         }
