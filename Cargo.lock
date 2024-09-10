@@ -20,7 +20,7 @@ dependencies = [
 [[package]]
 name = "abstract-domain-derive"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -29,18 +29,18 @@ dependencies = [
 
 [[package]]
 name = "addr2line"
-version = "0.22.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e4503c46a5c0c7844e948c9a4d6acd9f50cccb4de1c48eb9e291ea17470c678"
+checksum = "f5fb1d8e4442bd405fdfd1dacb42792696b0cf9cb15882e5d097b742a676d375"
 dependencies = [
  "gimli",
 ]
 
 [[package]]
-name = "adler"
-version = "1.0.2"
+name = "adler2"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
+checksum = "512761e0bb2578dd7380c6baaa0f4ce03e84f95e960231d1dec8bf4d7d6e2627"
 
 [[package]]
 name = "afl"
@@ -164,9 +164,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.86"
+version = "1.0.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
+checksum = "10f00e1f6e58a40e807377c75c6a7f97bf9044fab57816f2414e6f5f4499d7b8"
 
 [[package]]
 name = "arbitrary"
@@ -219,17 +219,17 @@ checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
 name = "backtrace"
-version = "0.3.73"
+version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cc23269a4f8976d0a4d2e7109211a419fe30e8d88d677cd60b6bc79c5732e0a"
+checksum = "8d82cb332cdfaed17ae235a638438ac4d4839913cc2af585c3c6746e8f8bee1a"
 dependencies = [
  "addr2line",
- "cc",
  "cfg-if",
  "libc",
  "miniz_oxide",
  "object",
  "rustc-demangle",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -352,9 +352,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.1.16"
+version = "1.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9d013ecb737093c0e86b151a7b837993cf9ec6c502946cfb44bedc392421e0b"
+checksum = "b62ac837cdb5cb22e10a256099b4fc502b1dfe560cb282963a974d7abd80e476"
 dependencies = [
  "jobserver",
  "libc",
@@ -502,9 +502,9 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.13"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51e852e6dc9a5bed1fae92dd2375037bf2b768725bf3be87811edee3249d09ad"
+checksum = "608697df725056feaccfa42cffdaeeec3fccc4ffc38358ecd19b243e716a78e0"
 dependencies = [
  "libc",
 ]
@@ -946,9 +946,9 @@ dependencies = [
 
 [[package]]
 name = "gimli"
-version = "0.29.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40ecd4077b5ae9fd2e9e169b102c6c330d0605168eb0e8bf79952b256dbefffd"
+checksum = "32085ea23f3234fc7846555e85283ba4de91e21016dc0455a16286d87a292d64"
 
 [[package]]
 name = "glob"
@@ -958,9 +958,9 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
 name = "globset"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57da3b9b5b85bd66f31093f8c408b90a74431672542466497dcbdfdc02034be1"
+checksum = "15f1ce686646e7f1e19bf7d5533fe443a45dbfb990e00629110797578b42fb19"
 dependencies = [
  "aho-corasick",
  "bstr",
@@ -1096,9 +1096,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "ignore"
-version = "0.4.22"
+version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b46810df39e66e925525d6e38ce1e7f6e1d208f72dc39757880fcb66e2c58af1"
+checksum = "6d89fd380afde86567dfba715db065673989d6253f42b88179abd3eae47bda4b"
 dependencies = [
  "crossbeam-deque",
  "globset",
@@ -1345,11 +1345,11 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "miniz_oxide"
-version = "0.7.4"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8a240ddb74feaf34a79a7add65a741f3167852fba007066dcac1ca548d89c08"
+checksum = "e2d80299ef12ff69b16a84bb182e3b9df68b5a91574d3d4fa6e41b65deec4df1"
 dependencies = [
- "adler",
+ "adler2",
 ]
 
 [[package]]
@@ -1383,7 +1383,7 @@ dependencies = [
 [[package]]
 name = "move-abigen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1414,7 +1414,7 @@ dependencies = [
 [[package]]
 name = "move-binary-format"
 version = "0.0.3"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "backtrace",
@@ -1433,7 +1433,7 @@ version = "0.0.1"
 [[package]]
 name = "move-borrow-graph"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 
 [[package]]
 name = "move-bytecode-source-map"
@@ -1452,7 +1452,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-source-map"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1476,7 +1476,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-spec"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "once_cell",
  "quote",
@@ -1497,7 +1497,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-utils"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
@@ -1522,7 +1522,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-verifier"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "fail",
  "move-binary-format 0.0.3 (git+https://github.com/aptos-labs/aptos-core.git)",
@@ -1552,7 +1552,7 @@ dependencies = [
 [[package]]
 name = "move-command-line-common"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "difference",
@@ -1594,7 +1594,7 @@ dependencies = [
 [[package]]
 name = "move-compiler"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1651,7 +1651,7 @@ dependencies = [
 [[package]]
 name = "move-compiler-v2"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "anyhow",
@@ -1706,7 +1706,7 @@ dependencies = [
 [[package]]
 name = "move-core-types"
 version = "0.0.4"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1746,7 +1746,7 @@ dependencies = [
 [[package]]
 name = "move-coverage"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1781,7 +1781,7 @@ dependencies = [
 [[package]]
 name = "move-disassembler"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "clap",
@@ -1816,7 +1816,7 @@ dependencies = [
 [[package]]
 name = "move-docgen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "clap",
@@ -1846,7 +1846,7 @@ dependencies = [
 [[package]]
 name = "move-errmapgen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
@@ -1873,7 +1873,7 @@ dependencies = [
 [[package]]
 name = "move-ir-compiler"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1906,7 +1906,7 @@ dependencies = [
 [[package]]
 name = "move-ir-to-bytecode"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "codespan-reporting",
@@ -1936,7 +1936,7 @@ dependencies = [
 [[package]]
 name = "move-ir-to-bytecode-syntax"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "hex",
@@ -1961,7 +1961,7 @@ dependencies = [
 [[package]]
 name = "move-ir-types"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "hex",
  "move-command-line-common 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
@@ -1999,7 +1999,7 @@ dependencies = [
 [[package]]
 name = "move-model"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "codespan",
@@ -2058,7 +2058,7 @@ dependencies = [
 [[package]]
 name = "move-package"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "clap",
@@ -2118,7 +2118,7 @@ dependencies = [
 [[package]]
 name = "move-prover"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "atty",
@@ -2173,7 +2173,7 @@ dependencies = [
 [[package]]
 name = "move-prover-boogie-backend"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2218,7 +2218,7 @@ dependencies = [
 [[package]]
 name = "move-prover-bytecode-pipeline"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "anyhow",
@@ -2247,7 +2247,7 @@ dependencies = [
 [[package]]
 name = "move-resource-viewer"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "hex",
@@ -2323,7 +2323,7 @@ dependencies = [
 [[package]]
 name = "move-stackless-bytecode"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "abstract-domain-derive 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "codespan-reporting",
@@ -2364,7 +2364,7 @@ dependencies = [
 [[package]]
 name = "move-stdlib"
 version = "0.1.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "hex",
@@ -2395,7 +2395,7 @@ dependencies = [
 [[package]]
 name = "move-symbol-pool"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "once_cell",
  "serde",
@@ -2433,7 +2433,7 @@ dependencies = [
 [[package]]
 name = "move-transactional-test-runner"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "clap",
@@ -2486,7 +2486,7 @@ dependencies = [
 [[package]]
 name = "move-vm-runtime"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "better_any",
  "bytes",
@@ -2524,7 +2524,7 @@ dependencies = [
 [[package]]
 name = "move-vm-test-utils"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2555,7 +2555,7 @@ dependencies = [
 [[package]]
 name = "move-vm-types"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git#7dfcb773fda4fb86a3c4d0ddbc356fa45e370210"
+source = "git+https://github.com/aptos-labs/aptos-core.git#47647ef38f47ab5a3e688d7bc83c477a8c09b77a"
 dependencies = [
  "bcs",
  "bytes",
@@ -2810,9 +2810,9 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "pest"
-version = "2.7.11"
+version = "2.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd53dff83f26735fdc1ca837098ccf133605d794cdae66acfc2bfac3ec809d95"
+checksum = "9c73c26c01b8c87956cea613c907c9d6ecffd8d18a2a5908e5de0adfaa185cea"
 dependencies = [
  "memchr",
  "thiserror",
@@ -2821,9 +2821,9 @@ dependencies = [
 
 [[package]]
 name = "pest_derive"
-version = "2.7.11"
+version = "2.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a548d2beca6773b1c244554d36fcf8548a8a58e74156968211567250e48e49a"
+checksum = "664d22978e2815783adbdd2c588b455b1bd625299ce36b2a99881ac9627e6d8d"
 dependencies = [
  "pest",
  "pest_generator",
@@ -2831,9 +2831,9 @@ dependencies = [
 
 [[package]]
 name = "pest_generator"
-version = "2.7.11"
+version = "2.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c93a82e8d145725dcbaf44e5ea887c8a869efdcc28706df2d08c69e17077183"
+checksum = "a2d5487022d5d33f4c30d91c22afa240ce2a644e87fe08caad974d4eab6badbe"
 dependencies = [
  "pest",
  "pest_meta",
@@ -2844,9 +2844,9 @@ dependencies = [
 
 [[package]]
 name = "pest_meta"
-version = "2.7.11"
+version = "2.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a941429fea7e08bedec25e4f6785b6ffaacc6b755da98df5ef3e7dcf4a124c4f"
+checksum = "0091754bbd0ea592c4deb3a122ce8ecbb0753b738aa82bc055fcc2eccc8d8174"
 dependencies = [
  "once_cell",
  "pest",
@@ -3250,9 +3250,9 @@ checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
 
 [[package]]
 name = "serde"
-version = "1.0.209"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99fce0ffe7310761ca6bf9faf5115afbc19688edd00171d81b1bb1b116c63e09"
+checksum = "c8e3592472072e6e22e0a54d5904d9febf8508f65fb8552499a1abc7d1078c3a"
 dependencies = [
  "serde_derive",
 ]
@@ -3278,9 +3278,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.209"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5831b979fd7b5439637af1752d535ff49f4860c0f341d1baeb6faf0f4242170"
+checksum = "243902eda00fad750862fc144cea25caca5e20d615af0a81bee94ca738f1df1f"
 dependencies = [
  "proc-macro2",
  "quote",
