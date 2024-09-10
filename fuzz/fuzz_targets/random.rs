@@ -8,7 +8,7 @@ use libfuzzer_sys::fuzz_target;
 use move_smith::{
     config::Config,
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInput},
+        transactional::{TransactionalExecutor, TransactionalInput, TransactionalResult},
         ExecutionManager,
     },
     CodeGenerator, MoveSmith,
@@ -24,8 +24,10 @@ static CONFIG: Lazy<Config> = Lazy::new(|| {
     Config::from_toml_file_or_default(&config_path)
 });
 
-static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalExecutor>>> =
-    Lazy::new(|| Mutex::new(ExecutionManager::<TransactionalExecutor>::default()));
+static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalResult, TransactionalExecutor>>> =
+    Lazy::new(|| {
+        Mutex::new(ExecutionManager::<TransactionalResult, TransactionalExecutor>::default())
+    });
 
 const INITIAL_BUFFER_SIZE: usize = 1024 * 4;
 const MAX_BUFFER_SIZE: usize = 1024 * 1024;
