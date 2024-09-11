@@ -259,6 +259,7 @@ impl ResultChunk {
         if top.contains("referential transparency violated")
             || (top.contains("cannot borrow")
                 && top.contains("since it is already mutably borrowed"))
+            || top.contains("cannot immutably borrow value which is already mutably borrowed")
         {
             return "... cannot borrow while mutably borrowed ...".to_string();
         }
@@ -276,6 +277,14 @@ impl ResultChunk {
         {
             return "... cannot infer type ...".to_string();
         }
+
+        if top.contains("TOO_MANY")
+            || top.contains("exceeded maximal")
+            || (top.contains("MAX_") && top.contains("REACHED"))
+        {
+            return "... too many something...".to_string();
+        }
+
         let replaced = LOCAL_PAT.replace_all(&top, "[some variable]").to_string();
         let replaced = MODULE_PAT
             .replace_all(&replaced, "[some module]")
