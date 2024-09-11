@@ -19,8 +19,6 @@ pub struct Config {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct FuzzConfig {
-    /// The list of errors to suppress due to imprecision in the generation process
-    pub ignore_strs: Vec<String>,
     /// The directory containing known errors
     pub known_error_dir: PathBuf,
     /// List of possible compiler settings to use
