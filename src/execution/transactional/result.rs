@@ -9,7 +9,13 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 2] = ["EXTRANEOUS_ACQUIRES_ANNOTATION", "cannot infer"];
+const TO_IGNORE: [&str; 5] = [
+    "EXTRANEOUS_ACQUIRES_ANNOTATION",
+    "cannot infer",
+    "MAX_",
+    "TOO_MANY",
+    "exceeded maximal",
+];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct TransactionalResult {

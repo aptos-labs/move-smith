@@ -120,12 +120,16 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
     executor.set_save_input(true);
 
     let loaded_num = Mutex::new(0usize);
+    let run_config = env.cli.global_options.run.clone().unwrap_or_default();
     let mut to_execute: Vec<(PathBuf, TransactionalInput)> = all_moves
         .par_iter()
         .filter_map(|move_file| {
             let output_file = move_file.with_extension("output");
             let mut input_builder = TransactionalInputBuilder::new();
-            let input = input_builder.load_code_from_file(move_file.clone()).build();
+            let input = input_builder
+                .load_code_from_file(move_file.clone())
+                .with_common_runs(&run_config)
+                .build();
             pb.inc(1);
             if cmd.rerun || !output_file.exists() {
                 Some((move_file.clone(), input))

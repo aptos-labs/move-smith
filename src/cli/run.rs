@@ -7,8 +7,8 @@ use crate::{
     cli::{raw2move::raw2move, MoveSmithEnv, OutputMode, Run},
     execution::{
         transactional::{
-            result::ResultStatus, TransactionalExecutor, TransactionalInputBuilder,
-            TransactionalResult,
+            result::ResultStatus, CommonRunConfig, TransactionalExecutor,
+            TransactionalInputBuilder, TransactionalResult,
         },
         ExecutionManager,
     },
@@ -32,10 +32,13 @@ pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
             input_builder.set_code(&code)
         },
     };
-    match cmd.run_all {
-        true => input_builder.with_all_runs(),
-        false => input_builder.with_default_run(),
-    };
+    let run_config = env
+        .cli
+        .global_options
+        .run
+        .clone()
+        .unwrap_or(CommonRunConfig::default());
+    input_builder.with_common_runs(&run_config);
     let input = input_builder.build();
 
     println!("Loaded code from file: {:?}", cmd.file);

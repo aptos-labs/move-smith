@@ -5,7 +5,10 @@ pub mod generate;
 pub mod raw2move;
 pub mod run;
 
-use crate::{config::Config, execution::ReportFormat};
+use crate::{
+    config::Config,
+    execution::{transactional::CommonRunConfig, ReportFormat},
+};
 use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
@@ -30,6 +33,9 @@ pub struct GlobalOptions {
     pub config: PathBuf,
     #[arg(long, short, value_name = "NUM_JOBS", default_value_t = default_jobs())]
     pub jobs: usize,
+    /// Which execution mode and compiler configuration to use
+    #[arg(long)]
+    pub run: Option<CommonRunConfig>,
 }
 
 fn default_jobs() -> usize {

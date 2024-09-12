@@ -2,6 +2,7 @@ use crate::{
     execution::{Report, ReportFormat},
     utils::create_tmp_move_file,
 };
+use clap::ValueEnum;
 #[cfg(feature = "git_deps")]
 use move_model::metadata::LanguageVersion;
 #[cfg(feature = "local_deps")]
@@ -71,6 +72,54 @@ impl RunConfig {
     }
 }
 
+#[derive(ValueEnum, Debug, Clone, Default)]
+pub enum CommonRunConfig {
+    #[default]
+    V1V2Comparison,
+    V2OptNoOpt,
+    All,
+}
+
+impl CommonRunConfig {
+    pub fn to_run_configs(&self) -> Vec<RunConfig> {
+        use CommonRunConfig::*;
+        match self {
+            V1V2Comparison => vec![RunConfig {
+                mode: ExecutionMode::V1V2Comparison,
+                v2_setting: Some(V2Setting::Optimization),
+            }],
+            V2OptNoOpt => vec![
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::Optimization),
+                },
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::NoOptimization),
+                },
+            ],
+            All => vec![
+                RunConfig {
+                    mode: ExecutionMode::V1Only,
+                    v2_setting: None,
+                },
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::Optimization),
+                },
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::NoOptimization),
+                },
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::OptNoSimp),
+                },
+            ],
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct TransactionalInput {
     pub file: Option<PathBuf>,
@@ -103,30 +152,12 @@ impl TransactionalInputBuilder {
     }
 
     pub fn with_default_run(&mut self) -> &mut Self {
-        self.runs.push(RunConfig {
-            mode: ExecutionMode::V1V2Comparison,
-            v2_setting: Some(V2Setting::Optimization),
-        });
+        self.with_common_runs(&CommonRunConfig::default());
         self
     }
 
-    pub fn with_all_runs(&mut self) -> &mut Self {
-        self.runs.push(RunConfig {
-            mode: ExecutionMode::V1Only,
-            v2_setting: None,
-        });
-        self.runs.push(RunConfig {
-            mode: ExecutionMode::V2Only,
-            v2_setting: Some(V2Setting::Optimization),
-        });
-        self.runs.push(RunConfig {
-            mode: ExecutionMode::V2Only,
-            v2_setting: Some(V2Setting::NoOptimization),
-        });
-        self.runs.push(RunConfig {
-            mode: ExecutionMode::V2Only,
-            v2_setting: Some(V2Setting::OptNoSimp),
-        });
+    pub fn with_common_runs(&mut self, config: &CommonRunConfig) -> &mut Self {
+        self.runs.extend(config.to_run_configs());
         self
     }
 

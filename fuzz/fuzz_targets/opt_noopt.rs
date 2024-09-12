@@ -9,8 +9,7 @@ use move_smith::{
     config::Config,
     execution::{
         transactional::{
-            ExecutionMode, TransactionalExecutor, TransactionalInputBuilder, TransactionalResult,
-            V2Setting,
+            CommonRunConfig, TransactionalExecutor, TransactionalInputBuilder, TransactionalResult,
         },
         ExecutionManager,
     },
@@ -45,8 +44,7 @@ fuzz_target!(|data: &[u8]| {
     let mut input_builder = TransactionalInputBuilder::new();
     let input = input_builder
         .set_code(&code)
-        .add_run(ExecutionMode::V2Only, Some(V2Setting::Optimization))
-        .add_run(ExecutionMode::V2Only, Some(V2Setting::NoOptimization))
+        .with_common_runs(&CommonRunConfig::V2OptNoOpt)
         .build();
 
     let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);

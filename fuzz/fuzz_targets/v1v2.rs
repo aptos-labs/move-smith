@@ -8,7 +8,9 @@ use libfuzzer_sys::fuzz_target;
 use move_smith::{
     config::Config,
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInputBuilder, TransactionalResult},
+        transactional::{
+            CommonRunConfig, TransactionalExecutor, TransactionalInputBuilder, TransactionalResult,
+        },
         ExecutionManager,
     },
     CodeGenerator, MoveSmith,
@@ -54,7 +56,10 @@ fuzz_target!(|data: &[u8]| {
         let start = Instant::now();
 
         let mut input_builder = TransactionalInputBuilder::new();
-        let input = input_builder.set_code(&code).with_default_run().build();
+        let input = input_builder
+            .set_code(&code)
+            .with_common_runs(&CommonRunConfig::V1V2Comparison)
+            .build();
         let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
 
         let elapsed = start.elapsed();
@@ -88,7 +93,10 @@ fuzz_target!(|data: &[u8]| {
         let code = smith.get_compile_unit().emit_code();
 
         let mut input_builder = TransactionalInputBuilder::new();
-        let input = input_builder.set_code(&code).with_default_run().build();
+        let input = input_builder
+            .set_code(&code)
+            .with_common_runs(&CommonRunConfig::V1V2Comparison)
+            .build();
 
         let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
         if bug.unwrap() {
