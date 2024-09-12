@@ -205,6 +205,10 @@ where
                     .unwrap()
                     .iter()
                     .for_each(|(result, inputs)| {
+                        // Skip non-bugs reports
+                        if !result.is_bug() {
+                            return;
+                        }
                         cnt += 1;
                         report.push_str(&format!("Cluster #{}\n", cnt));
                         report.push_str(&result.to_report(format));
