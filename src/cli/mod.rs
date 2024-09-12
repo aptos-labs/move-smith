@@ -30,8 +30,6 @@ pub struct GlobalOptions {
     pub config: PathBuf,
     #[arg(long, short, value_name = "NUM_JOBS", default_value_t = default_jobs())]
     pub jobs: usize,
-    #[arg(long, default_value = "opt")]
-    pub use_setting: String,
 }
 
 fn default_jobs() -> usize {
@@ -50,12 +48,22 @@ pub enum Command {
     Check(Check),
 }
 
+/// Run a Move file or raw input file as a transactional test
 #[derive(Args, Debug)]
 pub struct Run {
+    /// The Move file or raw input file to run
     #[arg(value_name = "FILE")]
     pub file: String,
+    /// Run with all configurations
+    #[arg(default_value = "false", long)]
+    pub run_all: bool,
     /// Format to show the output
-    #[arg(value_name = "MODE", short, long, default_value = "canonicalized")]
+    #[arg(
+        value_name = "OUTPUT_MODE",
+        short,
+        long,
+        default_value = "canonicalized"
+    )]
     pub output: OutputMode,
 }
 

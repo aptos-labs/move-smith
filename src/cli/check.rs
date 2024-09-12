@@ -6,7 +6,10 @@
 use crate::{
     cli::{common::get_progress_bar_with_msg, raw2move::raw2move, Check, MoveSmithEnv},
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInput, TransactionalResult},
+        transactional::{
+            TransactionalExecutor, TransactionalInput, TransactionalInputBuilder,
+            TransactionalResult,
+        },
         ExecutionManager,
     },
 };
@@ -115,17 +118,14 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
     let pb = get_progress_bar_with_msg(all_moves.len() as u64, "Loading");
     let mut executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::default();
     executor.set_save_input(true);
-    let setting = env
-        .config
-        .get_compiler_setting(env.cli.global_options.use_setting.as_str())
-        .unwrap();
 
     let loaded_num = Mutex::new(0usize);
     let mut to_execute: Vec<(PathBuf, TransactionalInput)> = all_moves
         .par_iter()
         .filter_map(|move_file| {
             let output_file = move_file.with_extension("output");
-            let input = TransactionalInput::new_from_file(move_file.clone(), setting);
+            let mut input_builder = TransactionalInputBuilder::new();
+            let input = input_builder.load_code_from_file(move_file.clone()).build();
             pb.inc(1);
             if cmd.rerun || !output_file.exists() {
                 Some((move_file.clone(), input))

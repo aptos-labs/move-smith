@@ -8,6 +8,8 @@ use std::{
     collections::BTreeSet, error::Error, fmt::Display, panic::PanicHookInfo, time::Duration,
 };
 
+const SUCCESS_MSG: &str = "Success";
+
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct TransactionalResult {
     pub log: String,
@@ -47,6 +49,7 @@ impl PartialEq for ResultChunk {
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub enum ResultChunkKind {
+    Success,
     #[default]
     Task,
     Error,
@@ -60,7 +63,9 @@ pub enum ResultChunkKind {
 
 impl ResultChunkKind {
     pub fn try_from_str(msg: &str) -> Option<Self> {
-        if msg.contains("warning") {
+        if msg.contains(SUCCESS_MSG) {
+            Some(Self::Success)
+        } else if msg.contains("warning") {
             Some(Self::Warning)
         } else if msg.contains("task") {
             Some(Self::Task)
@@ -82,27 +87,92 @@ impl ResultChunkKind {
     }
 }
 
-impl TransactionalResult {
-    pub fn from_run_result(res: &Result<(), Box<dyn Error>>, duration: Duration) -> Self {
-        let mut result = Self::default();
+#[derive(Default)]
+pub struct TransactionalResultBuilder {
+    /// Keeps track of the results so far and whether each result is from a V1V2 comparison run (need to split diff)
+    ///   - Result from a run
+    ///   - Whether the result is a diff
+    ///   - Duration of the run
+    results: Vec<(Result<(), Box<dyn Error>>, bool)>,
+}
+
+impl TransactionalResultBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn add_result(&mut self, res: Result<(), Box<dyn Error>>, is_diff: bool) -> &mut Self {
+        self.results.push((res, is_diff));
+        self
+    }
+
+    pub fn build(self, duration: Duration) -> TransactionalResult {
+        if self.results.iter().all(|(r, _)| r.is_ok()) {
+            return TransactionalResult::success();
+        }
+        let mut result = TransactionalResult::default();
         result.duration = duration;
-        match res {
-            Ok(_) => {
-                result.log = "Success".to_string();
-                result.status = ResultStatus::Success;
-            },
-            Err(e) => {
-                let log = format!("{:?}", e);
-                let (v1_log, v1_trimmed, v2_log, v2_trimmed) = Self::split_diff_log(&log);
-                let v1_chunks = ResultChunk::log_to_chunck(&v1_trimmed);
-                let v2_chunks = ResultChunk::log_to_chunck(&v2_trimmed);
-                result.log = log;
-                result.splitted_logs = vec![v1_log, v2_log];
-                result.chunks = vec![v1_chunks, v2_chunks];
-            },
+
+        let mut log_strings = vec![];
+        for (i, (res, is_diff)) in self.results.into_iter().enumerate() {
+            result.log.push_str(&format!("Log from run #{}\n", i + 1));
+            let run_log = match &res {
+                Ok(_) => "Success\n".to_string(),
+                Err(e) => format!("{:?}", e),
+            };
+            if is_diff {
+                let (v1_log, v2_log) = Self::split_diff_log(&run_log);
+                log_strings.push(v1_log);
+                log_strings.push(v2_log);
+            } else {
+                log_strings.push(run_log);
+            }
+        }
+
+        for log in log_strings {
+            let lines = log.lines().map(|l| l.to_string()).collect::<Vec<String>>();
+            let chunks = ResultChunk::log_to_chunck(&lines);
+            result.log.push_str(&log);
+            result.splitted_logs.push(log.clone());
+            result.chunks.push(chunks);
         }
         result.initialize();
         result
+    }
+
+    fn split_diff_log(log: &str) -> (String, String) {
+        let mut left = vec![];
+        let mut right = vec![];
+        for line in log.lines() {
+            let line = line.trim();
+            if line.len() < 2 {
+                continue;
+            }
+            // split line into diff sign and content
+            let (diff_sign, content) = line.split_at(2);
+            match diff_sign.trim() {
+                "-" => left.push(content.to_string()),
+                "+" => right.push(content.to_string()),
+                "=" => {
+                    left.push(content.to_string());
+                    right.push(content.to_string());
+                },
+                _ => (),
+            }
+        }
+        let left_ori = left.join("\n");
+        let right_ori = right.join("\n");
+        (left_ori, right_ori)
+    }
+}
+
+impl TransactionalResult {
+    pub fn success() -> Self {
+        Self {
+            log: SUCCESS_MSG.to_string(),
+            status: ResultStatus::Success,
+            ..Default::default()
+        }
     }
 
     // Initialize the status and hashes fields after the chunks are set
@@ -150,34 +220,7 @@ impl TransactionalResult {
             .iter()
             .find(|e| e.kind == ResultChunkKind::Hash)
             .map(|e| e.get_canonicalized_msg())
-            .unwrap_or("".to_string())
-    }
-
-    fn split_diff_log(log: &str) -> (String, Vec<String>, String, Vec<String>) {
-        let mut left = vec![];
-        let mut right = vec![];
-        for line in log.lines() {
-            let line = line.trim();
-            if line.len() < 2 {
-                continue;
-            }
-            // split line into diff sign and content
-            let (diff_sign, content) = line.split_at(2);
-            match diff_sign.trim() {
-                "-" => left.push(content.to_string()),
-                "+" => right.push(content.to_string()),
-                "=" => {
-                    left.push(content.to_string());
-                    right.push(content.to_string());
-                },
-                _ => (),
-            }
-        }
-        let left_ori = left.join("\n");
-        let right_ori = right.join("\n");
-        left.iter_mut().for_each(|e| *e = e.trim().to_string());
-        right.iter_mut().for_each(|e| *e = e.trim().to_string());
-        (left_ori, left, right_ori, right)
+            .unwrap_or("no hash found".to_string())
     }
 }
 
@@ -195,6 +238,9 @@ impl ResultChunk {
     fn log_to_chunck(log: &[String]) -> Vec<ResultChunk> {
         let mut chunks = vec![];
         for line in log.iter() {
+            if line.contains("errors differ") {
+                continue;
+            }
             if let Some(kind) = ResultChunkKind::try_from_str(line) {
                 chunks.push(ResultChunk {
                     original: line.clone(),

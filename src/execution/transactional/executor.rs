@@ -1,64 +1,19 @@
-use crate::{
-    config::CompilerSetting,
-    execution::{transactional::TransactionalResult, Executor, Report, ReportFormat},
-    utils::create_tmp_move_file,
+use super::result::TransactionalResultBuilder;
+use crate::execution::{
+    transactional::{
+        input::{ExecutionMode, TransactionalInput},
+        TransactionalResult,
+    },
+    Executor,
 };
 #[cfg(feature = "git_deps")]
-use move_model::metadata::LanguageVersion;
+use move_transactional_test_runner::vm_test_harness;
 #[cfg(feature = "local_deps")]
-use move_model_local::metadata::LanguageVersion;
-#[cfg(feature = "git_deps")]
-use move_transactional_test_runner::{vm_test_harness, vm_test_harness::TestRunConfig};
-#[cfg(feature = "local_deps")]
-use move_transactional_test_runner_local::{vm_test_harness, vm_test_harness::TestRunConfig};
-use std::{path::PathBuf, time::Instant};
-use tempfile::TempDir;
+use move_transactional_test_runner_local::vm_test_harness;
+use std::time::Instant;
 
 #[derive(Default)]
 pub struct TransactionalExecutor;
-
-#[derive(Clone)]
-pub struct TransactionalInput {
-    pub file: Option<PathBuf>,
-    pub code: String,
-    pub config: CompilerSetting,
-}
-
-impl Report for TransactionalInput {
-    fn to_report(&self, _format: &ReportFormat) -> String {
-        match &self.file {
-            Some(file) => format!("{}", file.to_string_lossy()),
-            None => "".to_string(),
-        }
-    }
-}
-
-impl TransactionalInput {
-    pub fn new_from_file(file: PathBuf, config: &CompilerSetting) -> Self {
-        let code = std::fs::read_to_string(&file).unwrap();
-        Self {
-            file: Some(file),
-            code,
-            config: config.clone(),
-        }
-    }
-
-    pub fn new_from_str(code: &str, config: &CompilerSetting) -> Self {
-        Self {
-            file: None,
-            code: code.to_string(),
-            config: config.clone(),
-        }
-    }
-
-    pub fn set_report_file(&mut self, file: PathBuf) {
-        self.file = Some(file);
-    }
-
-    pub fn get_file_path(&self) -> (PathBuf, TempDir) {
-        create_tmp_move_file(&self.code, None)
-    }
-}
 
 impl Executor<TransactionalResult> for TransactionalExecutor {
     type Input = TransactionalInput;
@@ -66,18 +21,18 @@ impl Executor<TransactionalResult> for TransactionalExecutor {
     fn execute_one(&self, input: &TransactionalInput) -> TransactionalResult {
         let (path, dir) = input.get_file_path();
 
-        let experiments = input.config.to_expriments();
-        let vm_test_config = TestRunConfig::ComparisonV1V2 {
-            language_version: LanguageVersion::V2_0,
-            v2_experiments: experiments,
-        };
+        let mut result_builder = TransactionalResultBuilder::new();
 
         let start = Instant::now();
-        let result =
-            vm_test_harness::run_test_with_config_and_exp_suffix(vm_test_config, &path, &None);
+        for run in &input.runs {
+            let test_config = run.to_test_framework_config();
+            let result =
+                vm_test_harness::run_test_with_config_and_exp_suffix(test_config, &path, &None);
+            let is_diff = matches!(run.mode, ExecutionMode::V1V2Comparison);
+            result_builder.add_result(result, is_diff);
+        }
         let duration = start.elapsed();
-        let output = TransactionalResult::from_run_result(&result, duration);
-
+        let output = result_builder.build(duration);
         dir.close().unwrap();
         output
     }

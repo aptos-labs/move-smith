@@ -7,7 +7,8 @@ use crate::{
     cli::{raw2move::raw2move, MoveSmithEnv, OutputMode, Run},
     execution::{
         transactional::{
-            result::ResultStatus, TransactionalExecutor, TransactionalInput, TransactionalResult,
+            result::ResultStatus, TransactionalExecutor, TransactionalInputBuilder,
+            TransactionalResult,
         },
         ExecutionManager,
     },
@@ -16,13 +17,10 @@ use std::{fs, path::PathBuf};
 
 pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
     let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::default();
-    let setting = env
-        .config
-        .get_compiler_setting(env.cli.global_options.use_setting.as_str())
-        .unwrap();
 
-    let input = match fs::read_to_string(&cmd.file) {
-        Ok(_) => TransactionalInput::new_from_file(PathBuf::from(&cmd.file), setting),
+    let mut input_builder = TransactionalInputBuilder::new();
+    match fs::read_to_string(&cmd.file) {
+        Ok(_) => input_builder.load_code_from_file(PathBuf::from(&cmd.file)),
         Err(_) => {
             println!("Converting: {:?} to Move", cmd.file);
             let bytes = fs::read(&cmd.file).unwrap();
@@ -31,9 +29,15 @@ pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
                 println!("Failed to convert raw bytes to Move code:\n{}", log);
                 return;
             }
-            TransactionalInput::new_from_str(&code, setting)
+            input_builder.set_code(&code)
         },
     };
+    match cmd.run_all {
+        true => input_builder.with_all_runs(),
+        false => input_builder.with_default_run(),
+    };
+    let input = input_builder.build();
+
     println!("Loaded code from file: {:?}", cmd.file);
     let result = executor.execute(&input);
     let result = match result {

@@ -1,24 +1,3 @@
-[fuzz]
-ignore_strs = [
-    "exceeded maximal local count",
-    "cannot mutably borrow since immutable references exist",
-]
-known_error_dir = "ignore_errors"
-runs = ["opt"]
-transactional_timeout_sec = 10
-
-[fuzz.compiler_settings.opt]
-enable = ["optimize"]
-disable = []
-
-[fuzz.compiler_settings.no-opt]
-enable = []
-disable = ["optimize", "acquires-check"]
-
-[fuzz.compiler_settings.opt-no-simp]
-enable = ["optimize"]
-disable = ["ast-simplify", "acquires-check"]
-
 [generation]
 num_runs_per_func = { min = 1, target = 3, max = 10 }
 

@@ -5,38 +5,13 @@
 
 use crate::selection::RandomNumber;
 use serde::Deserialize;
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-};
+use std::path::Path;
 
 /// The configuration for the MoveSmith fuzzer.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    pub fuzz: FuzzConfig,
     pub generation: GenerationConfig,
 }
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct FuzzConfig {
-    /// The directory containing known errors
-    pub known_error_dir: PathBuf,
-    /// List of possible compiler settings to use
-    pub compiler_settings: BTreeMap<String, CompilerSetting>,
-    /// The list of compiler settings to run in current fuzzing session
-    pub runs: Vec<String>,
-    // Transactional test timeout
-    pub transactional_timeout_sec: usize,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct CompilerSetting {
-    /// The list of experiments to enable
-    pub enable: Vec<String>,
-    /// The list of experiments to disable
-    pub disable: Vec<String>,
-}
-
 /// MoveSmith will randomly pick within [0..max_num_XXX] during generation.
 #[derive(Debug, Clone, Deserialize)]
 pub struct GenerationConfig {
@@ -109,35 +84,5 @@ impl Config {
         let config_str = std::fs::read_to_string(file_path).expect("Cannot read from config file");
         let config: Config = toml::from_str(&config_str).expect("Cannot parse config file");
         config
-    }
-
-    pub fn get_compiler_setting(&self, name: &str) -> Option<&CompilerSetting> {
-        self.fuzz.compiler_settings.get(name)
-    }
-}
-
-impl FuzzConfig {
-    /// Returns (Name, Compiler Configurations) for each run
-    pub fn runs(&self) -> Vec<(String, CompilerSetting)> {
-        let mut runs = vec![];
-        for r in self.runs.iter() {
-            if let Some(setting) = self.compiler_settings.get(r) {
-                runs.push((r.clone(), setting.clone()));
-            }
-        }
-        runs
-    }
-}
-
-impl CompilerSetting {
-    pub fn to_expriments(&self) -> Vec<(String, bool)> {
-        let mut exp = vec![];
-        for e in self.enable.iter() {
-            exp.push((e.clone(), true));
-        }
-        for e in self.disable.iter() {
-            exp.push((e.clone(), false));
-        }
-        exp
     }
 }

@@ -8,7 +8,7 @@ use libfuzzer_sys::fuzz_target;
 use move_smith::{
     config::Config,
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInput, TransactionalResult},
+        transactional::{TransactionalExecutor, TransactionalInputBuilder, TransactionalResult},
         ExecutionManager,
     },
     CodeGenerator, MoveSmith,
@@ -52,12 +52,11 @@ fuzz_target!(|data: &[u8]| {
 
         let code = smith.get_compile_unit().emit_code();
         let start = Instant::now();
-        let mut results = vec![];
-        for (_, setting) in CONFIG.fuzz.runs() {
-            let input = TransactionalInput::new_from_str(&code, &setting);
-            let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
-            results.push(bug);
-        }
+
+        let mut input_builder = TransactionalInputBuilder::new();
+        let input = input_builder.set_code(&code).with_default_run().build();
+        let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
+
         let elapsed = start.elapsed();
 
         profile_s.push_str(&format!(
@@ -65,13 +64,11 @@ fuzz_target!(|data: &[u8]| {
             elapsed.as_millis()
         ));
 
-        for bug in results.iter() {
-            let status = match bug {
-                Ok(_) => "success",
-                Err(_) => "error",
-            };
-            profile_s.push_str(&format!("move-smith-profile::status::{}\n", status));
-        }
+        let status = match &bug {
+            Ok(_) => "success",
+            Err(_) => "error",
+        };
+        profile_s.push_str(&format!("move-smith-profile::status::{}\n", status));
 
         let _lock = FILE_MUTEX.lock().unwrap();
         let mut file = OpenOptions::new()
@@ -80,7 +77,7 @@ fuzz_target!(|data: &[u8]| {
             .open("move-smith-profile.txt")
             .unwrap();
         file.write_all(profile_s.as_bytes()).unwrap();
-        if results.into_iter().any(|r| r.unwrap()) {
+        if bug.unwrap() {
             panic!("Found bug")
         }
     } else {
@@ -89,12 +86,13 @@ fuzz_target!(|data: &[u8]| {
             Err(_) => return,
         };
         let code = smith.get_compile_unit().emit_code();
-        for (_, setting) in CONFIG.fuzz.runs() {
-            let input = TransactionalInput::new_from_str(&code, &setting);
-            let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
-            if bug.unwrap() {
-                panic!("Found bug")
-            }
+
+        let mut input_builder = TransactionalInputBuilder::new();
+        let input = input_builder.set_code(&code).with_default_run().build();
+
+        let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
+        if bug.unwrap() {
+            panic!("Found bug")
         }
     }
 });

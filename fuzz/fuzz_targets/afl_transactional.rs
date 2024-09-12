@@ -8,7 +8,7 @@ use arbitrary::Unstructured;
 use move_smith::{
     config::Config,
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInput, TransactionalResult},
+        transactional::{TransactionalExecutor, TransactionalInputBuilder, TransactionalResult},
         ExecutionManager,
     },
     CodeGenerator, MoveSmith,
@@ -37,12 +37,11 @@ fn main() {
             Err(_) => return,
         };
         let code = smith.get_compile_unit().emit_code();
-        for (_, setting) in CONFIG.fuzz.runs() {
-            let input = TransactionalInput::new_from_str(&code, &setting);
-            let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
-            if bug.unwrap() {
-                panic!("Found bug")
-            }
+        let mut input_builder = TransactionalInputBuilder::new();
+        let input = input_builder.set_code(&code).with_default_run().build();
+        let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
+        if bug.unwrap() {
+            panic!("Found bug")
         }
     });
 }
