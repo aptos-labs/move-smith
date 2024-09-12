@@ -11,7 +11,14 @@ move-smith:
 move-smith-local:
 	cargo build --bin move-smith-local --features local_deps
 
+fuzz-targets:
+	cargo fuzz build v1v2 -s=none
+	cargo fuzz build opt-noopt-s=none
+
 install-deps:
 	cargo install cargo-fuzz
 	cargo install cargo-afl
 	cargo install cargo-binutils
+
+clean:
+	cargo clean

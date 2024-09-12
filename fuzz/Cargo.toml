@@ -16,8 +16,8 @@ once_cell = { workspace = true }
 rand = { workspace = true }
 
 [[bin]]
-name = "transactional"
-path = "fuzz_targets/transactional.rs"
+name = "v1v2"
+path = "fuzz_targets/v1v2.rs"
 test = false
 doc = false
 bench = false
@@ -32,6 +32,13 @@ bench = false
 [[bin]]
 name = "random"
 path = "fuzz_targets/random.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "opt-noopt"
+path = "fuzz_targets/opt_noopt.rs"
 test = false
 doc = false
 bench = false
