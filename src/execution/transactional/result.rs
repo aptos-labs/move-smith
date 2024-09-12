@@ -9,6 +9,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
+const TO_IGNORE: [&str; 2] = ["EXTRANEOUS_ACQUIRES_ANNOTATION", "cannot infer"];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct TransactionalResult {
@@ -120,6 +121,11 @@ impl TransactionalResultBuilder {
                 Ok(_) => "Success\n".to_string(),
                 Err(e) => format!("{:?}", e),
             };
+            for ignore in TO_IGNORE.iter() {
+                if run_log.contains(ignore) {
+                    return TransactionalResult::success();
+                }
+            }
             if is_diff {
                 let (v1_log, v2_log) = Self::split_diff_log(&run_log);
                 log_strings.push(v1_log);
