@@ -14,6 +14,7 @@ use move_smith::{
         },
         ExecutionManager,
     },
+    selection::RandomNumber,
     CodeGenerator, MoveSmith,
 };
 use once_cell::sync::Lazy;
@@ -23,7 +24,9 @@ static CONFIG: Lazy<Config> = Lazy::new(|| {
     let config_path =
         env::var("MOVE_SMITH_CONFIG").unwrap_or_else(|_| "MoveSmith.toml".to_string());
     let config_path = PathBuf::from(config_path);
-    Config::from_toml_file_or_default(&config_path)
+    let mut config = Config::from_toml_file_or_default(&config_path);
+    config.generation.num_inline_funcs = RandomNumber::new(0, 0, 0);
+    config
 });
 
 static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalResult, TransactionalExecutor>>> =

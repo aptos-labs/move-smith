@@ -13,7 +13,7 @@ move-smith-local:
 
 fuzz-targets:
 	cargo fuzz build v1v2 -s=none
-	cargo fuzz build opt-noopt-s=none
+	cargo fuzz build opt-noopt -s=none
 
 install-deps:
 	cargo install cargo-fuzz
