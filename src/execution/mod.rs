@@ -194,7 +194,7 @@ where
         }
     }
 
-    pub fn generate_report(&self, format: &ReportFormat, output_dir: &Path) -> PathBuf {
+    pub fn generate_report(&self, format: &ReportFormat, output_dir: &Path) -> (usize, PathBuf) {
         fs::create_dir_all(output_dir).unwrap();
         match format {
             ReportFormat::Text => {
@@ -221,7 +221,7 @@ where
                     });
                 let output_file = output_dir.join("report.txt");
                 fs::write(&output_file, report).unwrap();
-                output_file
+                (cnt, output_file)
             },
             _ => unimplemented!(),
         }

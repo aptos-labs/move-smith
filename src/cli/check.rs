@@ -170,13 +170,13 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
 
     println!("[4/5] Executed {} files", to_execute.len(),);
 
+    let (num_clusters, to_open) = executor.generate_report(&cmd.format, &cmd.output_dir);
+
     println!(
         "[5/5] Clustered {} runs into {} new errors",
-        all_moves.len(),
         executor.pool.lock().unwrap().len(),
+        num_clusters,
     );
-
-    let to_open = executor.generate_report(&cmd.format, &cmd.output_dir);
 
     println!("[5/5] Saved report to: {:?}", to_open);
     println!("Done checking in {}", HumanDuration(timer.elapsed()));
