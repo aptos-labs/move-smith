@@ -12,7 +12,6 @@
 MOVE_SMITH_DIR=$(realpath $(dirname $0)/..)
 APTOS_DIR=$(realpath $MOVE_SMITH_DIR/../../../..)
 
-JOBS=32
 TMUX_SESSION="afl_fuzzing"
 
 function create_log() {
@@ -45,6 +44,28 @@ function create_initial_corpus() {
         dd if=/dev/urandom of=$mid ibs=512 count=$input_len 2>/dev/null
         dd if=/dev/urandom of=$small ibs=256 count=$input_len 2>/dev/null
     done
+}
+
+function run_hfuzz() {
+    local fuzz_target=$1
+    local total_hour=$2
+    local input_len=$3
+    local timeout=$4
+
+    # Convert hours to seconds, convert to integer
+    local total_seconds=$(echo "$total_hour * 3600" | bc)
+    local log_file=$(create_log "$MOVE_SMITH_DIR/logs")
+    echo "Writing logs to $log_file"
+
+    local corpus_dir=$MOVE_SMITH_DIR/fuzz/hfuzz_workspace/$fuzz_target/input
+    create_initial_corpus $corpus_dir $input_len
+
+    echo "Current date time: $(date)" | tee -a $log_file
+    echo "Created initial corpus for $fuzz_target, size: $input_len KB"
+    echo "Running fuzz target: $fuzz_target for $total_hour hours"
+
+    cd $MOVE_SMITH_DIR/fuzz
+    HFUZZ_RUN_ARGS="-u -t $timeout -n $JOBS --run_time $total_seconds" cargo hfuzz run $fuzz_target
 }
 
 function run_libfuzzer() {
@@ -176,6 +197,7 @@ function check_existing() {
         "$MOVE_SMITH_DIR/fuzz/corpus"
         "$MOVE_SMITH_DIR/fuzz/artifacts"
         "$MOVE_SMITH_DIR/fuzz/coverage"
+        "$MOVE_SMITH_DIR/fuzz/hfuzz_workspace"
         "$MOVE_SMITH_DIR/coverage"
         "$MOVE_SMITH_DIR/afl"
         "$MOVE_SMITH_DIR/logs"
@@ -210,7 +232,8 @@ fi
 
 fuzz_target=${1:-"transactional"}
 total_hour=${2:-24} # Default to 24 hours
-input_len=${3:-4}   # Default to 4 KB
+JOBS=${3:-32}       # Default to 32 jobs
+input_len=${3:-8}   # Default to 8 KB
 timeout=${4:-5}     # Default to 5 seconds
 
 check_existing
@@ -218,6 +241,8 @@ check_existing
 # Check if the fuzz target is libfuzzer or afl
 if [[ $fuzz_target == "afl"* ]]; then
     run_afl $fuzz_target $total_hour $input_len $timeout
+elif [[ $fuzz_target == "hfuzz"* ]]; then
+    run_hfuzz $fuzz_target $total_hour $input_len $timeout
 else
     run_libfuzzer $fuzz_target $total_hour $input_len $timeout
 fi
