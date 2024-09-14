@@ -3,3 +3,5 @@ corpus
 artifacts
 coverage
 afl
+hfuzz_target
+hfuzz_workspace

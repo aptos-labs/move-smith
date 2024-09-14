@@ -19,6 +19,7 @@ install-deps:
 	cargo install cargo-fuzz
 	cargo install cargo-afl
 	cargo install cargo-binutils
+	cargo install honggfuzz
 
 clean:
 	cargo clean

@@ -8,6 +8,7 @@ edition = "2021"
 cargo-fuzz = true
 
 [dependencies]
+honggfuzz = "0.5"
 afl = "*"
 arbitrary = { workspace = true }
 libfuzzer-sys = "0.4.7"
@@ -39,6 +40,13 @@ bench = false
 [[bin]]
 name = "opt-noopt"
 path = "fuzz_targets/opt_noopt.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "hfuzz-v1v2"
+path = "fuzz_targets/hfuzz_v1v2.rs"
 test = false
 doc = false
 bench = false
