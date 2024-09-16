@@ -51,7 +51,7 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
 
         match path.extension() {
             Some(ext) => {
-                if ext == "raw" {
+                if ext == "raw" || ext == "fuzz" {
                     raw_inputs.push(path);
                 } else if ext == "move" {
                     move_inputs.push(path);

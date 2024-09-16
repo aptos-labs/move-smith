@@ -9,12 +9,22 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 5] = [
+const TO_IGNORE: [&str; 6] = [
     "EXTRANEOUS_ACQUIRES_ANNOTATION",
-    "cannot infer",
+    "infer",
     "MAX_",
     "TOO_MANY",
     "exceeded maximal",
+    "EQUALITY_OP_TYPE_MISMATCH_ERROR",
+    "unbound",
+    "dangling",
+    // V1 vector bugs
+    "READREF_EXISTS_MUTABLE_BORROW_ERROR",
+    "CALL_BORROWED_MUTABLE_REFERENCE_ERRO",
+    "VEC_UPDATE_EXISTS_MUTABLE_BORROW_ERROR",
+    "BORROWLOC_EXISTS_BORROW_ERROR",
+    "VEC_BORROW_ELEMENT_EXISTS_MUTABLE_BORROW_ERROR",
+    // end V1 vector bugs
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
@@ -142,7 +152,10 @@ impl TransactionalResultBuilder {
         }
 
         for log in log_strings {
-            let lines = log.lines().map(|l| l.to_string()).collect::<Vec<String>>();
+            let lines = log
+                .lines()
+                .map(|l| l.trim().to_string())
+                .collect::<Vec<String>>();
             let chunks = ResultChunk::log_to_chunck(&lines);
             result.log.push_str(&log);
             result.splitted_logs.push(log.clone());

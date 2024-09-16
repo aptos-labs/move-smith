@@ -1,7 +1,7 @@
 [generation]
 num_runs_per_func = { min = 1, target = 3, max = 10 }
 
-num_inline_funcs = { min = 1, target = 1, max = 1 }
+num_inline_funcs = { min = 0, target = 0, max = 0 }
 
 num_modules = { min = 1, target = 1, max = 1 }
 num_functions_in_module = { min = 3, target = 7, max = 255 }
