@@ -10,7 +10,7 @@ use crate::{
             TransactionalExecutor, TransactionalInput, TransactionalInputBuilder,
             TransactionalResult,
         },
-        ExecutionManager,
+        ExecutionManager, ExecutionResult, Report,
     },
 };
 use core::panic;
@@ -134,16 +134,19 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
             if cmd.rerun || !output_file.exists() {
                 Some((move_file.clone(), input))
             } else {
-                let result = executor.load_result_from_disk(&output_file);
-                executor.add_result(&result, Some(&input));
-                *loaded_num.lock().unwrap() += 1;
+                let mut result = executor.load_result_from_disk(&output_file);
+                if result.is_bug() {
+                    result.clean();
+                    executor.add_result(&result, Some(&input));
+                    *loaded_num.lock().unwrap() += 1;
+                }
                 None
             }
         })
         .collect();
     pb.finish_and_clear();
     println!(
-        "[3/5] Loaded {} existing results...",
+        "[3/5] Loaded {} existing buggy results...",
         loaded_num.lock().unwrap(),
     );
 
@@ -152,10 +155,17 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
     let pb = get_progress_bar_with_msg(to_execute.len() as u64, "Executing");
     to_execute.par_iter().for_each(|(move_file, input)| {
         let output_file = move_file.with_extension("output");
-        let result = executor.execute(&input);
+        let result = executor.execute_without_save(&input);
+        pb.inc(1);
+        let mut input = input.clone();
+        input.clean();
         match result {
-            Ok(result) => {
+            Ok(mut result) => {
                 executor.save_result_to_disk(&result, &output_file);
+                if result.is_bug() {
+                    result.clean();
+                    executor.add_result(&result, Some(&input));
+                }
             },
             Err(e) => {
                 let error_file = move_file.with_extension("error");
@@ -164,7 +174,6 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
                 fs::write(&error_file, msg).unwrap();
             },
         }
-        pb.inc(1);
     });
     pb.finish_and_clear();
 
@@ -174,7 +183,7 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
 
     println!(
         "[5/5] Clustered {} runs into {} new errors",
-        executor.pool.lock().unwrap().len(),
+        *loaded_num.lock().unwrap() + to_execute.len(),
         num_clusters,
     );
 

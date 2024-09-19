@@ -184,6 +184,11 @@ impl TransactionalInputBuilder {
 }
 
 impl Report for TransactionalInput {
+    fn clean(&mut self) {
+        self.code = "".to_string();
+        self.runs.clear();
+    }
+
     fn to_report(&self, _format: &ReportFormat) -> String {
         match &self.file {
             Some(file) => format!("{}", file.to_string_lossy()),

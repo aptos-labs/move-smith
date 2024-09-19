@@ -89,7 +89,7 @@ impl CodeGenerator for CompileUnit {
 
         for r in &self.runs {
             code.push(format!(
-                "//# run {} --signers 0xBEEF --gas-budget 10000\n",
+                "//# run {} --signers 0xBEEF --gas-budget 100000\n",
                 r.name
             ));
         }

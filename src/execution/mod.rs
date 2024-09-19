@@ -22,6 +22,8 @@ pub enum ReportFormat {
 }
 
 pub trait Report {
+    /// Clean up unnecessary data so that a large amount of reports can be stored in memory
+    fn clean(&mut self);
     fn to_report(&self, format: &ReportFormat) -> String;
 }
 

@@ -9,7 +9,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 6] = [
+const TO_IGNORE: [&str; 14] = [
     "EXTRANEOUS_ACQUIRES_ANNOTATION",
     "infer",
     "MAX_",
@@ -18,6 +18,7 @@ const TO_IGNORE: [&str; 6] = [
     "EQUALITY_OP_TYPE_MISMATCH_ERROR",
     "unbound",
     "dangling",
+    "OUT_OF_GAS",
     // V1 vector bugs
     "READREF_EXISTS_MUTABLE_BORROW_ERROR",
     "CALL_BORROWED_MUTABLE_REFERENCE_ERRO",
@@ -417,6 +418,13 @@ impl ExecutionResult for TransactionalResult {
 }
 
 impl Report for TransactionalResult {
+    fn clean(&mut self) {
+        if self.status != ResultStatus::Panic {
+            self.log.clear();
+            self.splitted_logs.clear();
+        }
+    }
+
     fn to_report(&self, format: &ReportFormat) -> String {
         match format {
             ReportFormat::Text => self.to_string(),
