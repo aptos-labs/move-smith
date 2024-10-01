@@ -2133,6 +2133,7 @@ impl MoveSmith {
             func_call_weight, // FunctionCall
             binop_weight,     // BinaryOperation
             deref_weight,     // Dereference
+            2,                // Block
         ];
 
         let idx = choose_idx_weighted(u, &weights)?;
@@ -2165,6 +2166,10 @@ impl MoveSmith {
                 assert!(!typ.is_ref());
                 let deref = self.generate_dereference(u, parent_scope, typ)?;
                 choices.push(deref);
+            },
+            4 => {
+                let block = self.generate_block(u, parent_scope, None, Some(typ.clone()))?;
+                choices.push(Expression::Block(Box::new(block)));
             },
             _ => panic!("Invalid option for expression generation"),
         };
