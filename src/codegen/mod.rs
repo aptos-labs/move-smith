@@ -553,12 +553,8 @@ impl CodeGenerator for BinaryOperation {
 
 impl CodeGenerator for Assignment {
     fn emit_code_lines(&self) -> Vec<String> {
-        let deref = match self.deref {
-            true => "*",
-            false => "",
-        };
-        let mut code = vec![format!("{}{} =", deref, self.name.emit_code(),)];
-        let value = self.value.emit_code_lines();
+        let mut code = vec![format!("{} =", self.lhs.emit_code(),)];
+        let value = self.rhs.emit_code_lines();
         append_block(&mut code, value, 0);
         code
     }

@@ -405,9 +405,8 @@ pub enum EqualityBinaryOperator {
 /// An assignment expression
 #[derive(Debug, Clone)]
 pub struct Assignment {
-    pub name: Identifier,
-    pub value: Expression,
-    pub deref: bool,
+    pub lhs: Expression,
+    pub rhs: Expression,
 }
 
 /// A number literal.
@@ -502,7 +501,8 @@ impl<'a> ExprCollector<'a> {
                 self.visit_block(block);
             },
             Expression::Assign(assign) => {
-                self.visit_expr(&assign.value);
+                self.visit_expr(&assign.lhs);
+                self.visit_expr(&assign.rhs);
             },
             Expression::BinaryOperation(binop) => {
                 self.visit_expr(&binop.lhs);

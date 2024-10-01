@@ -1450,42 +1450,72 @@ impl MoveSmith {
     }
 
     /// Generate an assignment to an existing variable.
-    ///
-    /// There must be at least one variable in the scope and the type of the variable
-    /// must have been decided.
-    ///
-    /// TODO: LHS can be an expression!!!
     fn generate_assignment(
         &self,
         u: &mut Unstructured,
         parent_scope: &Scope,
     ) -> Result<Option<Assignment>> {
         trace!("Generating assignment");
+        let mut typ = self.get_random_type(u, parent_scope, true, true, true, true, false)?;
+        if self.is_type_concretizable(&typ, parent_scope) {
+            typ = self
+                .concretize_type(u, &typ, parent_scope, vec![], None)
+                .unwrap();
+        }
+        let lhs = self.generate_assignment_lhs(u, parent_scope, &typ)?;
+        let rhs = self.generate_expression_of_type(u, parent_scope, &typ, true, true)?;
+
+        Ok(Some(Assignment { lhs, rhs }))
+    }
+
+    /// Generate the LHS of an assignment.
+    fn generate_assignment_lhs(
+        &self,
+        u: &mut Unstructured,
+        parent_scope: &Scope,
+        typ: &Type,
+    ) -> Result<Expression> {
         let idents = self
             .env()
-            .get_identifiers(None, Some(IDKinds::Var), Some(parent_scope));
-        if idents.is_empty() {
-            return Ok(None);
-        }
-        let ident = u.choose(&idents)?.clone();
-        let typ = self.env().type_pool.get_type(&ident).unwrap();
-
-        let mut deref = false;
-        let rhs_typ = match typ {
-            Type::MutRef(inner) => {
-                deref = true;
-                inner.as_ref().clone()
-            },
-            _ => typ,
+            .get_identifiers(Some(typ), Some(IDKinds::Var), Some(parent_scope));
+        let ident_weight = match idents.is_empty() {
+            true => 0,
+            false => 10,
         };
+        let weights = [
+            ("identifier", ident_weight),
+            ("deref_mut", 10),
+            ("deref", 10),
+        ];
+        let choice = choose_item_weighted(u, &weights)?;
 
-        let expr = self.generate_expression_of_type(u, parent_scope, &rhs_typ, true, true)?;
-
-        Ok(Some(Assignment {
-            name: ident,
-            value: expr,
-            deref,
-        }))
+        match choice {
+            "identifier" => {
+                let ident = u.choose(&idents)?.clone();
+                Ok(Expression::Variable(VariableAccess {
+                    name: ident,
+                    copy: false,
+                }))
+            },
+            "deref_mut" => {
+                // Generate code like:
+                // `*&mut (epxr)`
+                // where the expr is evaluated to `typ`
+                let expr = self.generate_expression_of_type(u, parent_scope, &typ, true, true)?;
+                Ok(Expression::Dereference(Box::new(Expression::MutReference(
+                    Box::new(expr),
+                ))))
+            },
+            "deref" => {
+                // Generate code like:
+                // `*(epxr)`
+                // where the expr is evaluated to `&mut typ`
+                let inner = Type::MutRef(Box::new(typ.clone()));
+                let expr = self.generate_expression_of_type(u, parent_scope, &inner, true, true)?;
+                Ok(Expression::Dereference(Box::new(expr)))
+            },
+            _ => panic!("Invalid assignment LHS choice"),
+        }
     }
 
     /// Generate a random declaration.
@@ -1621,8 +1651,15 @@ impl MoveSmith {
             4 => {
                 let assign = self.generate_assignment(u, parent_scope)?;
                 if let Some(a) = assign {
-                    let record = self.generate_record_value_expr(&a.name);
-                    vec![Expression::Assign(Box::new(a)), record]
+                    let mut ret = vec![Expression::Assign(Box::new(a.clone()))];
+                    match a.lhs {
+                        Expression::Variable(va) => {
+                            let record = self.generate_record_value_expr(&va.name);
+                            ret.push(record);
+                        },
+                        _ => {},
+                    }
+                    ret
                 } else {
                     panic!("No assignable variables")
                 }
