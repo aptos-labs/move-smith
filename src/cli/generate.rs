@@ -87,10 +87,10 @@ pub fn handle_generate(env: &MoveSmithEnv, cmd: &Generate) {
         )
         .unwrap();
         println!(
-            "[2/2] Error rate: {}/{} = {:.2}%",
-            failed_files.len(),
+            "[2/2] Compilation rate: {}/{} = {:.2}%",
+            cmd.num - failed_files.len() as u64,
             cmd.num,
-            failed_files.len() as f64 / cmd.num as f64 * 100.0
+            (1f64 - (failed_files.len() as f64 / cmd.num as f64)) * 100.0
         );
         println!(
             "[2/2] Done running transactional tests in {}",
