@@ -1,0 +1,16 @@
+[package]
+name = "framework"
+edition = "2021"
+
+[dependencies]
+once_cell = { workspace = true }
+linkme = { workspace = true }
+log = { workspace = true }
+arbitrary = { workspace = true }
+serde = { workspace = true }
+rand_distr = { workspace = true }
+rand = { workspace = true }
+anyhow = { workspace = true }
+
+[lib]
+name = "framework"

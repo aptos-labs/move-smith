@@ -1,0 +1,16 @@
+[package]
+name = "msmith"
+edition = "2021"
+
+[dependencies]
+framework = { workspace = true }
+generators = { workspace = true }
+linkme = { workspace = true }
+env_logger = { workspace = true }
+arbitrary = { workspace = true }
+rand = { workspace = true }
+log = { workspace = true }
+
+[[bin]]
+name = "msmith"
+path = "src/main.rs"
