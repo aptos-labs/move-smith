@@ -1,10 +1,11 @@
-use std::{collections::BTreeMap, fmt};
+use conversion::VariantConversions;
+use std::fmt;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(VariantConversions, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum Label {
-    Gen(GenLabel),
-    Subtree(SubtreeLabel),
-    State(StateLabel),
+    GenLabel(GenLabel),
+    SubtreeLabel(SubtreeLabel),
+    StateLabel(StateLabel),
 }
 
 pub trait Labelled {
@@ -14,46 +15,43 @@ pub trait Labelled {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct GenLabel {
     pub name: String,
-    /// Whether this label represents a type definition e.g. struct, enum
-    pub type_def: bool,
-    pub func_def: bool,
-    pub top_level: bool,
+    pub level: GeneratorLevel,
+}
+
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum GeneratorLevel {
+    #[default]
+    Top = 0,
+    ModuleMember = 1,
+    FunctionBody = 2,
 }
 
 impl GenLabel {
     pub fn new(s: &str) -> Self {
         GenLabel {
             name: s.to_string(),
-            type_def: false,
-            func_def: false,
-            top_level: false,
+            level: GeneratorLevel::default(),
         }
     }
 
     pub fn new_top_level(s: &str) -> Self {
         GenLabel {
             name: s.to_string(),
-            type_def: false,
-            func_def: false,
-            top_level: true,
+            level: GeneratorLevel::Top,
         }
     }
 
-    pub fn new_type_def(s: &str) -> Self {
+    pub fn new_module_member_level(s: &str) -> Self {
         GenLabel {
             name: s.to_string(),
-            type_def: true,
-            func_def: false,
-            top_level: false,
+            level: GeneratorLevel::ModuleMember,
         }
     }
 
-    pub fn new_func_def(s: &str) -> Self {
+    pub fn new_func_body_level(s: &str) -> Self {
         GenLabel {
             name: s.to_string(),
-            type_def: false,
-            func_def: true,
-            top_level: false,
+            level: GeneratorLevel::FunctionBody,
         }
     }
 }

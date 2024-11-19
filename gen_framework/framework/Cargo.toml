@@ -11,6 +11,7 @@ serde = { workspace = true }
 rand_distr = { workspace = true }
 rand = { workspace = true }
 anyhow = { workspace = true }
+conversion = { workspace = true }
 
 [lib]
 name = "framework"
