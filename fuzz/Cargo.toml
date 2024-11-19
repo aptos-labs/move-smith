@@ -8,13 +8,12 @@ edition = "2021"
 cargo-fuzz = true
 
 [dependencies]
-honggfuzz = "0.5"
 afl = "*"
-arbitrary = { workspace = true }
+honggfuzz = "0.5"
 libfuzzer-sys = "0.4.7"
-move-smith = { path = "..", features = ["git_deps"] }
-once_cell = { workspace = true }
-rand = { workspace = true }
+msmith = { path = "../msmith" }
+once_cell = "1.19.0"
+rand = "0.8.5"
 
 [[bin]]
 name = "v1v2"

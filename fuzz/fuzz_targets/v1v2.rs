@@ -3,28 +3,20 @@
 
 #![no_main]
 
-use arbitrary::Unstructured;
 use libfuzzer_sys::fuzz_target;
-use move_smith::{
-    config::Config,
+use msmith::{
     execution::{
         transactional::{
             CommonRunConfig, TransactionalExecutor, TransactionalInputBuilder, TransactionalResult,
         },
         ExecutionManager,
     },
-    CodeGenerator, MoveSmith,
+    MoveSmith,
 };
 use once_cell::sync::Lazy;
-use std::{env, fs::OpenOptions, io::Write, path::PathBuf, sync::Mutex, time::Instant};
+use std::{env, fs::OpenOptions, io::Write, sync::Mutex, time::Instant};
 
 static FILE_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
-static CONFIG: Lazy<Config> = Lazy::new(|| {
-    let config_path =
-        env::var("MOVE_SMITH_CONFIG").unwrap_or_else(|_| "MoveSmith.toml".to_string());
-    let config_path = PathBuf::from(config_path);
-    Config::from_toml_file_or_default(&config_path)
-});
 
 static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalResult, TransactionalExecutor>>> =
     Lazy::new(|| {
@@ -32,8 +24,7 @@ static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalResult, TransactionalExe
     });
 
 fuzz_target!(|data: &[u8]| {
-    let u = &mut Unstructured::new(data);
-    let mut smith = MoveSmith::new(&CONFIG.generation);
+    let smith = MoveSmith::new();
     let do_profile = match env::var("MOVE_SMITH_PROFILING") {
         Ok(v) => v == "1",
         Err(_) => false,
@@ -42,8 +33,8 @@ fuzz_target!(|data: &[u8]| {
         let mut profile_s = String::new();
 
         let start = Instant::now();
-        match smith.generate(u) {
-            Ok(()) => (),
+        let code = match smith.generate(data) {
+            Ok(code) => code,
             Err(_) => return,
         };
         let elapsed = start.elapsed();
@@ -52,7 +43,6 @@ fuzz_target!(|data: &[u8]| {
             elapsed.as_millis()
         ));
 
-        let code = smith.get_compile_unit().emit_code();
         let start = Instant::now();
 
         let mut input_builder = TransactionalInputBuilder::new();
@@ -86,11 +76,10 @@ fuzz_target!(|data: &[u8]| {
             panic!("Found bug")
         }
     } else {
-        match smith.generate(u) {
-            Ok(()) => (),
+        let code = match smith.generate(data) {
+            Ok(code) => code,
             Err(_) => return,
         };
-        let code = smith.get_compile_unit().emit_code();
 
         let mut input_builder = TransactionalInputBuilder::new();
         let input = input_builder
