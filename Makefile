@@ -38,3 +38,6 @@ install-deps:
 	cargo install honggfuzz
 	cargo install cargo-sort
 	cargo install cargo-nextest --locked
+
+build-docker:
+	docker build --build-arg HOST_UID=$$(id -u) --build-arg HOST_GID=$$(id -g) -t move-smith .
