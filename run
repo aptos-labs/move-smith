@@ -15,12 +15,30 @@ GROUP_ID=$(id -g)
 CURRENT_DIR=$(pwd)
 APTOS_CORE_PATH=${APTOS_CORE_PATH:-$(realpath "../aptos-core")} # Default path if APTOS_CORE_PATH is not set
 
-# Handle "stop" command to stop the container
-if [[ "$1" == "stop" ]]; then
-    echo "Stopping container: ${CONTAINER_NAME}"
+# Function to stop and remove the container
+stop_and_remove_container() {
+    echo "Stopping and removing container: ${CONTAINER_NAME}"
     docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || echo "No running container to stop."
     docker rm "${CONTAINER_NAME}" >/dev/null 2>&1 || echo "No container to remove."
+}
+
+# Handle "stop" command to stop the container
+if [[ "$1" == "stop" ]]; then
+    stop_and_remove_container
     exit 0
+fi
+
+# Check if the image has been updated
+if docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+    # Get the image ID of the running container
+    RUNNING_IMAGE_ID=$(docker inspect --format='{{.Image}}' "${CONTAINER_NAME}")
+    # Get the latest image ID of the image
+    LATEST_IMAGE_ID=$(docker inspect --format='{{.Id}}' "${IMAGE}")
+
+    if [[ "${RUNNING_IMAGE_ID}" != "${LATEST_IMAGE_ID}" ]]; then
+        echo "Image has been updated. Restarting the container..."
+        stop_and_remove_container
+    fi
 fi
 
 # Check if the container is already running

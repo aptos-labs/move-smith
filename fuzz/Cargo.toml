@@ -23,8 +23,8 @@ doc = false
 bench = false
 
 [[bin]]
-name = "afl-transactional"
-path = "fuzz_targets/afl_transactional.rs"
+name = "afl-v1v2"
+path = "fuzz_targets/afl_v1v2.rs"
 test = false
 doc = false
 bench = false

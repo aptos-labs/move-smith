@@ -6,6 +6,9 @@ ARG HOST_GID=1000
 # Install required dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    binutils-dev \
+    libunwind-dev \
+    libblocksruntime-dev \
     clang \
     llvm \
     libssl-dev \

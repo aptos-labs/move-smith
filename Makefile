@@ -2,6 +2,8 @@
 
 debug: msmith msmith-local
 
+all: release fuzz-targets
+
 release:
 	cargo clean
 	cargo build --bin msmith --release
@@ -16,6 +18,9 @@ msmith-local:
 fuzz-targets:
 	cargo fuzz build v1v2 -s=none
 	cargo fuzz build opt-noopt -s=none
+	cargo fuzz build random -s=none
+	cd fuzz && cargo hfuzz build --bin hfuzz-v1v2
+	cd fuzz && cargo afl build --bin afl-v1v2
 
 test:
 	cargo nextest run
