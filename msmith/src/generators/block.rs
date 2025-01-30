@@ -7,15 +7,15 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct TemplateGenerator;
+pub struct BlockGenerator;
 
-impl Labelled for TemplateGenerator {
+impl Labelled for BlockGenerator {
     fn label() -> Label {
-        GenLabel::new_top_level("TemplateGenerator").into()
+        GenLabel::new_top_level("BlockGenerator").into()
     }
 }
 
-impl Register<GeneratorEntry> for TemplateGenerator {
+impl Register<GeneratorEntry> for BlockGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
@@ -24,7 +24,7 @@ impl Register<GeneratorEntry> for TemplateGenerator {
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
+impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
         unimplemented!()
     }

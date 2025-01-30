@@ -1,4 +1,7 @@
-use crate::{move_ast::MoveAST, states::ids::Id};
+use crate::{
+    move_ast::MoveAST,
+    states::ids::Id,
+};
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{GenLabel, Label, Labelled, Register, State, StateEntry, StateLabel};
@@ -70,13 +73,20 @@ impl State<MoveAST> for TypePool {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
-    Compound(CompoundType),
+    Generic(GenericType),
     Primitive(Primitive),
-    TypeParameter(Id),
+    TypeParameter(TypeParameter),
+    Concrete(ConcreteType),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CompoundType {
+pub struct ConcreteType {
+    pub mapping: BTreeMap<TypeParameter, Type>,
+    pub ty: Box<Type>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GenericType {
     Struct(StructType),
     Vector(VectorType),
     Tuple(TupleType),
@@ -85,6 +95,7 @@ pub enum CompoundType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Primitive {
+    Address,
     Bool,
     U8,
     U16,
@@ -95,8 +106,14 @@ pub enum Primitive {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeParameter {
+    pub name: Id,
+    pub abilities: Vec<Ability>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructType {
-    pub type_params: Vec<Type>, // Must be Type::TypeParameter
+    pub type_params: Vec<TypeParameter>, // Must be Type::TypeParameter
     pub fields: Vec<(Id, Type)>,
     pub abilities: Vec<Ability>,
 }

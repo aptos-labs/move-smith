@@ -26,6 +26,7 @@ env_logger = { workspace = true }
 framework = { workspace = true }
 indicatif = { workspace = true }
 log = { workspace = true }
+num-bigint = { workspace = true }
 move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-compiler-v2", optional = true }
 move-compiler-v2-local = { path = "../../aptos-core/third_party/move/move-compiler-v2", package = "move-compiler-v2", optional = true }
 move-model = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-model", optional = true }

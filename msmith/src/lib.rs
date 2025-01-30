@@ -24,9 +24,16 @@ impl MoveSmith {
     pub fn new() -> Self {
         let framework = FrameworkBuilder::new()
             .add_generator::<ProgramGenerator>()
-            .add_state::<Config>()
+            .add_generator::<ModuleGenerator>()
+            .add_generator::<StructGenerator>()
+            .add_generator::<StructFieldGenerator>()
+            .add_generator::<FunctionGenerator>()
+            .add_generator::<BlockGenerator>()
+            .add_generator::<SequenceGenerator>()
+            .add_generator::<ExpressionGenerator>()
+            .add_state::<config::GenerationConfig>()
             .add_state::<TypePool>()
-            .add_state::<IDPool>()
+            .add_state::<IdPool>()
             .add_state::<CurrScope>()
             .build();
         MoveSmith { framework }

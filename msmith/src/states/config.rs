@@ -76,6 +76,13 @@ impl Default for Config {
     }
 }
 
+impl Default for GenerationConfig {
+    fn default() -> Self {
+        let Config { generation } = Config::default();
+        generation
+    }
+}
+
 impl Config {
     pub fn from_toml_file_or_default(file_path: &Path) -> Self {
         if file_path.exists() {
@@ -92,13 +99,13 @@ impl Config {
     }
 }
 
-impl Labelled for Config {
+impl Labelled for GenerationConfig {
     fn label() -> Label {
-        StateLabel::new("Config").into()
+        StateLabel::new("GenerationConfig").into()
     }
 }
 
-impl Register<StateEntry> for Config {
+impl Register<StateEntry> for GenerationConfig {
     fn register(&self) -> StateEntry {
         StateEntry {
             label: Self::label().try_into().unwrap(),
@@ -107,7 +114,7 @@ impl Register<StateEntry> for Config {
     }
 }
 
-impl State<MoveAST> for Config {
+impl State<MoveAST> for GenerationConfig {
     fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {
         // Do nothing
     }

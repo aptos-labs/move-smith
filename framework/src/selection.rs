@@ -24,6 +24,17 @@ pub struct RandomNumber {
     once_value: Option<usize>,
 }
 
+impl Default for RandomNumber {
+    fn default() -> Self {
+        Self {
+            min: 0,
+            target: 0,
+            max: 0,
+            once_value: None,
+        }
+    }
+}
+
 /// How often we select sane values vs large values
 /// Divisor of 10000
 const DEFAULT_THRESHOLD: usize = 9950;

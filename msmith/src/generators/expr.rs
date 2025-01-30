@@ -7,15 +7,15 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct TemplateGenerator;
+pub struct ExpressionGenerator;
 
-impl Labelled for TemplateGenerator {
+impl Labelled for ExpressionGenerator {
     fn label() -> Label {
-        GenLabel::new_top_level("TemplateGenerator").into()
+        GenLabel::new_top_level("ExpressionGenerator").into()
     }
 }
 
-impl Register<GeneratorEntry> for TemplateGenerator {
+impl Register<GeneratorEntry> for ExpressionGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
@@ -24,7 +24,7 @@ impl Register<GeneratorEntry> for TemplateGenerator {
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
+impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
         unimplemented!()
     }

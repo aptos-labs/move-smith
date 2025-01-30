@@ -1,7 +1,7 @@
 // Copyright (c) Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::move_ast::*;
+use crate::{move_ast::*, states::ids::Id};
 
 /// The code put before each generated Move source code.
 static PROLOGUE: &str = include_str!("prologue.move");
@@ -74,11 +74,65 @@ impl CodeGenerator for MoveAST {
     }
 }
 
+impl CodeGenerator for Id {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![self.name.clone()]
+    }
+}
+
 impl CodeGenerator for Program {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code = vec![PROLOGUE.to_string()];
+        for m in &self.modules {
+            code.extend(m.emit_code_lines());
+        }
         code.push(EPILOGUE.to_string());
         code
+    }
+}
+
+impl CodeGenerator for MoveModule {
+    fn emit_code_lines(&self) -> Vec<String> {
+        // The `//# publish` is for the transactional test
+        let mut code = vec![
+            "//# publish".to_string(),
+            format!(
+                "module {}::{} {{",
+                self.address.emit_code(),
+                self.name.emit_code()
+            ),
+        ];
+
+        for s in &self.structs {
+            append_code_lines_with_indentation(&mut code, s.emit_code_lines(), INDENTATION_SIZE);
+        }
+
+        for f in &self.functions {
+            append_code_lines_with_indentation(&mut code, f.emit_code_lines(), INDENTATION_SIZE);
+        }
+
+        code.push("}\n".to_string());
+        code
+    }
+}
+
+impl CodeGenerator for Address {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![self.name.clone().unwrap()]
+    }
+}
+
+impl CodeGenerator for Struct {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec![format!("struct {} {{", self.name)];
+        code.push("}".to_string());
+        code
+    }
+}
+
+impl CodeGenerator for Function {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![]
     }
 }
 
@@ -87,15 +141,8 @@ mod ast_tests {
     use super::*;
 
     #[test]
-    fn test_conversions() {
-        let program = Program {
-            modules: vec![MoveModule {
-                struct_defs: vec![],
-                structs: vec![],
-                function_defs: vec![],
-                functions: vec![],
-            }],
-        };
+    fn test_codegen() {
+        let program = Program::default();
         println!("{}", program.emit_code());
     }
 }

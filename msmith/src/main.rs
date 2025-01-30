@@ -15,8 +15,8 @@ pub fn main() {
     let ms = MoveSmith::new();
     let code = ms.generate(&buffer).unwrap();
     println!("{}", code);
-    let input = TransactionalInputBuilder::new().set_code(&code).build();
-    let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::new();
-    let result = executor.execute(&input);
-    println!("{:?}", result);
+    // let input = TransactionalInputBuilder::new().set_code(&code).build();
+    // let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::new();
+    // let result = executor.execute(&input);
+    // println!("{:?}", result);
 }

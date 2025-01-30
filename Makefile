@@ -1,6 +1,10 @@
 .PHONY: all debug release msmith msmith-local fuzz-targets test clean format install-deps
 
-debug: msmith msmith-local
+msmith:
+	cargo build --bin msmith
+
+msmith-local:
+	cargo build --bin msmith-local --no-default-features --features local_deps
 
 all: release fuzz-targets
 
@@ -9,12 +13,6 @@ release:
 	cargo build --bin msmith --release
 	cargo build --bin msmith-local --no-default-features --features local_deps --release
 
-msmith:
-	cargo build --bin msmith
-
-msmith-local:
-	cargo build --bin msmith-local --no-default-features --features local_deps
-
 fuzz-targets:
 	cargo fuzz build v1v2 -s=none
 	cargo fuzz build opt-noopt -s=none
@@ -22,8 +20,11 @@ fuzz-targets:
 	cd fuzz && cargo hfuzz build --bin hfuzz-v1v2
 	cd fuzz && cargo afl build --bin afl-v1v2
 
+debug:
+	RUST_LOG=trace cargo run --bin msmith-debug
+
 test:
-	cargo nextest run
+	cargo nextest run --no-capture
 
 clean:
 	cargo clean

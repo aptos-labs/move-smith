@@ -2446,6 +2446,7 @@ dependencies = [
  "move-package 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
  "move-transactional-test-runner 0.1.0",
  "move-transactional-test-runner 0.1.0 (git+https://github.com/aptos-labs/aptos-core.git)",
+ "num-bigint 0.4.6",
  "num_cpus",
  "once_cell",
  "rand 0.8.5",

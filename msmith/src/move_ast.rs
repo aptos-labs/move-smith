@@ -1,6 +1,6 @@
 use crate::states::{
-    ids::Id,
-    types::{Ability, CompoundType, StructType, Type, Typed},
+    ids::{Id, IdKind},
+    types::{Ability, GenericType, StructType, Type, Typed},
 };
 use enuminto::EnumInto;
 use framework::ASTNode;
@@ -14,10 +14,9 @@ use framework::ASTNode;
 pub enum MoveAST {
     Program(Program),
     MoveModule(MoveModule),
-    StructDef(StructDef),
     Struct(Struct),
-    FunctionDef(FunctionDef),
     Function(Function),
+    StructField(StructField),
 }
 
 impl ASTNode for MoveAST {}
@@ -39,31 +38,38 @@ pub struct Program {
 /// A Move module
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MoveModule {
-    pub struct_defs: Vec<StructDef>,
+    pub address: Address,
+    pub name: Id,
     pub structs: Vec<Struct>,
-    pub function_defs: Vec<FunctionDef>,
     pub functions: Vec<Function>,
 }
 
-// The skeleton of a struct that contains only the name and abilities.
-// Will be generated before the struct bodies for structs to reference each other.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructDef {
-    pub name: Id,
-    pub abilities: Vec<Ability>,
+pub struct Address {
+    // Place holder for now
+    pub name: Option<String>,
+}
+
+impl Default for Address {
+    fn default() -> Self {
+        Address {
+            name: Some("0xCAFE".to_string()),
+        }
+    }
 }
 
 /// The definition of a struct
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Struct {
     pub name: Id,
+    pub type_params: TypeParameters,
     pub abilities: Vec<Ability>,
     pub fields: Vec<StructField>,
 }
 
 impl Typed for Struct {
     fn ty(&self) -> Type {
-        Type::Compound(CompoundType::Struct(StructType {
+        Type::Generic(GenericType::Struct(StructType {
             type_params: vec![],
             fields: self
                 .fields
@@ -75,6 +81,18 @@ impl Typed for Struct {
     }
 }
 
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeParameters {
+    pub types: Vec<TypeParameters>,
+}
+
+impl Default for TypeParameters {
+    fn default() -> Self {
+        TypeParameters { types: vec![] }
+    }
+}
+
 /// A field in a struct
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructField {
@@ -82,14 +100,22 @@ pub struct StructField {
     pub ty: Type,
 }
 
-/// A function definition that contains only the function signature.
-/// Will be generated before the function bodies for functions to call each other.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FunctionDef {}
-
 /// The definition of the whole function
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {}
+
+impl Default for Program {
+    fn default() -> Self {
+        Program {
+            modules: vec![MoveModule {
+                address: Address::default(),
+                name: Id::new_str("Module1", IdKind::Module),
+                structs: vec![],
+                functions: vec![],
+            }],
+        }
+    }
+}
 
 // Test the conversion
 #[cfg(test)]
@@ -98,36 +124,7 @@ mod tests {
 
     #[test]
     fn test_conversions() {
-        let program = Program {
-            modules: vec![MoveModule {
-                struct_defs: vec![],
-                structs: vec![],
-                function_defs: vec![],
-                functions: vec![],
-            }],
-        };
-
-        let ast: MoveAST = program.clone().into();
-        let program2: Program = ast.try_into().unwrap();
-
-        assert_eq!(program, program2);
-    }
-}
-
-#[cfg(test)]
-mod ast_tests {
-    use super::*;
-
-    #[test]
-    fn test_conversions() {
-        let program = Program {
-            modules: vec![MoveModule {
-                struct_defs: vec![],
-                structs: vec![],
-                function_defs: vec![],
-                functions: vec![],
-            }],
-        };
+        let program = Program::default();
 
         let ast: MoveAST = program.clone().into();
         let program2: Program = ast.try_into().unwrap();

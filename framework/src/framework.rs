@@ -127,7 +127,17 @@ where
 
         // Register the subtrees
         let generator = self.generators.get(selected_label).unwrap();
-        let subtrees = generator.subtrees(u, &mut self.states_mut(), constraint);
+        let (subtrees, compose_constraint) =
+            match generator.subtrees(u, &mut self.states_mut(), constraint) {
+                Ok(s) => s,
+                Err(e) => {
+                    return Err(anyhow!(
+                        "Failed to generate subtrees for generator {:?}:\n{:?}",
+                        selected_label,
+                        e
+                    ));
+                },
+            };
 
         let mut asts = vec![];
 
@@ -143,7 +153,7 @@ where
             }
         }
 
-        let new_node = generator.compose(u, &mut self.states_mut(), asts)?;
+        let new_node = generator.compose(u, &mut self.states_mut(), compose_constraint, asts)?;
 
         // Use the original given generator to check if the newly created node follows the constraints
         let result = self.generators.get(&base_label).unwrap().check_ast(

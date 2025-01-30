@@ -14,15 +14,15 @@ use std::{collections::HashMap, fmt};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Id {
     pub name: String,
-    pub kind: IDKind,
+    pub kind: IdKind,
 }
 
 impl Id {
-    pub fn new(name: String, kind: IDKind) -> Self {
+    pub fn new(name: String, kind: IdKind) -> Self {
         Self { name, kind }
     }
 
-    pub fn new_str(name: &str, kind: IDKind) -> Self {
+    pub fn new_str(name: &str, kind: IdKind) -> Self {
         Self {
             name: name.to_string(),
             kind,
@@ -35,7 +35,7 @@ impl Id {
     }
 
     pub fn is_var(&self) -> bool {
-        self.kind == IDKind::Var
+        self.kind == IdKind::Var
     }
 }
 
@@ -47,7 +47,7 @@ impl fmt::Display for Id {
 
 /// The types of IDs.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
-pub enum IDKind {
+pub enum IdKind {
     #[default]
     Var,
     Struct,
@@ -58,40 +58,43 @@ pub enum IDKind {
     Type,
     TypeParameter,
     Field,
+    Address,
 
     // Block IDs are only used to keep track of scope.
     Block,
 }
 
-impl IDKind {
+impl IdKind {
     pub fn from_name(name: &str) -> Self {
         match name {
-            _ if name.starts_with("var") => IDKind::Var,
-            _ if name.starts_with("Struct") => IDKind::Struct,
-            _ if name.starts_with("function") => IDKind::Function,
-            _ if name.starts_with("Module") => IDKind::Module,
-            _ if name.starts_with("Script") => IDKind::Script,
-            _ if name.starts_with("CONST") => IDKind::Constant,
-            _ if name.starts_with("_type") => IDKind::Type,
-            _ if name.starts_with('T') => IDKind::TypeParameter,
-            _ if name.starts_with("field") => IDKind::Field,
-            _ if name.starts_with("_block") => IDKind::Block,
+            _ if name.starts_with("var") => IdKind::Var,
+            _ if name.starts_with("Struct") => IdKind::Struct,
+            _ if name.starts_with("function") => IdKind::Function,
+            _ if name.starts_with("Module") => IdKind::Module,
+            _ if name.starts_with("Script") => IdKind::Script,
+            _ if name.starts_with("CONST") => IdKind::Constant,
+            _ if name.starts_with("_type") => IdKind::Type,
+            _ if name.starts_with('T') => IdKind::TypeParameter,
+            _ if name.starts_with("field") => IdKind::Field,
+            _ if name.starts_with("_block") => IdKind::Block,
+            _ if name.starts_with("_address") => IdKind::Address,
             _ => panic!("Unknown Id kind: {}", name),
         }
     }
 
     pub fn get_kind_name(&self) -> String {
         match self {
-            IDKind::Var => "var",
-            IDKind::Struct => "Struct",
-            IDKind::Function => "function",
-            IDKind::Module => "Module",
-            IDKind::Script => "Script",
-            IDKind::Constant => "Constant",
-            IDKind::Type => "_type",
-            IDKind::TypeParameter => "T",
-            IDKind::Field => "field",
-            IDKind::Block => "_block",
+            IdKind::Var => "var",
+            IdKind::Struct => "Struct",
+            IdKind::Function => "function",
+            IdKind::Module => "Module",
+            IdKind::Script => "Script",
+            IdKind::Constant => "Constant",
+            IdKind::Type => "_type",
+            IdKind::TypeParameter => "T",
+            IdKind::Field => "field",
+            IdKind::Block => "_block",
+            IdKind::Address => "_address",
         }
         .to_string()
     }
@@ -119,7 +122,7 @@ impl Scope {
         self.0.as_ref()?;
         let name = self.get_name();
         let pieces = self.to_pieces();
-        let kind = IDKind::from_name(pieces.last().unwrap());
+        let kind = IdKind::from_name(pieces.last().unwrap());
         Some(Id { name, kind })
     }
 
@@ -171,13 +174,13 @@ pub const ROOT_SCOPE: Scope = Scope(None);
 /// The `scopes` map keeps track of the scope information for each Id.
 /// Key invariant: each scope should be complete, meaning no chasing should be needed.
 #[derive(Debug, Default)]
-pub struct IDPool {
+pub struct IdPool {
     all_ids: Vec<Id>,
-    counters: HashMap<IDKind, usize>,
+    counters: HashMap<IdKind, usize>,
     scopes: HashMap<Id, Scope>,
 }
 
-impl IDPool {
+impl IdPool {
     pub fn new() -> Self {
         Self::default()
     }
@@ -191,7 +194,7 @@ impl IDPool {
     /// the call `next_ID(..., Module1::function1)` should be used.
     /// This should be followed during generation to maintain the scope hierarchy.
     // TODO: add extra check for the completeness of the scope
-    pub fn next_id(&mut self, typ: IDKind, scope: &Scope) -> (Id, Scope) {
+    pub fn next_id(&mut self, typ: IdKind, scope: &Scope) -> (Id, Scope) {
         let cnt = self.id_count(&typ);
         let name = self.construct_name(&typ, cnt);
         let new_id = Id {
@@ -277,7 +280,7 @@ impl IDPool {
 
     /// Returns all IDs of the given Id kind.
     /// e.g. get all function IDs.
-    pub fn get_ids_of_ident_kind(&self, typ: IDKind) -> Vec<Id> {
+    pub fn get_ids_of_ident_kind(&self, typ: IdKind) -> Vec<Id> {
         self.all_ids
             .iter()
             .filter(|id| id.kind == typ)
@@ -286,7 +289,7 @@ impl IDPool {
     }
 
     /// Add a new Id to the pool.
-    fn insert_new_id(&mut self, typ: &IDKind, id: Id) {
+    fn insert_new_id(&mut self, typ: &IdKind, id: Id) {
         self.counters
             .entry(typ.clone())
             .and_modify(|e| *e += 1)
@@ -295,12 +298,12 @@ impl IDPool {
     }
 
     /// Get the count of IDs of the given type.
-    fn id_count(&self, typ: &IDKind) -> usize {
+    fn id_count(&self, typ: &IdKind) -> usize {
         return self.counters.get(typ).cloned().unwrap_or(0);
     }
 
     /// Create the name of an Id.
-    fn construct_name(&self, typ: &IDKind, idx: usize) -> String {
+    fn construct_name(&self, typ: &IdKind, idx: usize) -> String {
         format!("{}{}", typ.get_kind_name(), idx)
     }
 
@@ -325,26 +328,26 @@ fn test_scope() {
 
 #[test]
 fn test_id_type() {
-    let mut id_pool = IDPool::new();
+    let mut id_pool = IdPool::new();
 
-    let _ = id_pool.next_id(IDKind::Block, &ROOT_SCOPE);
-    let _ = id_pool.next_id(IDKind::Block, &ROOT_SCOPE);
-    let _ = id_pool.next_id(IDKind::Struct, &ROOT_SCOPE);
+    let _ = id_pool.next_id(IdKind::Block, &ROOT_SCOPE);
+    let _ = id_pool.next_id(IdKind::Block, &ROOT_SCOPE);
+    let _ = id_pool.next_id(IdKind::Struct, &ROOT_SCOPE);
 
-    let bids = id_pool.get_ids_of_ident_kind(IDKind::Block);
+    let bids = id_pool.get_ids_of_ident_kind(IdKind::Block);
     println!("{:?}", bids);
     assert!(bids.len() == 2);
-    let sids = id_pool.get_ids_of_ident_kind(IDKind::Struct);
+    let sids = id_pool.get_ids_of_ident_kind(IdKind::Struct);
     assert!(sids.len() == 1);
 }
 
-impl Labelled for IDPool {
+impl Labelled for IdPool {
     fn label() -> Label {
-        StateLabel::new("IDPool").into()
+        StateLabel::new("IdPool").into()
     }
 }
 
-impl Register<StateEntry> for IDPool {
+impl Register<StateEntry> for IdPool {
     fn register(&self) -> StateEntry {
         StateEntry {
             label: Self::label().try_into().unwrap(),
@@ -353,7 +356,7 @@ impl Register<StateEntry> for IDPool {
     }
 }
 
-impl State<MoveAST> for IDPool {
+impl State<MoveAST> for IdPool {
     fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {}
 
     fn update_post(&mut self, _u: &mut Unstructured, _new_ast: &MoveAST, _generator: &GenLabel) {}

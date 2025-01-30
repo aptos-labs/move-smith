@@ -1,21 +1,22 @@
-use crate::move_ast::MoveAST;
+use crate::{move_ast::{MoveAST, StructField}, ids::{Id, IdKind}, types::{Primitive, Type}};
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
     Subtree,
 };
+use log::warn;
 
 #[derive(Default)]
-pub struct TemplateGenerator;
+pub struct StructFieldGenerator;
 
-impl Labelled for TemplateGenerator {
+impl Labelled for StructFieldGenerator {
     fn label() -> Label {
-        GenLabel::new_top_level("TemplateGenerator").into()
+        GenLabel::new_top_level("StructFieldGenerator").into()
     }
 }
 
-impl Register<GeneratorEntry> for TemplateGenerator {
+impl Register<GeneratorEntry> for StructFieldGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
@@ -24,9 +25,10 @@ impl Register<GeneratorEntry> for TemplateGenerator {
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
+impl Generator<MoveAST, AnyConstraint> for StructFieldGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        unimplemented!()
+        // constraint.check::<bool>("can_be_struct") && constraint.check::<bool>("can_be_type_param")
+        true
     }
 
     fn subtrees(
@@ -35,7 +37,8 @@ impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
         _env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        unimplemented!()
+        warn!("StructFieldGenerator::subtrees not implemented");
+        Ok((vec![], AnyConstraint::new()))
     }
 
     fn compose(
@@ -45,7 +48,11 @@ impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
         _constraint: AnyConstraint,
         _asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        unimplemented!()
+        warn!("StructFieldGenerator::compose not implemented");
+        Ok(StructField {
+            name: Id::new_str("placeholder", IdKind::Var),
+            ty: Type::Primitive(Primitive::U8)
+        }.into())
     }
 
     fn check_ast(
@@ -54,6 +61,7 @@ impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
         _constraint: &AnyConstraint,
         _ast: &MoveAST,
     ) -> bool {
-        unimplemented!()
+        warn!("StructFieldGenerator::check_ast not implemented");
+        true
     }
 }

@@ -28,20 +28,20 @@ impl AnyConstraint {
     }
 
     /// Insert a key-value pair into the constraint
-    pub fn insert<T: AnyDebug + Clone, S: AsRef<str>>(&mut self, key: S, value: T) {
-        self.map.insert(key.as_ref().to_string(), Rc::new(value));
+    pub fn insert<T: AnyDebug + Clone>(&mut self, key: &str, value: T) {
+        self.map.insert(key.to_string(), Rc::new(value));
     }
 
     /// Get the value of the key if it exists and has the correct type,
     /// otherwise return None
-    pub fn get<T: AnyDebug + Clone, S: AsRef<str>>(&self, key: S) -> Option<&T> {
+    pub fn get<T: AnyDebug + Clone>(&self, key: &str) -> Option<&T> {
         self.map
-            .get(key.as_ref())
-            .and_then(|v| v.as_any().downcast_ref())
+            .get(key)
+            .and_then(|v| (**v).as_any().downcast_ref())
     }
 
     /// Check if the key exists and if the value has the correct type
-    pub fn check<T: AnyDebug + Clone, S: AsRef<str>>(&self, key: S) -> bool {
-        self.get::<T, S>(key).is_some()
+    pub fn check<T: AnyDebug + Clone>(&self, key: &str) -> bool {
+        self.get::<T>(key).is_some()
     }
 }

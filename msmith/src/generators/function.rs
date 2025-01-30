@@ -1,4 +1,4 @@
-use crate::move_ast::MoveAST;
+use crate::move_ast::{Function, MoveAST};
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
@@ -7,15 +7,15 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct TemplateGenerator;
+pub struct FunctionGenerator;
 
-impl Labelled for TemplateGenerator {
+impl Labelled for FunctionGenerator {
     fn label() -> Label {
-        GenLabel::new_top_level("TemplateGenerator").into()
+        GenLabel::new_top_level("FunctionGenerator").into()
     }
 }
 
-impl Register<GeneratorEntry> for TemplateGenerator {
+impl Register<GeneratorEntry> for FunctionGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
@@ -24,9 +24,9 @@ impl Register<GeneratorEntry> for TemplateGenerator {
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
+impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        unimplemented!()
+        true
     }
 
     fn subtrees(
@@ -35,7 +35,7 @@ impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
         _env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        unimplemented!()
+        Ok((vec![], AnyConstraint::new()))
     }
 
     fn compose(
@@ -45,7 +45,7 @@ impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
         _constraint: AnyConstraint,
         _asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        unimplemented!()
+        Ok(MoveAST::Function(Function {}))
     }
 
     fn check_ast(
@@ -54,6 +54,6 @@ impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
         _constraint: &AnyConstraint,
         _ast: &MoveAST,
     ) -> bool {
-        unimplemented!()
+        true
     }
 }

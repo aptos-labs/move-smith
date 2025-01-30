@@ -63,11 +63,13 @@ where
     }
 
     pub fn get_by_label<T: State<A>>(&self, label: &StateLabel) -> Option<&T> {
-        self.states.get(label)?.as_any().downcast_ref::<T>()
+        (**self.states.get(label)?).as_any().downcast_ref::<T>()
     }
 
     pub fn get_mut_by_label<T: State<A>>(&mut self, label: &StateLabel) -> Option<&mut T> {
-        self.states.get_mut(label)?.as_any_mut().downcast_mut::<T>()
+        (**self.states.get_mut(label)?)
+            .as_any_mut()
+            .downcast_mut::<T>()
     }
 
     pub fn update_pre(&mut self, u: &mut Unstructured, generator: &GenLabel) {

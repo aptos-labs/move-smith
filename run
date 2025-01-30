@@ -22,24 +22,42 @@ stop_and_remove_container() {
     docker rm "${CONTAINER_NAME}" >/dev/null 2>&1 || echo "No container to remove."
 }
 
+# Function to check and build the image if not present
+check_and_build_image() {
+    if ! docker images --format "{{.Repository}}" | grep -q "^${IMAGE}$"; then
+        echo "Image '${IMAGE}' not found. Building the image..."
+        docker build --build-arg HOST_UID=${USER_ID} --build-arg HOST_GID=${GROUP_ID} -t "${IMAGE}" .
+    else
+        echo "Image '${IMAGE}' exists."
+    fi
+}
+
+# Function to check if the image has been updated and handle container restart
+check_image_update_and_restart_container() {
+    if docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        # Get the image ID of the running container
+        RUNNING_IMAGE_ID=$(docker inspect --format='{{.Image}}' "${CONTAINER_NAME}")
+        # Get the latest image ID of the image
+        LATEST_IMAGE_ID=$(docker inspect --format='{{.Id}}' "${IMAGE}")
+
+        if [[ "${RUNNING_IMAGE_ID}" != "${LATEST_IMAGE_ID}" ]]; then
+            echo "Image has been updated. Restarting the container..."
+            stop_and_remove_container
+        fi
+    fi
+}
+
 # Handle "stop" command to stop the container
 if [[ "$1" == "stop" ]]; then
     stop_and_remove_container
     exit 0
 fi
 
-# Check if the image has been updated
-if docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
-    # Get the image ID of the running container
-    RUNNING_IMAGE_ID=$(docker inspect --format='{{.Image}}' "${CONTAINER_NAME}")
-    # Get the latest image ID of the image
-    LATEST_IMAGE_ID=$(docker inspect --format='{{.Id}}' "${IMAGE}")
+# Ensure the image is built
+check_and_build_image
 
-    if [[ "${RUNNING_IMAGE_ID}" != "${LATEST_IMAGE_ID}" ]]; then
-        echo "Image has been updated. Restarting the container..."
-        stop_and_remove_container
-    fi
-fi
+# Check if the image has been updated and restart the container if necessary
+check_image_update_and_restart_container
 
 # Check if the container is already running
 if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then

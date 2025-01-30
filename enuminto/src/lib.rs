@@ -9,11 +9,13 @@ pub fn enum_into(input: TokenStream) -> TokenStream {
     let name = &input.ident;
     let variants = match &input.data {
         Data::Enum(data_enum) => &data_enum.variants,
-        _ => panic!("AutoConversions can only be derived for enums"),
+        _ => panic!("EnumInto can only be derived for enums"),
     };
 
     let mut try_into_impls = Vec::new();
     let mut from_impls = Vec::new();
+    let mut into_methods = Vec::new();
+    let mut as_methods = Vec::new();
 
     for variant in variants {
         let variant_name = &variant.ident;
@@ -49,9 +51,44 @@ pub fn enum_into(input: TokenStream) -> TokenStream {
                 }
             }
         });
+
+        // Generate `into_xxx` method
+        let into_method_name = syn::Ident::new(
+            &format!("into_{}", variant_name.to_string().to_lowercase()),
+            variant_name.span(),
+        );
+        into_methods.push(quote! {
+            pub fn #into_method_name(self) -> Result<#ty, Self> {
+                if let #name::#variant_name(value) = self {
+                    Ok(value)
+                } else {
+                    Err(self)
+                }
+            }
+        });
+
+        // Generate `as_xxx` method
+        let as_method_name = syn::Ident::new(
+            &format!("as_{}", variant_name.to_string().to_lowercase()),
+            variant_name.span(),
+        );
+        as_methods.push(quote! {
+            pub fn #as_method_name(&self) -> Option<&#ty> {
+                if let #name::#variant_name(value) = self {
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+        });
     }
 
     let expanded = quote! {
+        impl #name {
+            #(#into_methods)*
+            #(#as_methods)*
+        }
+
         #(#try_into_impls)*
         #(#from_impls)*
     };
