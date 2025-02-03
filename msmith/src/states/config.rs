@@ -20,52 +20,52 @@ pub struct Config {
 /// MoveSmith will randomly pick within [0..max_num_XXX] during generation.
 #[derive(Debug, Clone, Deserialize)]
 pub struct GenerationConfig {
-    /// The number of `//# run 0xCAFE::ModuleX::funX` to invoke
-    pub num_runs_per_func: RandomNumber,
-    /// The number of functions that can have `inline`
-    pub num_inline_funcs: RandomNumber,
-
+    /******** Module Related ********/
     pub num_modules: RandomNumber,
     pub num_functions_in_module: RandomNumber,
     pub num_structs_in_module: RandomNumber,
 
+    /******** Struct Related ********/
     pub num_fields_in_struct: RandomNumber,
     /// The maximum total number of fields in all structs that can have
     /// type of another struct
     pub num_fields_of_struct_type: RandomNumber,
-
-    // Includes all kinds of statements
-    pub num_stmts_in_func: RandomNumber,
-    // Addtionally insert some resource or vector operations
-    pub num_additional_operations_in_func: RandomNumber,
-
-    pub num_params_in_func: RandomNumber,
-
-    // This has lowest priority
-    // i.e. if the block is a function body
-    // max_num_stmts_in_func will override this
-    pub num_stmts_in_block: RandomNumber,
-
-    pub num_calls_in_script: RandomNumber,
-
-    // Maximum depth of nested expression
-    pub expr_depth: RandomNumber,
-    // Maximum depth of nested type instantiation
-    pub type_depth: RandomNumber,
-
-    // Maximum number of type parameters in a function
-    pub num_type_params_in_func: RandomNumber,
     // Maximum number of type parameters in a struct definition
     pub num_type_params_in_struct: RandomNumber,
 
-    // Timeout in seconds
-    pub generation_timeout_sec: usize, // MoveSmith generation timeout
+    /******** Function Related ********/
+    pub num_stmts_in_sequence: RandomNumber,
+    pub num_sequences_in_block: RandomNumber,
+    pub num_params_in_func: RandomNumber,
+
+    // Maximum number of type parameters in a function
+    pub num_type_params_in_func: RandomNumber,
+
+    /// The number of functions that can have `inline`
+    pub num_inline_funcs: RandomNumber,
 
     // Allow recursive calls in the generated code
     pub allow_recursive_calls: bool,
 
+    /******** Expression Related ********/
+    // Maximum depth of nested expression
+    pub expr_depth: RandomNumber,
+
     // Maximum number of bytes to construct hex or byte string
     pub hex_byte_str_size: RandomNumber,
+
+    /******** Type Related ********/
+    // Maximum depth of nested type instantiation
+    pub type_depth: RandomNumber,
+
+    /******** Execution ********/
+    pub num_calls_in_script: RandomNumber,
+
+    /// The number of `//# run 0xCAFE::ModuleX::funX` to invoke
+    pub num_runs_per_func: RandomNumber,
+
+    // Timeout in seconds
+    pub generation_timeout_sec: usize, // MoveSmith generation timeout
 }
 
 impl Default for Config {

@@ -1,4 +1,7 @@
-use crate::move_ast::{Function, MoveAST};
+use crate::{
+    move_ast::{Function, MoveAST},
+    BlockGenerator, SignatureGenerator,
+};
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
@@ -11,7 +14,7 @@ pub struct FunctionGenerator;
 
 impl Labelled for FunctionGenerator {
     fn label() -> Label {
-        GenLabel::new_top_level("FunctionGenerator").into()
+        GenLabel::new_module_member_level("FunctionGenerator").into()
     }
 }
 
@@ -20,22 +23,32 @@ impl Register<GeneratorEntry> for FunctionGenerator {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
             parents: vec![],
+            forward: false,
         }
     }
 }
 
 impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
-    fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        true
+    fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+        constraint.check_not_exist_or_has_type::<bool>("has_return")
     }
 
     fn subtrees(
         &self,
         _u: &mut Unstructured,
         _env: &mut StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        Ok((vec![], AnyConstraint::new()))
+        let mut subtrees = vec![];
+        subtrees.push(Subtree::new_generator_subtree(
+            SignatureGenerator::label().try_into().unwrap(),
+            constraint.clone(),
+        ));
+        subtrees.push(Subtree::new_generator_subtree(
+            BlockGenerator::label().try_into().unwrap(),
+            constraint.clone(),
+        ));
+        Ok((subtrees, AnyConstraint::new()))
     }
 
     fn compose(
@@ -43,17 +56,19 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
         _u: &mut Unstructured,
         _env: &mut StatePool<MoveAST>,
         _constraint: AnyConstraint,
-        _asts: Vec<MoveAST>,
+        mut asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        Ok(MoveAST::Function(Function {}))
+        let signature = asts.remove(0).into_signature().unwrap();
+        let body = asts.remove(0).into_block().unwrap();
+        Ok(Function { signature, body }.into())
     }
 
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
         _constraint: &AnyConstraint,
-        _ast: &MoveAST,
+        ast: &MoveAST,
     ) -> bool {
-        true
+        ast.as_function().is_some()
     }
 }

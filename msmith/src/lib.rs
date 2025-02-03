@@ -21,6 +21,10 @@ pub struct MoveSmith {
 }
 
 impl MoveSmith {
+    pub fn from_framework(framework: Framework<MoveAST, AnyConstraint>) -> Self {
+        MoveSmith { framework }
+    }
+
     pub fn new() -> Self {
         let framework = FrameworkBuilder::new()
             .add_generator::<ProgramGenerator>()
@@ -28,9 +32,14 @@ impl MoveSmith {
             .add_generator::<StructGenerator>()
             .add_generator::<StructFieldGenerator>()
             .add_generator::<FunctionGenerator>()
+            .add_generator::<SignatureGenerator>()
             .add_generator::<BlockGenerator>()
             .add_generator::<SequenceGenerator>()
+            .add_generator::<StatementGenerator>()
+            .add_generator::<LetGenerator>()
             .add_generator::<ExpressionGenerator>()
+            .add_generator::<ExprStmtGenerator>()
+            .add_generator::<NumberGenerator>()
             .add_state::<config::GenerationConfig>()
             .add_state::<TypePool>()
             .add_state::<IdPool>()

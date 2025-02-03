@@ -1,7 +1,11 @@
 // Copyright (c) Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{move_ast::*, states::ids::Id};
+use crate::{
+    move_ast::*,
+    states::{ids::Id, types::Type, NumberType, Primitive},
+};
+use framework::State;
 
 /// The code put before each generated Move source code.
 static PROLOGUE: &str = include_str!("prologue.move");
@@ -132,7 +136,132 @@ impl CodeGenerator for Struct {
 
 impl CodeGenerator for Function {
     fn emit_code_lines(&self) -> Vec<String> {
-        vec![]
+        let mut code = vec![self.signature.emit_code()];
+        append_block(&mut code, self.body.emit_code_lines(), INDENTATION_SIZE);
+        code
+    }
+}
+
+impl CodeGenerator for Signature {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![format!("fun {}()", self.name)]
+    }
+}
+
+impl CodeGenerator for Block {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut body_lines = vec![];
+        for s in &self.sequences {
+            body_lines.extend(s.emit_code_lines());
+        }
+
+        if let Some(expr) = &self.return_expr {
+            body_lines.extend(expr.emit_code_lines());
+        }
+
+        let mut code = vec![format!("{{ /* {} */", self.name.inline())];
+        append_code_lines_with_indentation(&mut code, body_lines, INDENTATION_SIZE);
+        code.push("}".to_string());
+        code
+    }
+}
+
+impl CodeGenerator for Sequence {
+    fn emit_code_lines(&self) -> Vec<String> {
+        if self.statements.is_empty() {
+            return vec![];
+        }
+        let mut body = vec![];
+        for s in &self.statements {
+            body.extend(s.emit_code_lines());
+        }
+        body
+    }
+}
+
+impl CodeGenerator for Statement {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code_lines = match self {
+            Statement::Let(e) => vec![format!("let {}", e.emit_code())],
+            Statement::Expression(e) => e.emit_code_lines(),
+        };
+        if !code_lines.is_empty() {
+            code_lines.last_mut().unwrap().push_str(";");
+        }
+        return code_lines;
+    }
+}
+
+impl CodeGenerator for Expression {
+    fn emit_code_lines(&self) -> Vec<String> {
+        use Expression as E;
+        match self {
+            E::Assignment(a) => a.emit_code_lines(),
+            E::Variable(v) => v.emit_code_lines(),
+            E::NumberLiteral(n) => n.emit_code_lines(),
+        }
+    }
+}
+
+impl CodeGenerator for Assignment {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![format!(
+            "{} = {}",
+            self.lhs.emit_code(),
+            self.rhs.emit_code()
+        )]
+    }
+}
+
+impl CodeGenerator for Variable {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = format!("{}", self.name);
+        if self.show_type {
+            code.push_str(": ");
+            code.push_str(&self.typ.emit_code());
+        }
+        vec![code]
+    }
+}
+
+impl CodeGenerator for NumberLiteral {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![format!("{}{}", self.value, self.typ.emit_code())]
+    }
+}
+
+impl CodeGenerator for Type {
+    fn emit_code_lines(&self) -> Vec<String> {
+        use Type as T;
+        vec![match self {
+            T::Primitive(p) => p.emit_code(),
+            _ => unimplemented!(),
+        }]
+    }
+}
+
+impl CodeGenerator for Primitive {
+    fn emit_code_lines(&self) -> Vec<String> {
+        use Primitive as P;
+        vec![match self {
+            P::Address => "address".to_string(),
+            P::Bool => "bool".to_string(),
+            P::Number(n) => n.emit_code(),
+        }]
+    }
+}
+
+impl CodeGenerator for NumberType {
+    fn emit_code_lines(&self) -> Vec<String> {
+        use NumberType as N;
+        vec![match self {
+            N::U8 => "u8".to_string(),
+            N::U16 => "u16".to_string(),
+            N::U32 => "u32".to_string(),
+            N::U64 => "u64".to_string(),
+            N::U128 => "u128".to_string(),
+            N::U256 => "u256".to_string(),
+        }]
     }
 }
 

@@ -41,7 +41,13 @@ impl AnyConstraint {
     }
 
     /// Check if the key exists and if the value has the correct type
-    pub fn check<T: AnyDebug + Clone>(&self, key: &str) -> bool {
+    pub fn check_exist_and_type<T: AnyDebug + Clone>(&self, key: &str) -> bool {
         self.get::<T>(key).is_some()
+    }
+
+    /// If the key exists, check whether it has the correct type
+    /// Returns true if the key does not exist
+    pub fn check_not_exist_or_has_type<T: AnyDebug + Clone>(&self, key: &str) -> bool {
+        self.get::<T>(key).is_none() || self.check_exist_and_type::<T>(key)
     }
 }

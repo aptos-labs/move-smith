@@ -1,7 +1,6 @@
 use crate::{
-    ids::{Id, IdKind},
-    move_ast::{MoveAST, StructField},
-    types::{NumberType, Primitive, Type},
+    move_ast::{MoveAST, Signature, TypeParameters},
+    CurrScope, IdKind, IdPool,
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -12,15 +11,15 @@ use framework::{
 use log::warn;
 
 #[derive(Default)]
-pub struct StructFieldGenerator;
+pub struct SignatureGenerator;
 
-impl Labelled for StructFieldGenerator {
+impl Labelled for SignatureGenerator {
     fn label() -> Label {
-        GenLabel::new_func_body_level("StructFieldGenerator").into()
+        GenLabel::new_func_body_level("SignatureGenerator").into()
     }
 }
 
-impl Register<GeneratorEntry> for StructFieldGenerator {
+impl Register<GeneratorEntry> for SignatureGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
@@ -30,9 +29,9 @@ impl Register<GeneratorEntry> for StructFieldGenerator {
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for StructFieldGenerator {
+impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        // constraint.check::<bool>("can_be_struct") && constraint.check::<bool>("can_be_type_param")
+        warn!("check_constraint not implemented for SignatureGenerator");
         true
     }
 
@@ -42,21 +41,27 @@ impl Generator<MoveAST, AnyConstraint> for StructFieldGenerator {
         _env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        warn!("StructFieldGenerator::subtrees not implemented");
+        warn!("subtrees not implemented for SignatureGenerator");
         Ok((vec![], AnyConstraint::new()))
     }
 
     fn compose(
         &self,
         _u: &mut Unstructured,
-        _env: &mut StatePool<MoveAST>,
+        env: &mut StatePool<MoveAST>,
         _constraint: AnyConstraint,
         _asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        warn!("StructFieldGenerator::compose not implemented");
-        Ok(StructField {
-            name: Id::new_str("placeholder", IdKind::Var),
-            ty: Type::Primitive(Primitive::Number(NumberType::U64)),
+        let curr_scope = env.get::<CurrScope>().unwrap().get();
+        let (name, _scope) = env
+            .get_mut::<IdPool>()
+            .unwrap()
+            .next_id(IdKind::Function, &curr_scope);
+        Ok(Signature {
+            name,
+            type_params: TypeParameters::default(),
+            parameters: vec![],
+            return_type: None,
         }
         .into())
     }
@@ -65,9 +70,8 @@ impl Generator<MoveAST, AnyConstraint> for StructFieldGenerator {
         &self,
         _env: &StatePool<MoveAST>,
         _constraint: &AnyConstraint,
-        _ast: &MoveAST,
+        ast: &MoveAST,
     ) -> bool {
-        warn!("StructFieldGenerator::check_ast not implemented");
-        true
+        ast.as_signature().is_some()
     }
 }

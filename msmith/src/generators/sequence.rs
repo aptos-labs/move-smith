@@ -1,5 +1,9 @@
-use crate::move_ast::MoveAST;
-use anyhow::Result;
+use crate::{
+    move_ast::{MoveAST, Sequence},
+    states::GenerationConfig,
+    StatementGenerator,
+};
+use anyhow::{Ok, Result};
 use arbitrary::Unstructured;
 use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
@@ -11,7 +15,7 @@ pub struct SequenceGenerator;
 
 impl Labelled for SequenceGenerator {
     fn label() -> Label {
-        GenLabel::new_top_level("SequenceGenerator").into()
+        GenLabel::new_func_body_level("SequenceGenerator").into()
     }
 }
 
@@ -20,22 +24,33 @@ impl Register<GeneratorEntry> for SequenceGenerator {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
             parents: vec![],
+            forward: false,
         }
     }
 }
 
 impl Generator<MoveAST, AnyConstraint> for SequenceGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        unimplemented!()
+        true
     }
 
     fn subtrees(
         &self,
-        _u: &mut Unstructured,
-        _env: &mut StatePool<MoveAST>,
+        u: &mut Unstructured,
+        env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        unimplemented!()
+        let config = env.get::<GenerationConfig>().unwrap();
+        let num_statements = config.num_stmts_in_sequence.select(u)?;
+
+        let mut subtrees = vec![];
+        for _ in 0..num_statements {
+            subtrees.push(Subtree::new_generator_subtree(
+                StatementGenerator::label().try_into().unwrap(),
+                AnyConstraint::new(),
+            ));
+        }
+        Ok((subtrees, AnyConstraint::new()))
     }
 
     fn compose(
@@ -43,17 +58,21 @@ impl Generator<MoveAST, AnyConstraint> for SequenceGenerator {
         _u: &mut Unstructured,
         _env: &mut StatePool<MoveAST>,
         _constraint: AnyConstraint,
-        _asts: Vec<MoveAST>,
+        asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        unimplemented!()
+        let statements = asts
+            .into_iter()
+            .map(|ast| ast.try_into().unwrap())
+            .collect();
+        Ok(Sequence { statements }.into())
     }
 
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
         _constraint: &AnyConstraint,
-        _ast: &MoveAST,
+        ast: &MoveAST,
     ) -> bool {
-        unimplemented!()
+        ast.as_sequence().is_some()
     }
 }

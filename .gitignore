@@ -13,6 +13,7 @@ afl*/
 fuzz/afl*/
 report.toml
 MoveSmith.toml
+test/
 
 # Rust specific ignores
 # Please follow https://help.github.com/en/articles/ignoring-files to create a global

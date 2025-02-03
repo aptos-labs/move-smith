@@ -11,7 +11,7 @@ pub struct TemplateGenerator;
 
 impl Labelled for TemplateGenerator {
     fn label() -> Label {
-        GenLabel::new_top_level("TemplateGenerator").into()
+        GenLabel::new("TemplateGenerator").into()
     }
 }
 
@@ -20,6 +20,7 @@ impl Register<GeneratorEntry> for TemplateGenerator {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
             parents: vec![],
+            forward: false,
         }
     }
 }

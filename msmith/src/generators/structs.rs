@@ -14,7 +14,7 @@ pub struct StructGenerator;
 
 impl Labelled for StructGenerator {
     fn label() -> Label {
-        GenLabel::new_top_level("StructGenerator").into()
+        GenLabel::new_module_member_level("StructGenerator").into()
     }
 }
 
@@ -23,6 +23,7 @@ impl Register<GeneratorEntry> for StructGenerator {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
             parents: vec![],
+            forward: false,
         }
     }
 }

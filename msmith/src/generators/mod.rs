@@ -7,7 +7,12 @@ export_all!(
     structs,
     struct_field,
     function,
+    signature,
     block,
     sequence,
-    expr
+    statement,
+    expr,
+    stmt_expr,
+    stmt_let,
+    number
 );

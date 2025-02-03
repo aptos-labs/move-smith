@@ -29,6 +29,7 @@ impl Register<GeneratorEntry> for ModuleGenerator {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
             parents: vec![],
+            forward: false,
         }
     }
 }
@@ -64,10 +65,12 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
             ));
         }
 
+        let mut func_constraints = AnyConstraint::new();
+        func_constraints.insert("has_return", false);
         for _ in 0..num_funcs {
             subtrees.push(Subtree::new_generator_subtree(
                 FunctionGenerator::label().try_into().unwrap(),
-                AnyConstraint::new(),
+                func_constraints.clone(),
             ));
         }
 

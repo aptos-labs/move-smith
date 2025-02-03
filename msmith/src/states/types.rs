@@ -1,10 +1,10 @@
-use crate::{
-    move_ast::MoveAST,
-    states::ids::Id,
-};
+use crate::{move_ast::MoveAST, states::ids::Id};
 use anyhow::Result;
 use arbitrary::Unstructured;
-use framework::{GenLabel, Label, Labelled, Register, State, StateEntry, StateLabel};
+use framework::{
+    selection::choose_item_weighted, GenLabel, Label, Labelled, Register, State, StateEntry,
+    StateLabel,
+};
 use std::collections::BTreeMap;
 
 pub trait Typed {
@@ -27,17 +27,16 @@ impl TypePool {
         Ok(self.defined_types.get(id).unwrap().clone())
     }
 
-    pub fn random_primitive_type(&self, u: &mut Unstructured) -> Result<Type> {
-        let ty = u.choose(&[
-            Type::Primitive(Primitive::Bool),
-            Type::Primitive(Primitive::U8),
-            Type::Primitive(Primitive::U16),
-            Type::Primitive(Primitive::U32),
-            Type::Primitive(Primitive::U64),
-            Type::Primitive(Primitive::U128),
-            Type::Primitive(Primitive::U256),
+    pub fn random_number_type(&self, u: &mut Unstructured) -> Result<NumberType> {
+        let typ = choose_item_weighted(u, &[
+            (NumberType::U8, 10),
+            (NumberType::U16, 10),
+            (NumberType::U32, 10),
+            (NumberType::U64, 10),
+            (NumberType::U128, 1),
+            (NumberType::U256, 1),
         ])?;
-        Ok(ty.clone())
+        Ok(typ)
     }
 }
 
@@ -97,6 +96,11 @@ pub enum GenericType {
 pub enum Primitive {
     Address,
     Bool,
+    Number(NumberType),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NumberType {
     U8,
     U16,
     U32,

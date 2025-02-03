@@ -4,6 +4,7 @@ use crate::states::{
 };
 use enuminto::EnumInto;
 use framework::ASTNode;
+use num_bigint::BigUint;
 
 /// The flattened AST where each variant is a different type of Move AST node
 /// This is created so that we can have a single type that all generators can compose
@@ -15,8 +16,16 @@ pub enum MoveAST {
     Program(Program),
     MoveModule(MoveModule),
     Struct(Struct),
-    Function(Function),
     StructField(StructField),
+    Function(Function),
+    Signature(Signature),
+    Block(Block),
+    Sequence(Sequence),
+    Statement(Statement),
+    Expression(Expression),
+    Variable(Variable),
+    Assignment(Assignment),
+    NumberLiteral(NumberLiteral),
 }
 
 impl ASTNode for MoveAST {}
@@ -81,7 +90,6 @@ impl Typed for Struct {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeParameters {
     pub types: Vec<TypeParameters>,
@@ -102,7 +110,63 @@ pub struct StructField {
 
 /// The definition of the whole function
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Function {}
+pub struct Function {
+    pub signature: Signature,
+    pub body: Block,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Signature {
+    pub name: Id,
+    pub type_params: TypeParameters,
+    pub parameters: Vec<Variable>,
+    pub return_type: Option<Type>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Block {
+    pub name: Id,
+    pub sequences: Vec<Sequence>,
+    pub return_expr: Option<Expression>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Sequence {
+    pub statements: Vec<Statement>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Statement {
+    Let(Expression),
+    Expression(Expression),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Expression {
+    Assignment(Assignment),
+    Variable(Variable),
+    NumberLiteral(NumberLiteral),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Assignment {
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Variable {
+    pub name: Id,
+    pub typ: Type,
+    pub declare: bool,
+    pub show_type: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NumberLiteral {
+    pub value: BigUint,
+    pub typ: Type,
+}
 
 impl Default for Program {
     fn default() -> Self {

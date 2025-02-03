@@ -25,6 +25,7 @@ impl Register<GeneratorEntry> for ProgramGenerator {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
             parents: vec![],
+            forward: false,
         }
     }
 }

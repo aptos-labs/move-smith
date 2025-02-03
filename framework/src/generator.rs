@@ -4,9 +4,14 @@ use arbitrary::Unstructured;
 use log::{error, info};
 use std::collections::BTreeMap;
 
+#[derive(Debug, Clone)]
 pub struct GeneratorEntry {
     pub label: GenLabel,
     pub parents: Vec<GenLabel>,
+    /// If true, the generator doesn't implement subtree and compose and forward the constraint to its children.
+    /// If true, some child node must present
+    /// Forwarding nodes can still implement check_constraint and check_ast
+    pub forward: bool,
 }
 
 pub trait Generator<A: ASTNode, C: Constraint>: Register<GeneratorEntry> {
@@ -81,7 +86,9 @@ pub struct GeneratorSubtree<C: Constraint> {
 pub struct GeneratorPool<ASTNode, Constraint> {
     pub initialized: bool,
     pub generators: BTreeMap<GenLabel, GeneratorT<ASTNode, Constraint>>,
+    // Contains the parent -> children relationship
     pub dependencies: BTreeMap<GenLabel, Vec<GenLabel>>,
+    pub entries: BTreeMap<GenLabel, GeneratorEntry>,
 }
 
 impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
@@ -90,6 +97,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
             initialized: false,
             generators: BTreeMap::new(),
             dependencies: BTreeMap::new(),
+            entries: BTreeMap::new(),
         }
     }
 
@@ -97,6 +105,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
         let entry = generator.register();
         info!("Registering generator: {}", entry.label);
         self.generators.insert(entry.label.clone(), generator);
+        self.entries.insert(entry.label.clone(), entry.clone());
 
         // Keep a record of the parent -> children relationship
         // However, now a parent might not exist in the registry yet
@@ -127,6 +136,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
             to_visit.push(label);
         }
 
+        // Make sure there is no cyclic dependency
         while let Some(label) = to_visit.pop() {
             visited.push(label);
             if let Some(children) = self.dependencies.get(&label) {
@@ -140,8 +150,26 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
             }
         }
 
+        // Make sure forwarding nodes have children
+        for label in self.dependencies.keys() {
+            if let Some(entry) = self.get_entry(label) {
+                if entry.forward {
+                    if let Some(children) = self.dependencies.get(label) {
+                        if children.is_empty() {
+                            error!("Forwarding node {} has no children", label);
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
         self.initialized = true;
         return true;
+    }
+
+    pub fn get_entry(&self, label: &GenLabel) -> Option<&GeneratorEntry> {
+        self.entries.get(label)
     }
 
     /// Return the labels for all registered generators.
@@ -163,7 +191,11 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
             if visited.contains(&label) {
                 panic!("Cyclic dependency detected: {:?} --> {:?}", visited, label);
             }
-            visited.push(label.clone());
+            if let Some(entry) = self.get_entry(&label) {
+                if !entry.forward {
+                    visited.push(label.clone());
+                }
+            }
             if let Some(dependencies) = self.dependencies.get(&label) {
                 stack.extend(dependencies.iter().cloned());
             }

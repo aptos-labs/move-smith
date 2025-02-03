@@ -1,7 +1,7 @@
+use super::ExpressionGenerator;
 use crate::{
-    ids::{Id, IdKind},
-    move_ast::{MoveAST, StructField},
-    types::{NumberType, Primitive, Type},
+    generators::StatementGenerator,
+    move_ast::{MoveAST, Statement},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -12,27 +12,27 @@ use framework::{
 use log::warn;
 
 #[derive(Default)]
-pub struct StructFieldGenerator;
+pub struct ExprStmtGenerator;
 
-impl Labelled for StructFieldGenerator {
+impl Labelled for ExprStmtGenerator {
     fn label() -> Label {
-        GenLabel::new_func_body_level("StructFieldGenerator").into()
+        GenLabel::new_func_body_level("ExprStmtGenerator").into()
     }
 }
 
-impl Register<GeneratorEntry> for StructFieldGenerator {
+impl Register<GeneratorEntry> for ExprStmtGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry {
             label: Self::label().try_into().unwrap(),
-            parents: vec![],
+            parents: vec![StatementGenerator::label().try_into().unwrap()],
             forward: false,
         }
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for StructFieldGenerator {
+impl Generator<MoveAST, AnyConstraint> for ExprStmtGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        // constraint.check::<bool>("can_be_struct") && constraint.check::<bool>("can_be_type_param")
+        warn!("check_constraint not implemented for ExprStmtGenerator");
         true
     }
 
@@ -40,10 +40,15 @@ impl Generator<MoveAST, AnyConstraint> for StructFieldGenerator {
         &self,
         _u: &mut Unstructured,
         _env: &mut StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        warn!("StructFieldGenerator::subtrees not implemented");
-        Ok((vec![], AnyConstraint::new()))
+        Ok((
+            vec![Subtree::new_generator_subtree(
+                ExpressionGenerator::label().try_into().unwrap(),
+                constraint.clone(),
+            )],
+            AnyConstraint::new(),
+        ))
     }
 
     fn compose(
@@ -51,23 +56,18 @@ impl Generator<MoveAST, AnyConstraint> for StructFieldGenerator {
         _u: &mut Unstructured,
         _env: &mut StatePool<MoveAST>,
         _constraint: AnyConstraint,
-        _asts: Vec<MoveAST>,
+        asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        warn!("StructFieldGenerator::compose not implemented");
-        Ok(StructField {
-            name: Id::new_str("placeholder", IdKind::Var),
-            ty: Type::Primitive(Primitive::Number(NumberType::U64)),
-        }
-        .into())
+        let expr = asts.into_iter().next().unwrap().into_expression().unwrap();
+        Ok(MoveAST::Statement(Statement::Expression(expr)))
     }
 
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
         _constraint: &AnyConstraint,
-        _ast: &MoveAST,
+        ast: &MoveAST,
     ) -> bool {
-        warn!("StructFieldGenerator::check_ast not implemented");
-        true
+        ast.as_statement().is_some()
     }
 }
