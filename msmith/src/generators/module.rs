@@ -1,6 +1,7 @@
+use super::SignatureGenerator;
 use crate::{
     generators::{FunctionGenerator, StructGenerator},
-    move_ast::{Address, MoveAST, MoveModule},
+    move_ast::{Address, MoveAST, MoveModule, Signature},
     states::ids::ROOT_SCOPE,
     CurrScope, GenerationConfig, Id, IdPool,
 };
@@ -12,11 +13,7 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct ModuleGenerator {
-    name: Id,
-    num_structs: usize,
-    num_funcs: usize,
-}
+pub struct ModuleGenerator;
 
 impl Labelled for ModuleGenerator {
     fn label() -> Label {
@@ -26,11 +23,7 @@ impl Labelled for ModuleGenerator {
 
 impl Register<GeneratorEntry> for ModuleGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry {
-            label: Self::label().try_into().unwrap(),
-            parents: vec![],
-            forward: false,
-        }
+        GeneratorEntry::new::<Self>()
     }
 }
 

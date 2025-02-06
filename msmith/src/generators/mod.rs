@@ -14,5 +14,6 @@ export_all!(
     expr,
     stmt_expr,
     stmt_let,
-    number
+    number,
+    tuple
 );

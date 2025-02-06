@@ -22,11 +22,9 @@ impl Labelled for LetGenerator {
 
 impl Register<GeneratorEntry> for LetGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry {
-            label: Self::label().try_into().unwrap(),
-            parents: vec![StatementGenerator::label().try_into().unwrap()],
-            forward: false,
-        }
+        let mut entry = GeneratorEntry::new::<Self>();
+        entry.add_parent::<StatementGenerator>();
+        entry
     }
 }
 

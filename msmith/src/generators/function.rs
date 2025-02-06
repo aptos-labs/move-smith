@@ -1,5 +1,6 @@
 use crate::{
     move_ast::{Function, MoveAST},
+    states::types::Type,
     BlockGenerator, SignatureGenerator,
 };
 use anyhow::Result;
@@ -20,17 +21,14 @@ impl Labelled for FunctionGenerator {
 
 impl Register<GeneratorEntry> for FunctionGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry {
-            label: Self::label().try_into().unwrap(),
-            parents: vec![],
-            forward: false,
-        }
+        GeneratorEntry::new::<Self>()
     }
 }
 
 impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         constraint.check_not_exist_or_has_type::<bool>("has_return")
+            && constraint.check_not_exist_or_has_type::<Type>("return_type")
     }
 
     fn subtrees(
@@ -44,9 +42,11 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
             SignatureGenerator::label().try_into().unwrap(),
             constraint.clone(),
         ));
+        let mut block_constraint = AnyConstraint::new();
+        block_constraint.insert("is_function_body", true);
         subtrees.push(Subtree::new_generator_subtree(
             BlockGenerator::label().try_into().unwrap(),
-            constraint.clone(),
+            block_constraint.clone(),
         ));
         Ok((subtrees, AnyConstraint::new()))
     }

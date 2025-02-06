@@ -22,11 +22,7 @@ impl Labelled for ProgramGenerator {
 
 impl Register<GeneratorEntry> for ProgramGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry {
-            label: Self::label().try_into().unwrap(),
-            parents: vec![],
-            forward: false,
-        }
+        GeneratorEntry::new::<Self>()
     }
 }
 

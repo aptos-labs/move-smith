@@ -40,6 +40,10 @@ impl AnyConstraint {
             .and_then(|v| (**v).as_any().downcast_ref())
     }
 
+    pub fn get_or<T: AnyDebug + Clone>(&self, key: &str, default: T) -> T {
+        self.get(key).cloned().unwrap_or(default)
+    }
+
     /// Check if the key exists and if the value has the correct type
     pub fn check_exist_and_type<T: AnyDebug + Clone>(&self, key: &str) -> bool {
         self.get::<T>(key).is_some()

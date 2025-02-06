@@ -48,6 +48,16 @@ where
         }
     }
 
+    /// Same as `get` but panics if the state is not found.
+    pub fn get_fail<T: State<A> + Labelled>(&self) -> &T {
+        self.get::<T>().unwrap()
+    }
+
+    /// Same as `get_mut` but panics if the state is not found.
+    pub fn get_mut_fail<T: State<A> + Labelled>(&mut self) -> &mut T {
+        self.get_mut::<T>().unwrap()
+    }
+
     pub fn get<T: State<A> + Labelled>(&self) -> Option<&T> {
         match T::label().try_into() {
             Ok(label) => self.get_by_label::<T>(&label),

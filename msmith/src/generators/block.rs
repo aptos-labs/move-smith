@@ -4,7 +4,8 @@ use crate::{
     states::{
         curr_scope::CurrScope,
         ids::{Id, IdPool},
-        GenerationConfig,
+        partial::{PartialInfo, PARTIAL_SIGNATURE},
+        GenerationConfig, TypePool, TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -26,17 +27,18 @@ impl Labelled for BlockGenerator {
 
 impl Register<GeneratorEntry> for BlockGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry {
-            label: Self::label().try_into().unwrap(),
-            parents: vec![],
-            forward: false,
-        }
+        GeneratorEntry::new::<Self>()
     }
 }
 
 impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         constraint.check_not_exist_or_has_type::<bool>("has_return")
+            && constraint.check_exist_and_type::<bool>("is_function_body")
+        // TODO
+        // 1. add a `return_type` that specify the return type if `has_return` is true
+        // 2. `has_return` and `is_function_body` should be mutually exclusive
+        // 3. when `is_function_body` is true, the PartialInfo's PARTIAL_SIGNATURE should not be empty
     }
 
     fn subtrees(
@@ -45,6 +47,25 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
+        let is_function_body = constraint.get::<bool>("is_function_body").unwrap();
+        let has_return = match constraint.get("has_return") {
+            Some(v) => *v,
+            None => bool::arbitrary(u)?,
+        };
+        let return_type = if *is_function_body {
+            let partial_info = env.get_mut::<PartialInfo>().unwrap();
+            let signatures = partial_info.store.get_mut(PARTIAL_SIGNATURE).unwrap();
+            let signature = signatures.pop().unwrap().into_signature().unwrap();
+            signature.return_type.clone()
+        } else if has_return {
+            let type_pool = env.get::<TypePool>().unwrap();
+            let config = env.get::<GenerationConfig>().unwrap();
+            let selector = TypeSelectorBuilder::all_no(config).number(1).build();
+            Some(type_pool.random_type(u, vec![selector]).unwrap())
+        } else {
+            None
+        };
+
         let curr_scope = env.get::<CurrScope>().unwrap().get();
         let (name, scope) = env
             .get_mut::<IdPool>()
@@ -67,14 +88,6 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
         compose_constraint.insert("num_sequences", num_sequences);
         trace!("Block {} will generate {} sequences", name, num_sequences);
 
-        let has_return = match constraint.get("has_return") {
-            Some(v) => *v,
-            None => bool::arbitrary(u)?,
-        };
-
-        compose_constraint.insert("has_return", has_return);
-        trace!("Block {} has return expr: {}", name, has_return);
-
         let mut subtrees = vec![];
 
         for _ in 0..num_sequences {
@@ -84,11 +97,19 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
             ));
         }
 
-        if has_return {
+        if let Some(return_type) = return_type {
+            compose_constraint.insert("has_return", true);
+            trace!("Block {} has return type: {:?}", name, return_type);
+
+            let mut expr_constraint = AnyConstraint::new();
+            expr_constraint.insert("type", return_type);
             subtrees.push(Subtree::new_generator_subtree(
                 ExpressionGenerator::label().try_into().unwrap(),
-                AnyConstraint::new(),
+                expr_constraint,
             ));
+        } else {
+            compose_constraint.insert("has_return", false);
+            trace!("Block {} has no return expr", name);
         }
 
         Ok((subtrees, compose_constraint))
@@ -112,9 +133,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
         let return_expr = match has_return {
             true => {
                 let node = asts.remove(0);
-                println!("searchme node: {:?}", node);
                 let expr: Expression = node.try_into().unwrap();
-                // Some(asts.remove(0).try_into().unwrap())
                 Some(expr)
             },
             false => None,

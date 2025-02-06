@@ -24,6 +24,7 @@ hex_byte_str_size = { min = 1, target = 32, max = 512 }
 
 ######## Type Related ######## 
 type_depth = { min = 1, target = 4, max = 50 }
+num_elem_in_tuple = { min = 1, target = 4, max = 50 }
 
 ######## Execution ######## 
 num_calls_in_script = { min = 0, target = 20, max = 50 }

@@ -1,4 +1,5 @@
 use crate::{
+    generators::SignatureGenerator,
     move_ast::{MoveAST, Signature, TypeParameters, Variable},
     states::{
         types::{TypePool, TypeSelectorBuilder},
@@ -14,30 +15,33 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct SignatureGenerator;
+pub struct ConsumerSignatureGenerator;
 
-impl Labelled for SignatureGenerator {
+impl Labelled for ConsumerSignatureGenerator {
     fn label() -> Label {
-        GenLabel::new_func_body_level("SignatureGenerator").into()
+        GenLabel::new_func_body_level("ConsumerSignatureGenerator").into()
     }
 }
 
-impl Register<GeneratorEntry> for SignatureGenerator {
+impl Register<GeneratorEntry> for ConsumerSignatureGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry::new::<Self>()
+        let mut entry = GeneratorEntry::new::<Self>();
+        entry.add_parent::<SignatureGenerator>();
+        entry.skip_parent = true;
+        entry
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
-    fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
-        constraint.check_not_exist_or_has_type::<bool>("has_return")
+impl Generator<MoveAST, AnyConstraint> for ConsumerSignatureGenerator {
+    fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
+        true
     }
 
     fn subtrees(
         &self,
         u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
-        constraint: &AnyConstraint,
+        _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let curr_scope = env.get_fail::<CurrScope>().get();
         let (name, func_scope) = env
@@ -46,7 +50,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
 
         let config = env.get_fail::<GenerationConfig>().clone();
         let num_params = config.num_params_in_func.select(u)?;
-        let type_selector = TypeSelectorBuilder::all_yes(&config).build();
+        let type_selector = TypeSelectorBuilder::all_no(&config).number(1).build();
         let mut parameters = vec![];
 
         for _ in 0..num_params {
@@ -64,24 +68,12 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             });
         }
 
-        let has_return = constraint.get_or::<bool>("has_return", false);
-
-        let return_type = if has_return {
-            let type_selector = TypeSelectorBuilder::all_yes(&config).build();
-            Some(
-                env.get_fail::<TypePool>()
-                    .random_type(u, vec![type_selector])?,
-            )
-        } else {
-            None
-        };
-
         let subtree = Subtree::new_single_candidate(
             Signature {
                 name,
                 type_params: TypeParameters::default(),
                 parameters,
-                return_type,
+                return_type: None,
             }
             .into(),
         );

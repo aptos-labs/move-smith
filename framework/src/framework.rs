@@ -111,7 +111,7 @@ where
 
         // For all the usable generators, randomly select one that the constraint is well-formed for
         // If none of the specialized generators can be used, we will fall back to the base generator
-        let usable_generators: Vec<GenLabel> = self.generators.generators_from(base_label);
+        let usable_generators: Vec<GenLabel> = self.generators.generators_from(base_label, true);
         let selected_idx = choose_idx_filter(u, &usable_generators, |g| {
             self.generators
                 .get(g)
@@ -123,7 +123,17 @@ where
         trace!("Selected generator: {:?}", selected_label);
 
         // TODO: on only the selected generator or also its parent (or plus all its siblings)
-        self.states_mut().update_pre(u, selected_label);
+        let state_hook_generators = self.generators.generators_from(base_label, false);
+        trace!("State hook generators: {:?}", state_hook_generators);
+        trace!("Running all update_pre for base label: {}", base_label);
+        for g in &state_hook_generators {
+            trace!("Running update_pre for generator: {:?}", g);
+            self.states_mut().update_pre(u, g);
+        }
+        trace!(
+            "Finished running all update_pre for base label: {}",
+            base_label
+        );
 
         // Register the subtrees
         let generator = self.generators.get(selected_label).unwrap();
@@ -161,6 +171,12 @@ where
             constraint,
             &new_node,
         );
+        trace!(
+            "{:?}'s check_ast result on {:?}: {}",
+            base_label,
+            selected_label,
+            result
+        );
 
         // TODO: use reference
         if !result {
@@ -172,7 +188,15 @@ where
             ));
         }
 
-        self.states_mut().update_post(u, &new_node, selected_label);
+        trace!("Running all update_pre for base label: {}", base_label);
+        for g in &state_hook_generators {
+            trace!("Running update_post for generator: {:?}", g);
+            self.states_mut().update_post(u, &new_node, g);
+        }
+        trace!(
+            "Finished running all update_pre for base label: {}",
+            base_label
+        );
 
         Ok(new_node)
     }

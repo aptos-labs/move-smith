@@ -5,6 +5,7 @@
 
 use crate::move_ast::MoveAST;
 use arbitrary::Unstructured;
+use core::fmt;
 use framework::{
     selection::RandomNumber, GenLabel, Label, Labelled, Register, State, StateEntry, StateLabel,
 };
@@ -18,7 +19,7 @@ pub struct Config {
 }
 
 /// MoveSmith will randomly pick within [0..max_num_XXX] during generation.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct GenerationConfig {
     /******** Module Related ********/
     pub num_modules: RandomNumber,
@@ -57,6 +58,8 @@ pub struct GenerationConfig {
     /******** Type Related ********/
     // Maximum depth of nested type instantiation
     pub type_depth: RandomNumber,
+    // Number of elements in a tuple
+    pub num_elem_in_tuple: RandomNumber,
 
     /******** Execution ********/
     pub num_calls_in_script: RandomNumber,
@@ -66,6 +69,12 @@ pub struct GenerationConfig {
 
     // Timeout in seconds
     pub generation_timeout_sec: usize, // MoveSmith generation timeout
+}
+
+impl fmt::Debug for GenerationConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "GenerationConfig {{ ... }}")
+    }
 }
 
 impl Default for Config {

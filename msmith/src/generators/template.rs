@@ -17,11 +17,7 @@ impl Labelled for TemplateGenerator {
 
 impl Register<GeneratorEntry> for TemplateGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry {
-            label: Self::label().try_into().unwrap(),
-            parents: vec![],
-            forward: false,
-        }
+        GeneratorEntry::new::<Self>()
     }
 }
 

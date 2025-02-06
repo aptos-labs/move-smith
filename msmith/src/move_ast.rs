@@ -26,6 +26,7 @@ pub enum MoveAST {
     Variable(Variable),
     Assignment(Assignment),
     NumberLiteral(NumberLiteral),
+    Tuple(Tuple),
 }
 
 impl ASTNode for MoveAST {}
@@ -79,6 +80,7 @@ pub struct Struct {
 impl Typed for Struct {
     fn ty(&self) -> Type {
         Type::Generic(GenericType::Struct(StructType {
+            name: self.name.clone(),
             type_params: vec![],
             fields: self
                 .fields
@@ -143,9 +145,15 @@ pub enum Statement {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
+    Tuple(Tuple),
     Assignment(Assignment),
     Variable(Variable),
     NumberLiteral(NumberLiteral),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Tuple {
+    pub expressions: Vec<Expression>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,8 +1,10 @@
-use crate::{constraints::Constraint, label::GenLabel, states::StatePool, ASTNode, Register};
+use crate::{
+    constraints::Constraint, label::GenLabel, states::StatePool, ASTNode, Labelled, Register,
+};
 use anyhow::Result;
 use arbitrary::Unstructured;
 use log::{error, info};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone)]
 pub struct GeneratorEntry {
@@ -12,6 +14,24 @@ pub struct GeneratorEntry {
     /// If true, some child node must present
     /// Forwarding nodes can still implement check_constraint and check_ast
     pub forward: bool,
+
+    /// If true, the generator's parents will be set as forwarding nodes
+    pub skip_parent: bool,
+}
+
+impl GeneratorEntry {
+    pub fn new<T: Labelled>() -> Self {
+        GeneratorEntry {
+            label: T::label().try_into().unwrap(),
+            parents: vec![],
+            forward: false,
+            skip_parent: false,
+        }
+    }
+
+    pub fn add_parent<T: Labelled>(&mut self) {
+        self.parents.push(T::label().try_into().unwrap());
+    }
 }
 
 pub trait Generator<A: ASTNode, C: Constraint>: Register<GeneratorEntry> {
@@ -89,6 +109,7 @@ pub struct GeneratorPool<ASTNode, Constraint> {
     // Contains the parent -> children relationship
     pub dependencies: BTreeMap<GenLabel, Vec<GenLabel>>,
     pub entries: BTreeMap<GenLabel, GeneratorEntry>,
+    pub to_skip: BTreeSet<GenLabel>,
 }
 
 impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
@@ -98,6 +119,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
             generators: BTreeMap::new(),
             dependencies: BTreeMap::new(),
             entries: BTreeMap::new(),
+            to_skip: BTreeSet::new(),
         }
     }
 
@@ -111,15 +133,22 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
         // However, now a parent might not exist in the registry yet
         for parent in entry.parents {
             self.dependencies
-                .entry(parent)
+                .entry(parent.clone())
                 .or_insert_with(Vec::new)
                 .push(entry.label.clone());
+            self.to_skip.insert(parent.clone());
         }
     }
 
     pub fn initialize(&mut self) -> bool {
         if self.initialized {
             return true;
+        }
+
+        for label in &self.to_skip {
+            if let Some(entry) = self.entries.get_mut(&label) {
+                entry.forward = true;
+            }
         }
 
         let mut visited = vec![];
@@ -172,6 +201,10 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
         self.entries.get(label)
     }
 
+    pub fn get_entry_mut(&mut self, label: &GenLabel) -> Option<&mut GeneratorEntry> {
+        self.entries.get_mut(label)
+    }
+
     /// Return the labels for all registered generators.
     pub fn all(&self) -> Vec<GenLabel> {
         self.generators.keys().cloned().collect()
@@ -183,8 +216,8 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
     }
 
     /// Returns all generators that specialize the given labelled generator.
-    /// This includes the input generator itself.
-    pub fn generators_from(&self, label: &GenLabel) -> Vec<GenLabel> {
+    /// This excludes all forwarding nodes.
+    pub fn generators_from(&self, label: &GenLabel, skip_forward: bool) -> Vec<GenLabel> {
         let mut visited = vec![];
         let mut stack = vec![label.clone()];
         while let Some(label) = stack.pop() {
@@ -192,7 +225,11 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
                 panic!("Cyclic dependency detected: {:?} --> {:?}", visited, label);
             }
             if let Some(entry) = self.get_entry(&label) {
-                if !entry.forward {
+                if skip_forward {
+                    if !entry.forward {
+                        visited.push(label.clone());
+                    }
+                } else {
                     visited.push(label.clone());
                 }
             }

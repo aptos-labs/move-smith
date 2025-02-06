@@ -21,11 +21,7 @@ impl Labelled for NumberGenerator {
 
 impl Register<GeneratorEntry> for NumberGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry {
-            label: Self::label().try_into().unwrap(),
-            parents: vec![],
-            forward: false,
-        }
+        GeneratorEntry::new::<Self>()
     }
 }
 

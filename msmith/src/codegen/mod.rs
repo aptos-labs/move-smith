@@ -3,9 +3,8 @@
 
 use crate::{
     move_ast::*,
-    states::{ids::Id, types::Type, NumberType, Primitive},
+    states::{ids::Id, types::Type, GenericType, NumberType, Primitive},
 };
-use framework::State;
 
 /// The code put before each generated Move source code.
 static PROLOGUE: &str = include_str!("prologue.move");
@@ -144,7 +143,19 @@ impl CodeGenerator for Function {
 
 impl CodeGenerator for Signature {
     fn emit_code_lines(&self) -> Vec<String> {
-        vec![format!("fun {}()", self.name)]
+        let mut code = format!("fun {}", self.name);
+
+        let params = self
+            .parameters
+            .iter()
+            .map(|p| p.emit_code())
+            .collect::<Vec<String>>();
+        code.push_str(&format!("({})", params.join(", ")));
+        if let Some(ret_typ) = &self.return_type {
+            code.push_str(": ");
+            code.push_str(&ret_typ.emit_code());
+        }
+        vec![code]
     }
 }
 
@@ -199,7 +210,18 @@ impl CodeGenerator for Expression {
             E::Assignment(a) => a.emit_code_lines(),
             E::Variable(v) => v.emit_code_lines(),
             E::NumberLiteral(n) => n.emit_code_lines(),
+            E::Tuple(t) => t.emit_code_lines(),
         }
+    }
+}
+
+impl CodeGenerator for Tuple {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut elems = vec![];
+        for expr in &self.expressions {
+            elems.push(expr.emit_code());
+        }
+        vec![format!("({})", elems.join(", "))]
     }
 }
 
@@ -234,7 +256,25 @@ impl CodeGenerator for Type {
     fn emit_code_lines(&self) -> Vec<String> {
         use Type as T;
         vec![match self {
+            T::Generic(g) => g.emit_code(),
             T::Primitive(p) => p.emit_code(),
+            _ => unimplemented!(),
+        }]
+    }
+}
+
+impl CodeGenerator for GenericType {
+    fn emit_code_lines(&self) -> Vec<String> {
+        use GenericType as G;
+        vec![match self {
+            G::Struct(st) => st.name.name.clone(),
+            G::Tuple(t) => {
+                let mut code = vec![];
+                for ty in &t.types {
+                    code.push(ty.emit_code());
+                }
+                format!("({})", code.join(", "))
+            },
             _ => unimplemented!(),
         }]
     }
