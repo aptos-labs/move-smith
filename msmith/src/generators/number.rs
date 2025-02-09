@@ -5,7 +5,7 @@ use crate::{
 use anyhow::Result;
 use arbitrary::{Arbitrary, Unstructured};
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 use num_bigint::BigUint;
@@ -13,8 +13,8 @@ use num_bigint::BigUint;
 #[derive(Default)]
 pub struct NumberGenerator;
 
-impl Labelled for NumberGenerator {
-    fn label() -> Label {
+impl LabelledGenerator for NumberGenerator {
+    fn label() -> GenLabel {
         GenLabel::new("NumberGenerator").into()
     }
 }

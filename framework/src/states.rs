@@ -1,6 +1,6 @@
 use crate::{
     anydebug::AnyDebug,
-    label::{GenLabel, Labelled, StateLabel},
+    label::{GenLabel, LabelledState, StateLabel},
     ASTNode, Register,
 };
 use arbitrary::Unstructured;
@@ -35,7 +35,7 @@ where
         }
     }
 
-    pub fn register_state<T: State<A> + Labelled>(&mut self, state: T) {
+    pub fn register_state<T: State<A> + LabelledState>(&mut self, state: T) {
         let entry = state.register();
         info!("Registering state: {}", entry.label);
         self.states.insert(entry.label.clone(), Box::new(state));
@@ -49,27 +49,21 @@ where
     }
 
     /// Same as `get` but panics if the state is not found.
-    pub fn get_fail<T: State<A> + Labelled>(&self) -> &T {
+    pub fn get_fail<T: State<A> + LabelledState>(&self) -> &T {
         self.get::<T>().unwrap()
     }
 
     /// Same as `get_mut` but panics if the state is not found.
-    pub fn get_mut_fail<T: State<A> + Labelled>(&mut self) -> &mut T {
+    pub fn get_mut_fail<T: State<A> + LabelledState>(&mut self) -> &mut T {
         self.get_mut::<T>().unwrap()
     }
 
-    pub fn get<T: State<A> + Labelled>(&self) -> Option<&T> {
-        match T::label().try_into() {
-            Ok(label) => self.get_by_label::<T>(&label),
-            Err(_) => None,
-        }
+    pub fn get<T: State<A> + LabelledState>(&self) -> Option<&T> {
+        self.get_by_label::<T>(&T::label())
     }
 
-    pub fn get_mut<T: State<A> + Labelled>(&mut self) -> Option<&mut T> {
-        match T::label().try_into() {
-            Ok(label) => self.get_mut_by_label::<T>(&label),
-            Err(_) => None,
-        }
+    pub fn get_mut<T: State<A> + LabelledState>(&mut self) -> Option<&mut T> {
+        self.get_mut_by_label::<T>(&T::label())
     }
 
     pub fn get_by_label<T: State<A>>(&self, label: &StateLabel) -> Option<&T> {

@@ -1,5 +1,8 @@
 use crate::{
-    constraints::Constraint, label::GenLabel, states::StatePool, ASTNode, Labelled, Register,
+    constraints::Constraint,
+    label::{GenLabel, LabelledGenerator},
+    states::StatePool,
+    ASTNode, Register,
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -20,17 +23,17 @@ pub struct GeneratorEntry {
 }
 
 impl GeneratorEntry {
-    pub fn new<T: Labelled>() -> Self {
+    pub fn new<T: LabelledGenerator>() -> Self {
         GeneratorEntry {
-            label: T::label().try_into().unwrap(),
+            label: T::label(),
             parents: vec![],
             forward: false,
             skip_parent: false,
         }
     }
 
-    pub fn add_parent<T: Labelled>(&mut self) {
-        self.parents.push(T::label().try_into().unwrap());
+    pub fn add_parent<T: LabelledGenerator>(&mut self) {
+        self.parents.push(T::label());
     }
 }
 

@@ -1,15 +1,15 @@
-use enuminto::EnumInto;
 use std::fmt;
 
-#[derive(EnumInto, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub enum Label {
-    GenLabel(GenLabel),
-    SubtreeLabel(SubtreeLabel),
-    StateLabel(StateLabel),
+pub trait LabelledGenerator {
+    fn label() -> GenLabel;
 }
 
-pub trait Labelled {
-    fn label() -> Label;
+pub trait LabelledSubtree {
+    fn label() -> SubtreeLabel;
+}
+
+pub trait LabelledState {
+    fn label() -> StateLabel;
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]

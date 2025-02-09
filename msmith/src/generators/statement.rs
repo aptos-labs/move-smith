@@ -2,7 +2,7 @@ use crate::move_ast::MoveAST;
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 use log::warn;
@@ -10,9 +10,9 @@ use log::warn;
 #[derive(Default)]
 pub struct StatementGenerator;
 
-impl Labelled for StatementGenerator {
-    fn label() -> Label {
-        GenLabel::new_func_body_level("StatementGenerator").into()
+impl LabelledGenerator for StatementGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_func_body_level("StatementGenerator")
     }
 }
 

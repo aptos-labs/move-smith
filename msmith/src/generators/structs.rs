@@ -5,16 +5,16 @@ use crate::{
 use anyhow::{Ok, Result};
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 
 #[derive(Default)]
 pub struct StructGenerator;
 
-impl Labelled for StructGenerator {
-    fn label() -> Label {
-        GenLabel::new_module_member_level("StructGenerator").into()
+impl LabelledGenerator for StructGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_module_member_level("StructGenerator")
     }
 }
 
@@ -48,7 +48,7 @@ impl Generator<MoveAST, AnyConstraint> for StructGenerator {
         let mut subtrees = vec![];
         for _ in 0..num_fields {
             subtrees.push(Subtree::new_generator_subtree(
-                StructFieldGenerator::label().try_into().unwrap(),
+                StructFieldGenerator::label(),
                 AnyConstraint::new(),
             ));
         }
@@ -60,8 +60,7 @@ impl Generator<MoveAST, AnyConstraint> for StructGenerator {
             abilities: vec![],
         };
 
-        let mut compose_constraint = AnyConstraint::new();
-        compose_constraint.insert("struct", partial_struct);
+        let compose_constraint = AnyConstraint::new().with("struct", partial_struct);
         Ok((subtrees, compose_constraint))
     }
 

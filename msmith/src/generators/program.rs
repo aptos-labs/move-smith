@@ -6,7 +6,7 @@ use crate::{
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    label::{GenLabel, Label, Labelled},
+    label::{GenLabel, LabelledGenerator},
     AnyConstraint, Generator, GeneratorEntry, Register, StatePool, Subtree,
 };
 use log::trace;
@@ -14,9 +14,9 @@ use log::trace;
 #[derive(Default)]
 pub struct ProgramGenerator;
 
-impl Labelled for ProgramGenerator {
-    fn label() -> Label {
-        GenLabel::new_top_level("ProgramGenerator").into()
+impl LabelledGenerator for ProgramGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_top_level("ProgramGenerator")
     }
 }
 
@@ -44,7 +44,7 @@ impl Generator<MoveAST, AnyConstraint> for ProgramGenerator {
 
         // TODO: we generate 1 module for now so no need to let them reference each other
         for _ in 0..num_modules {
-            let module_gen = ModuleGenerator::label().try_into().unwrap();
+            let module_gen = ModuleGenerator::label();
             let constraints = AnyConstraint::new();
             let subtree = Subtree::new_generator_subtree(module_gen, constraints);
             subtrees.push(subtree);

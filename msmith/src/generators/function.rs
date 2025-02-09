@@ -6,16 +6,16 @@ use crate::{
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 
 #[derive(Default)]
 pub struct FunctionGenerator;
 
-impl Labelled for FunctionGenerator {
-    fn label() -> Label {
-        GenLabel::new_module_member_level("FunctionGenerator").into()
+impl LabelledGenerator for FunctionGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_module_member_level("FunctionGenerator")
     }
 }
 
@@ -39,13 +39,12 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let mut subtrees = vec![];
         subtrees.push(Subtree::new_generator_subtree(
-            SignatureGenerator::label().try_into().unwrap(),
+            SignatureGenerator::label(),
             constraint.clone(),
         ));
-        let mut block_constraint = AnyConstraint::new();
-        block_constraint.insert("is_function_body", true);
+        let block_constraint = AnyConstraint::new().with("is_function_body", true);
         subtrees.push(Subtree::new_generator_subtree(
-            BlockGenerator::label().try_into().unwrap(),
+            BlockGenerator::label(),
             block_constraint.clone(),
         ));
         Ok((subtrees, AnyConstraint::new()))

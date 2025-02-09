@@ -1,7 +1,7 @@
 use crate::{
     constraints::Constraint,
     generator::{GeneratorPool, Subtree},
-    label::{GenLabel, Labelled},
+    label::{GenLabel, LabelledGenerator, LabelledState},
     selection::choose_idx_filter,
     states::{State, StatePool},
     ASTNode, Generator,
@@ -30,7 +30,9 @@ where
     }
 
     /// Register one generator, requires the generator to have Default
-    pub fn add_generator<T: Generator<A, C> + Labelled + Default + 'static>(mut self) -> Self {
+    pub fn add_generator<T: Generator<A, C> + LabelledGenerator + Default + 'static>(
+        mut self,
+    ) -> Self {
         let generator = T::default();
         self.framework
             .generators
@@ -39,7 +41,7 @@ where
     }
 
     /// Register a list of generator objects
-    pub fn add_generators<T: Generator<A, C> + Labelled + 'static>(
+    pub fn add_generators<T: Generator<A, C> + LabelledGenerator + 'static>(
         mut self,
         generators: Vec<T>,
     ) -> Self {
@@ -50,14 +52,14 @@ where
     }
 
     /// Register one state, requires the state to have Default
-    pub fn add_state<T: State<A> + Labelled + Default>(self) -> Self {
+    pub fn add_state<T: State<A> + LabelledState + Default>(self) -> Self {
         let state = T::default();
         self.framework.states.borrow_mut().register_state(state);
         self
     }
 
     /// Register a list of state objects
-    pub fn add_states<T: State<A> + Labelled>(self, states: Vec<T>) -> Self {
+    pub fn add_states<T: State<A> + LabelledState>(self, states: Vec<T>) -> Self {
         for s in states {
             self.framework.states.borrow_mut().register_state(s);
         }

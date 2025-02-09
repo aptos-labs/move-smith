@@ -5,7 +5,7 @@
 
 use crate::move_ast::MoveAST;
 use arbitrary::Unstructured;
-use framework::{GenLabel, Label, Labelled, Register, State, StateEntry, StateLabel};
+use framework::{GenLabel, LabelledState, Register, State, StateEntry, StateLabel};
 use std::{collections::HashMap, fmt};
 
 /// Represents a Move Id.
@@ -341,8 +341,8 @@ fn test_id_type() {
     assert!(sids.len() == 1);
 }
 
-impl Labelled for IdPool {
-    fn label() -> Label {
+impl LabelledState for IdPool {
+    fn label() -> StateLabel {
         StateLabel::new("IdPool").into()
     }
 }

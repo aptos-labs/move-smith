@@ -6,7 +6,7 @@ use crate::{
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 use log::warn;
@@ -14,9 +14,9 @@ use log::warn;
 #[derive(Default)]
 pub struct StructFieldGenerator;
 
-impl Labelled for StructFieldGenerator {
-    fn label() -> Label {
-        GenLabel::new_func_body_level("StructFieldGenerator").into()
+impl LabelledGenerator for StructFieldGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_func_body_level("StructFieldGenerator")
     }
 }
 

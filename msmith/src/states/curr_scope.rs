@@ -3,7 +3,7 @@ use crate::{
     states::ids::{Scope, ROOT_SCOPE},
 };
 use arbitrary::Unstructured;
-use framework::{GenLabel, Label, Labelled, Register, State, StateEntry, StateLabel};
+use framework::{GenLabel, LabelledState, Register, State, StateEntry, StateLabel};
 
 #[derive(Debug, Default)]
 pub struct CurrScope {
@@ -24,8 +24,8 @@ impl CurrScope {
     }
 }
 
-impl Labelled for CurrScope {
-    fn label() -> Label {
+impl LabelledState for CurrScope {
+    fn label() -> StateLabel {
         StateLabel::new("CurrScope").into()
     }
 }
@@ -33,7 +33,7 @@ impl Labelled for CurrScope {
 impl Register<StateEntry> for CurrScope {
     fn register(&self) -> StateEntry {
         StateEntry {
-            label: Self::label().try_into().unwrap(),
+            label: Self::label(),
             generators: vec![],
         }
     }

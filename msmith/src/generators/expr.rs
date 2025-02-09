@@ -1,22 +1,21 @@
 use crate::{
     generators::{NumberGenerator, TupleGenerator},
-    move_ast::{Expression, MoveAST, NumberLiteral},
+    move_ast::{Expression, MoveAST},
     states::{GenerationConfig, GenericType, Primitive, Type, TypePool, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
-use log::warn;
 
 #[derive(Default)]
 pub struct ExpressionGenerator;
 
-impl Labelled for ExpressionGenerator {
-    fn label() -> Label {
-        GenLabel::new_func_body_level("ExpressionGenerator").into()
+impl LabelledGenerator for ExpressionGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_func_body_level("ExpressionGenerator")
     }
 }
 
@@ -50,17 +49,11 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
         let subtree = match required_type {
             Type::Primitive(Primitive::Number(n)) => {
                 expr_constraint.insert("type", n.clone());
-                Subtree::new_generator_subtree(
-                    NumberGenerator::label().try_into().unwrap(),
-                    expr_constraint,
-                )
+                Subtree::new_generator_subtree(NumberGenerator::label(), expr_constraint)
             },
             Type::Generic(GenericType::Tuple(t)) => {
                 expr_constraint.insert("type", t.clone());
-                Subtree::new_generator_subtree(
-                    TupleGenerator::label().try_into().unwrap(),
-                    expr_constraint,
-                )
+                Subtree::new_generator_subtree(TupleGenerator::label(), expr_constraint)
             },
             _ => unimplemented!(),
         };

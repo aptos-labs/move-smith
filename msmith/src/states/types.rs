@@ -5,7 +5,7 @@ use crate::{
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    selection::choose_item_weighted, GenLabel, Label, Labelled, Register, State, StateEntry,
+    selection::choose_item_weighted, GenLabel, LabelledState, Register, State, StateEntry,
     StateLabel,
 };
 use log::{trace, warn};
@@ -265,8 +265,8 @@ impl TypePool {
     }
 }
 
-impl Labelled for TypePool {
-    fn label() -> Label {
+impl LabelledState for TypePool {
+    fn label() -> StateLabel {
         StateLabel::new("TypePool").into()
     }
 }
@@ -274,7 +274,7 @@ impl Labelled for TypePool {
 impl Register<StateEntry> for TypePool {
     fn register(&self) -> StateEntry {
         StateEntry {
-            label: Self::label().try_into().unwrap(),
+            label: Self::label(),
             generators: vec![
                 // TODO
             ],

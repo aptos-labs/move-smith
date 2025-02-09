@@ -1,6 +1,6 @@
 use crate::{
     generators::SignatureGenerator,
-    move_ast::{MoveAST, Signature, TypeParameters, Variable},
+    move_ast::{MoveAST, Signature, TypeParameters},
     states::{
         types::{TypePool, TypeSelectorBuilder},
         GenerationConfig,
@@ -10,15 +10,15 @@ use crate::{
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 
 #[derive(Default)]
 pub struct TupleSignatureGenerator;
 
-impl Labelled for TupleSignatureGenerator {
-    fn label() -> Label {
+impl LabelledGenerator for TupleSignatureGenerator {
+    fn label() -> GenLabel {
         GenLabel::new_func_body_level("TupleSignatureGenerator").into()
     }
 }

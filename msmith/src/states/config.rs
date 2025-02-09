@@ -7,7 +7,7 @@ use crate::move_ast::MoveAST;
 use arbitrary::Unstructured;
 use core::fmt;
 use framework::{
-    selection::RandomNumber, GenLabel, Label, Labelled, Register, State, StateEntry, StateLabel,
+    selection::RandomNumber, GenLabel, LabelledState, Register, State, StateEntry, StateLabel,
 };
 use serde::Deserialize;
 use std::path::Path;
@@ -108,16 +108,16 @@ impl Config {
     }
 }
 
-impl Labelled for GenerationConfig {
-    fn label() -> Label {
-        StateLabel::new("GenerationConfig").into()
+impl LabelledState for GenerationConfig {
+    fn label() -> StateLabel {
+        StateLabel::new("GenerationConfig")
     }
 }
 
 impl Register<StateEntry> for GenerationConfig {
     fn register(&self) -> StateEntry {
         StateEntry {
-            label: Self::label().try_into().unwrap(),
+            label: Self::label(),
             generators: vec![],
         }
     }

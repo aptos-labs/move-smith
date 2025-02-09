@@ -11,7 +11,7 @@ use crate::{
 use anyhow::Result;
 use arbitrary::{Arbitrary, Unstructured};
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 use log::trace;
@@ -19,9 +19,9 @@ use log::trace;
 #[derive(Default)]
 pub struct BlockGenerator;
 
-impl Labelled for BlockGenerator {
-    fn label() -> Label {
-        GenLabel::new_func_body_level("BlockGenerator").into()
+impl LabelledGenerator for BlockGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_func_body_level("BlockGenerator")
     }
 }
 
@@ -92,7 +92,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
 
         for _ in 0..num_sequences {
             subtrees.push(Subtree::new_generator_subtree(
-                SequenceGenerator::label().try_into().unwrap(),
+                SequenceGenerator::label(),
                 AnyConstraint::new(),
             ));
         }
@@ -101,10 +101,9 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
             compose_constraint.insert("has_return", true);
             trace!("Block {} has return type: {:?}", name, return_type);
 
-            let mut expr_constraint = AnyConstraint::new();
-            expr_constraint.insert("type", return_type);
+            let expr_constraint = AnyConstraint::new().with("type", return_type);
             subtrees.push(Subtree::new_generator_subtree(
-                ExpressionGenerator::label().try_into().unwrap(),
+                ExpressionGenerator::label(),
                 expr_constraint,
             ));
         } else {

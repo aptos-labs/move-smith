@@ -1,22 +1,21 @@
 use super::ExpressionGenerator;
 use crate::{
     move_ast::{MoveAST, Tuple},
-    states::{GenericType, TupleType, Type},
+    states::TupleType,
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
-use log::warn;
 
 #[derive(Default)]
 pub struct TupleGenerator;
 
-impl Labelled for TupleGenerator {
-    fn label() -> Label {
-        GenLabel::new("TupleGenerator").into()
+impl LabelledGenerator for TupleGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new("TupleGenerator")
     }
 }
 
@@ -40,10 +39,9 @@ impl Generator<MoveAST, AnyConstraint> for TupleGenerator {
         let tuple_type = constraint.get::<TupleType>("type").unwrap();
         let mut subtrees = vec![];
         for elem_typ in &tuple_type.types {
-            let mut expr_constraint = AnyConstraint::new();
-            expr_constraint.insert("type", elem_typ.clone());
+            let expr_constraint = AnyConstraint::new().with("type", elem_typ.clone());
             subtrees.push(Subtree::new_generator_subtree(
-                ExpressionGenerator::label().try_into().unwrap(),
+                ExpressionGenerator::label(),
                 expr_constraint,
             ));
         }

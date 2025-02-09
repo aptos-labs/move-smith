@@ -2,16 +2,16 @@ use crate::move_ast::MoveAST;
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 
 #[derive(Default)]
 pub struct TemplateGenerator;
 
-impl Labelled for TemplateGenerator {
-    fn label() -> Label {
-        GenLabel::new("TemplateGenerator").into()
+impl LabelledGenerator for TemplateGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new("TemplateGenerator")
     }
 }
 

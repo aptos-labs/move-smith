@@ -9,16 +9,16 @@ use crate::{
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 
 #[derive(Default)]
 pub struct SignatureGenerator;
 
-impl Labelled for SignatureGenerator {
-    fn label() -> Label {
-        GenLabel::new_func_body_level("SignatureGenerator").into()
+impl LabelledGenerator for SignatureGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_func_body_level("SignatureGenerator")
     }
 }
 

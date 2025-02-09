@@ -1,23 +1,22 @@
-use super::SignatureGenerator;
 use crate::{
     generators::{FunctionGenerator, StructGenerator},
-    move_ast::{Address, MoveAST, MoveModule, Signature},
+    move_ast::{Address, MoveAST, MoveModule},
     states::ids::ROOT_SCOPE,
     CurrScope, GenerationConfig, Id, IdPool,
 };
 use anyhow::{anyhow, Result};
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 
 #[derive(Default)]
 pub struct ModuleGenerator;
 
-impl Labelled for ModuleGenerator {
-    fn label() -> Label {
-        GenLabel::new_top_level("ModuleGenerator").into()
+impl LabelledGenerator for ModuleGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_top_level("ModuleGenerator")
     }
 }
 
@@ -53,7 +52,7 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
 
         for _ in 0..num_structs {
             subtrees.push(Subtree::new_generator_subtree(
-                StructGenerator::label().try_into().unwrap(),
+                StructGenerator::label(),
                 AnyConstraint::new(),
             ));
         }
@@ -62,13 +61,12 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
         func_constraints.insert("has_return", false);
         for _ in 0..num_funcs {
             subtrees.push(Subtree::new_generator_subtree(
-                FunctionGenerator::label().try_into().unwrap(),
+                FunctionGenerator::label(),
                 func_constraints.clone(),
             ));
         }
 
-        let mut compose_constraint = AnyConstraint::new();
-        compose_constraint.insert("name", name);
+        let compose_constraint = AnyConstraint::new().with("name", name);
 
         Ok((subtrees, compose_constraint))
     }

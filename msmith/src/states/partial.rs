@@ -1,7 +1,9 @@
 use crate::{generators::SignatureGenerator, move_ast::MoveAST};
 use arbitrary::Unstructured;
-use framework::{GenLabel, Label, Labelled, Register, State, StateEntry, StateLabel};
-use log::{debug, trace};
+use framework::{
+    GenLabel, LabelledGenerator, LabelledState, Register, State, StateEntry, StateLabel,
+};
+use log::trace;
 use std::collections::BTreeMap;
 
 pub const PARTIAL_SIGNATURE: &str = "PartialSignature";
@@ -11,8 +13,8 @@ pub struct PartialInfo {
     pub store: BTreeMap<String, Vec<MoveAST>>,
 }
 
-impl Labelled for PartialInfo {
-    fn label() -> Label {
+impl LabelledState for PartialInfo {
+    fn label() -> StateLabel {
         StateLabel::new("PartialInfo").into()
     }
 }
@@ -20,8 +22,8 @@ impl Labelled for PartialInfo {
 impl Register<StateEntry> for PartialInfo {
     fn register(&self) -> StateEntry {
         StateEntry {
-            label: Self::label().try_into().unwrap(),
-            generators: vec![SignatureGenerator::label().try_into().unwrap()],
+            label: Self::label(),
+            generators: vec![SignatureGenerator::label()],
         }
     }
 }

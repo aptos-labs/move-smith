@@ -6,7 +6,7 @@ use crate::{
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 use log::warn;
@@ -14,9 +14,9 @@ use log::warn;
 #[derive(Default)]
 pub struct ExprStmtGenerator;
 
-impl Labelled for ExprStmtGenerator {
-    fn label() -> Label {
-        GenLabel::new_func_body_level("ExprStmtGenerator").into()
+impl LabelledGenerator for ExprStmtGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_func_body_level("ExprStmtGenerator")
     }
 }
 
@@ -42,7 +42,7 @@ impl Generator<MoveAST, AnyConstraint> for ExprStmtGenerator {
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         Ok((
             vec![Subtree::new_generator_subtree(
-                ExpressionGenerator::label().try_into().unwrap(),
+                ExpressionGenerator::label(),
                 constraint.clone(),
             )],
             AnyConstraint::new(),

@@ -6,16 +6,16 @@ use crate::{
 use anyhow::{Ok, Result};
 use arbitrary::Unstructured;
 use framework::{
-    AnyConstraint, GenLabel, Generator, GeneratorEntry, Label, Labelled, Register, StatePool,
+    AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
 
 #[derive(Default)]
 pub struct SequenceGenerator;
 
-impl Labelled for SequenceGenerator {
-    fn label() -> Label {
-        GenLabel::new_func_body_level("SequenceGenerator").into()
+impl LabelledGenerator for SequenceGenerator {
+    fn label() -> GenLabel {
+        GenLabel::new_func_body_level("SequenceGenerator")
     }
 }
 
@@ -42,7 +42,7 @@ impl Generator<MoveAST, AnyConstraint> for SequenceGenerator {
         let mut subtrees = vec![];
         for _ in 0..num_statements {
             subtrees.push(Subtree::new_generator_subtree(
-                StatementGenerator::label().try_into().unwrap(),
+                StatementGenerator::label(),
                 AnyConstraint::new(),
             ));
         }
