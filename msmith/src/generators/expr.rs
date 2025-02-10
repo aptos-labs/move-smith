@@ -1,7 +1,7 @@
 use crate::{
     generators::{NumberGenerator, TupleGenerator},
     move_ast::{Expression, MoveAST},
-    states::{GenerationConfig, GenericType, Primitive, Type, TypePool, TypeSelectorBuilder},
+    states::{get_config, GenericType, Primitive, Type, TypePool, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -36,8 +36,9 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let config = env.get::<GenerationConfig>().unwrap();
-        let selector = TypeSelectorBuilder::all_no(config).number(1).build();
+        let selector = TypeSelectorBuilder::all_no(get_config(env))
+            .number(1)
+            .build();
         let random_type = env
             .get::<TypePool>()
             .unwrap()

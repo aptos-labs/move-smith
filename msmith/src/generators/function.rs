@@ -1,6 +1,6 @@
 use crate::{
     move_ast::{Function, MoveAST},
-    states::types::Type,
+    states::{new_id_from_curr_scope_and_push_scope, pop_scope, IdKind, Type},
     BlockGenerator, SignatureGenerator,
 };
 use anyhow::Result;
@@ -34,13 +34,15 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
     fn subtrees(
         &self,
         _u: &mut Unstructured,
-        _env: &mut StatePool<MoveAST>,
+        env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
+        let (name, scope, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function);
+        let signature_constraint = constraint.clone().with("name", name).with("scope", scope);
         let mut subtrees = vec![];
         subtrees.push(Subtree::new_generator_subtree(
             SignatureGenerator::label(),
-            constraint.clone(),
+            signature_constraint,
         ));
         let block_constraint = AnyConstraint::new().with("is_function_body", true);
         subtrees.push(Subtree::new_generator_subtree(
@@ -53,10 +55,11 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
     fn compose(
         &self,
         _u: &mut Unstructured,
-        _env: &mut StatePool<MoveAST>,
+        env: &mut StatePool<MoveAST>,
         _constraint: AnyConstraint,
         mut asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
+        pop_scope(env);
         let signature = asts.remove(0).into_signature().unwrap();
         let body = asts.remove(0).into_block().unwrap();
         Ok(Function { signature, body }.into())

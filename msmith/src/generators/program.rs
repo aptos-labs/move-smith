@@ -1,7 +1,7 @@
 use super::ModuleGenerator;
 use crate::{
     move_ast::{MoveAST, Program},
-    GenerationConfig,
+    states::{get_config, GenerationConfig},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -37,8 +37,7 @@ impl Generator<MoveAST, AnyConstraint> for ProgramGenerator {
         env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let config = env.get::<GenerationConfig>().unwrap();
-        let num_modules = config.num_modules.select(u)?;
+        let num_modules = get_config(env).num_modules.select(u)?;
         trace!("Generating {} modules", num_modules);
         let mut subtrees = vec![];
 

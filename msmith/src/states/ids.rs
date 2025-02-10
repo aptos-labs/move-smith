@@ -350,7 +350,7 @@ impl LabelledState for IdPool {
 impl Register<StateEntry> for IdPool {
     fn register(&self) -> StateEntry {
         StateEntry {
-            label: Self::label().try_into().unwrap(),
+            label: Self::label(),
             generators: vec![],
         }
     }

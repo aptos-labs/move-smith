@@ -1,10 +1,8 @@
 use crate::{
     move_ast::{MoveAST, Signature, TypeParameters, Variable},
     states::{
-        types::{TypePool, TypeSelectorBuilder},
-        GenerationConfig,
+        get_config, get_type_pool, new_id_from_curr_scope, Id, IdKind, Scope, TypeSelectorBuilder,
     },
-    CurrScope, IdKind, IdPool,
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -30,7 +28,9 @@ impl Register<GeneratorEntry> for SignatureGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
-        constraint.check_not_exist_or_has_type::<bool>("has_return")
+        constraint.check_exist_and_type::<Id>("name")
+            && constraint.check_exist_and_type::<Scope>("scope")
+            && constraint.check_not_exist_or_has_type::<bool>("has_return")
     }
 
     fn subtrees(
@@ -39,23 +39,17 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let curr_scope = env.get_fail::<CurrScope>().get();
-        let (name, func_scope) = env
-            .get_mut_fail::<IdPool>()
-            .next_id(IdKind::Function, &curr_scope);
+        let name = constraint.get::<Id>("name").unwrap();
 
-        let config = env.get_fail::<GenerationConfig>().clone();
+        let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
         let type_selector = TypeSelectorBuilder::all_yes(&config).build();
         let mut parameters = vec![];
 
         for _ in 0..num_params {
             // Create a new var name under the function scope
-            let (name, _scope) = env
-                .get_mut_fail::<IdPool>()
-                .next_id(IdKind::Var, &func_scope);
-            let type_pool = env.get_fail::<TypePool>();
-            let typ = type_pool.random_type(u, vec![type_selector.clone()])?;
+            let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
+            let typ = get_type_pool(env).random_type(u, vec![type_selector.clone()])?;
             parameters.push(Variable {
                 name,
                 typ,
@@ -66,19 +60,17 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
 
         let has_return = constraint.get_or::<bool>("has_return", false);
 
+        let config = get_config(env);
         let return_type = if has_return {
             let type_selector = TypeSelectorBuilder::all_yes(&config).build();
-            Some(
-                env.get_fail::<TypePool>()
-                    .random_type(u, vec![type_selector])?,
-            )
+            Some(get_type_pool(env).random_type(u, vec![type_selector])?)
         } else {
             None
         };
 
         let subtree = Subtree::new_single_candidate(
             Signature {
-                name,
+                name: name.clone(),
                 type_params: TypeParameters::default(),
                 parameters,
                 return_type,

@@ -1,6 +1,7 @@
 use crate::{
     move_ast::{MoveAST, Struct, TypeParameters},
-    CurrScope, GenerationConfig, IdKind, IdPool, StructFieldGenerator,
+    states::{get_config, new_id_from_curr_scope_and_push_scope, pop_scope, IdKind},
+    StructFieldGenerator,
 };
 use anyhow::{Ok, Result};
 use arbitrary::Unstructured;
@@ -35,15 +36,9 @@ impl Generator<MoveAST, AnyConstraint> for StructGenerator {
         env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let curr_scope = env.get::<CurrScope>().unwrap().get();
-        let (name, scope) = env
-            .get_mut::<IdPool>()
-            .unwrap()
-            .next_id(IdKind::Struct, &curr_scope);
-        env.get_mut::<CurrScope>().unwrap().push(scope);
+        let (name, _scope, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Struct);
 
-        let config = env.get::<GenerationConfig>().unwrap();
-        let num_fields = config.num_fields_in_struct.select(u)?;
+        let num_fields = get_config(env).num_fields_in_struct.select(u)?;
 
         let mut subtrees = vec![];
         for _ in 0..num_fields {
@@ -67,10 +62,11 @@ impl Generator<MoveAST, AnyConstraint> for StructGenerator {
     fn compose(
         &self,
         _u: &mut Unstructured,
-        _env: &mut StatePool<MoveAST>,
+        env: &mut StatePool<MoveAST>,
         constraint: AnyConstraint,
         _asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
+        pop_scope(env);
         let partial_struct = constraint.get::<Struct>("struct").unwrap().clone();
         Ok(partial_struct.into())
     }

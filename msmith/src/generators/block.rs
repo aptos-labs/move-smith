@@ -2,10 +2,8 @@ use crate::{
     generators::{ExpressionGenerator, SequenceGenerator},
     move_ast::{Block, Expression, MoveAST},
     states::{
-        curr_scope::CurrScope,
-        ids::{Id, IdPool},
-        partial::{PartialInfo, PARTIAL_SIGNATURE},
-        GenerationConfig, TypePool, TypeSelectorBuilder,
+        get_config, get_type_pool, new_id_from_curr_scope_and_push_scope, pop_scope, Id, IdKind,
+        PartialInfo, TypeSelectorBuilder, PARTIAL_SIGNATURE,
     },
 };
 use anyhow::Result;
@@ -48,30 +46,23 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let is_function_body = constraint.get::<bool>("is_function_body").unwrap();
-        let has_return = match constraint.get("has_return") {
-            Some(v) => *v,
-            None => bool::arbitrary(u)?,
-        };
+        let has_return = constraint.get_or("has_return", bool::arbitrary(u)?);
+
         let return_type = if *is_function_body {
             let partial_info = env.get_mut::<PartialInfo>().unwrap();
             let signatures = partial_info.store.get_mut(PARTIAL_SIGNATURE).unwrap();
             let signature = signatures.pop().unwrap().into_signature().unwrap();
             signature.return_type.clone()
         } else if has_return {
-            let type_pool = env.get::<TypePool>().unwrap();
-            let config = env.get::<GenerationConfig>().unwrap();
-            let selector = TypeSelectorBuilder::all_no(config).number(1).build();
-            Some(type_pool.random_type(u, vec![selector]).unwrap())
+            let selector = TypeSelectorBuilder::all_no(get_config(env))
+                .number(1)
+                .build();
+            Some(get_type_pool(env).random_type(u, vec![selector]).unwrap())
         } else {
             None
         };
 
-        let curr_scope = env.get::<CurrScope>().unwrap().get();
-        let (name, scope) = env
-            .get_mut::<IdPool>()
-            .unwrap()
-            .next_id(crate::IdKind::Block, &curr_scope);
-        env.get_mut::<CurrScope>().unwrap().push(scope.clone());
+        let (name, scope, curr_scope) = new_id_from_curr_scope_and_push_scope(env, IdKind::Block);
         trace!(
             "Generating block -- {}, {:?}, last curr_scope: {:?}",
             name,
@@ -83,8 +74,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
 
         compose_constraint.insert("name", name.clone());
 
-        let config = env.get::<GenerationConfig>().unwrap();
-        let num_sequences = config.num_sequences_in_block.select(u)?;
+        let num_sequences = get_config(env).num_sequences_in_block.select(u)?;
         compose_constraint.insert("num_sequences", num_sequences);
         trace!("Block {} will generate {} sequences", name, num_sequences);
 
@@ -117,10 +107,11 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
     fn compose(
         &self,
         _u: &mut Unstructured,
-        _env: &mut StatePool<MoveAST>,
+        env: &mut StatePool<MoveAST>,
         constraint: AnyConstraint,
         mut asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
+        pop_scope(env);
         let name: &Id = constraint.get("name").unwrap();
         let num_sequences: &usize = constraint.get("num_sequences").unwrap();
         let has_return: &bool = constraint.get("has_return").unwrap();

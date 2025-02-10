@@ -15,7 +15,6 @@ pub mod utils;
 use codegen::CodeGenerator;
 use generators::*;
 use move_ast::MoveAST;
-use states::*;
 
 pub struct MoveSmith {
     framework: Framework<MoveAST, AnyConstraint>,
@@ -51,11 +50,11 @@ impl MoveSmith {
             .add_generator::<ExprStmtGenerator>()
             .add_generator::<NumberGenerator>()
             .add_generator::<TupleGenerator>()
-            .add_state::<config::GenerationConfig>()
-            .add_state::<TypePool>()
-            .add_state::<IdPool>()
-            .add_state::<CurrScope>()
-            .add_state::<PartialInfo>();
+            .add_state::<states::config::GenerationConfig>()
+            .add_state::<states::TypePool>()
+            .add_state::<states::IdPool>()
+            .add_state::<states::CurrScope>()
+            .add_state::<states::PartialInfo>();
 
         use Variant as V;
         let framework = match variant {

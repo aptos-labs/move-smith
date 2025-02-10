@@ -16,8 +16,16 @@ pub fn main() {
     let ms = MoveSmith::variant(Variant::FlushWrites);
     let code = ms.generate(&buffer).unwrap();
     println!("{}", code);
-    // let input = TransactionalInputBuilder::new().set_code(&code).build();
-    // let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::new();
-    // let result = executor.execute(&input);
+    let input = TransactionalInputBuilder::new().set_code(&code).build();
+    let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::new();
+    let result = executor.execute(&input);
     // println!("{:?}", result);
+    match result {
+        Ok(result) => {
+            println!("Execution succeeded: {:?}", result.status);
+        },
+        Err(err) => {
+            println!("Execution failed: {:?}", err);
+        },
+    }
 }

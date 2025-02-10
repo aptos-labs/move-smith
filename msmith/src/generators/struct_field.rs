@@ -1,7 +1,6 @@
 use crate::{
-    ids::{Id, IdKind},
     move_ast::{MoveAST, StructField},
-    types::{NumberType, Primitive, Type},
+    states::{Id, IdKind, NumberType, Primitive, Type},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;

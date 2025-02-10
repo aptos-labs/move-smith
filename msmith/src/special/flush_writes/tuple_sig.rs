@@ -1,11 +1,7 @@
 use crate::{
     generators::SignatureGenerator,
     move_ast::{MoveAST, Signature, TypeParameters},
-    states::{
-        types::{TypePool, TypeSelectorBuilder},
-        GenerationConfig,
-    },
-    CurrScope, IdKind, IdPool,
+    states::{get_config, Id, TypePool, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -41,22 +37,18 @@ impl Generator<MoveAST, AnyConstraint> for TupleSignatureGenerator {
         &self,
         u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let curr_scope = env.get_fail::<CurrScope>().get();
-        let (name, _scope) = env
-            .get_mut_fail::<IdPool>()
-            .next_id(IdKind::Function, &curr_scope);
-
-        let config = env.get_fail::<GenerationConfig>().clone();
-        let type_selector = TypeSelectorBuilder::all_no(&config).tuple(1).build();
+        let type_selector = TypeSelectorBuilder::all_no(get_config(env))
+            .tuple(1)
+            .build();
         let ret_type = env
             .get_fail::<TypePool>()
             .random_type(u, vec![type_selector])?;
 
         let subtree = Subtree::new_single_candidate(
             Signature {
-                name,
+                name: constraint.get::<Id>("name").unwrap().clone(),
                 type_params: TypeParameters::default(),
                 parameters: vec![],
                 return_type: Some(ret_type),

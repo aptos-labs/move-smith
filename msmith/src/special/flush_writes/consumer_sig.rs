@@ -1,11 +1,7 @@
 use crate::{
     generators::SignatureGenerator,
     move_ast::{MoveAST, Signature, TypeParameters, Variable},
-    states::{
-        types::{TypePool, TypeSelectorBuilder},
-        GenerationConfig,
-    },
-    CurrScope, IdKind, IdPool,
+    states::{get_config, get_type_pool, new_id_from_curr_scope, Id, IdKind, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -41,25 +37,17 @@ impl Generator<MoveAST, AnyConstraint> for ConsumerSignatureGenerator {
         &self,
         u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let curr_scope = env.get_fail::<CurrScope>().get();
-        let (name, func_scope) = env
-            .get_mut_fail::<IdPool>()
-            .next_id(IdKind::Function, &curr_scope);
-
-        let config = env.get_fail::<GenerationConfig>().clone();
+        let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
         let type_selector = TypeSelectorBuilder::all_no(&config).number(1).build();
         let mut parameters = vec![];
 
         for _ in 0..num_params {
             // Create a new var name under the function scope
-            let (name, _scope) = env
-                .get_mut_fail::<IdPool>()
-                .next_id(IdKind::Var, &func_scope);
-            let type_pool = env.get_fail::<TypePool>();
-            let typ = type_pool.random_type(u, vec![type_selector.clone()])?;
+            let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
+            let typ = get_type_pool(env).random_type(u, vec![type_selector.clone()])?;
             parameters.push(Variable {
                 name,
                 typ,
@@ -70,7 +58,7 @@ impl Generator<MoveAST, AnyConstraint> for ConsumerSignatureGenerator {
 
         let subtree = Subtree::new_single_candidate(
             Signature {
-                name,
+                name: constraint.get::<Id>("name").unwrap().clone(),
                 type_params: TypeParameters::default(),
                 parameters,
                 return_type: None,

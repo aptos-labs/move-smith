@@ -1,8 +1,7 @@
 use crate::{
     generators::{FunctionGenerator, StructGenerator},
     move_ast::{Address, MoveAST, MoveModule},
-    states::ids::ROOT_SCOPE,
-    CurrScope, GenerationConfig, Id, IdPool,
+    states::{get_config, new_id_and_push_scope, pop_scope, Id, IdKind, ROOT_SCOPE},
 };
 use anyhow::{anyhow, Result};
 use arbitrary::Unstructured;
@@ -37,16 +36,11 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
         env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let (name, scope) = env
-            .get_mut::<IdPool>()
-            .unwrap()
-            .next_id(crate::IdKind::Module, &ROOT_SCOPE);
-
-        env.get_mut::<CurrScope>().unwrap().push(scope);
+        let (name, _scope) = new_id_and_push_scope(env, IdKind::Module, &ROOT_SCOPE);
 
         let mut subtrees = vec![];
 
-        let config = env.get::<GenerationConfig>().unwrap();
+        let config = get_config(env);
         let num_structs = config.num_structs_in_module.select(u)?;
         let num_funcs = config.num_functions_in_module.select(u)?;
 
@@ -78,7 +72,7 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
         constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        env.get_mut::<CurrScope>().unwrap().pop();
+        pop_scope(env);
         let mut structs = vec![];
         let mut functions = vec![];
         for node in asts {

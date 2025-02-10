@@ -1,6 +1,6 @@
 use crate::{
     move_ast::{MoveAST, Sequence},
-    states::GenerationConfig,
+    states::get_config,
     StatementGenerator,
 };
 use anyhow::{Ok, Result};
@@ -36,8 +36,7 @@ impl Generator<MoveAST, AnyConstraint> for SequenceGenerator {
         env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let config = env.get::<GenerationConfig>().unwrap();
-        let num_statements = config.num_stmts_in_sequence.select(u)?;
+        let num_statements = get_config(env).num_stmts_in_sequence.select(u)?;
 
         let mut subtrees = vec![];
         for _ in 0..num_statements {

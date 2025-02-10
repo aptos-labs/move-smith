@@ -1,7 +1,7 @@
 use crate::{
     generators::StatementGenerator,
     move_ast::{Expression, MoveAST, Statement, Variable},
-    states::{CurrScope, IdKind, IdPool, NumberType, Primitive, Type},
+    states::{new_id_from_curr_scope, IdKind, NumberType, Primitive, Type},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -50,9 +50,7 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
         _constraint: AnyConstraint,
         _asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        let curr_scope = env.get::<CurrScope>().unwrap().get();
-        let id_pool = env.get_mut::<IdPool>().unwrap();
-        let (name, _) = id_pool.next_id(IdKind::Var, &curr_scope);
+        let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
         Ok(MoveAST::Statement(Statement::Let(Expression::Variable(
             Variable {
                 name,
