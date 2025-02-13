@@ -42,14 +42,17 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
         let mut subtrees = vec![];
         subtrees.push(Subtree::new_generator_subtree(
             SignatureGenerator::label(),
-            signature_constraint,
+            signature_constraint.clone(),
         ));
         let block_constraint = AnyConstraint::new().with("is_function_body", true);
         subtrees.push(Subtree::new_generator_subtree(
             BlockGenerator::label(),
             block_constraint.clone(),
         ));
-        Ok((subtrees, AnyConstraint::new()))
+        let comp_constraint = AnyConstraint::new()
+            .with_constraint(&signature_constraint)
+            .with_constraint(constraint);
+        Ok((subtrees, comp_constraint))
     }
 
     fn compose(
@@ -68,7 +71,8 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        _gen_constraint: &AnyConstraint,
+        _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
         ast.as_function().is_some()

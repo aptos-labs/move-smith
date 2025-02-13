@@ -165,12 +165,14 @@ where
             }
         }
 
-        let new_node = generator.compose(u, &mut self.states_mut(), compose_constraint, asts)?;
+        let new_node =
+            generator.compose(u, &mut self.states_mut(), compose_constraint.clone(), asts)?;
 
         // Use the original given generator to check if the newly created node follows the constraints
         let result = self.generators.get(&base_label).unwrap().check_ast(
             &self.states(),
             constraint,
+            &compose_constraint,
             &new_node,
         );
         trace!(

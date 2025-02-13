@@ -1,6 +1,7 @@
 use crate::states::{
     ids::{Id, IdKind},
-    types::{Ability, GenericType, StructType, Type, Typed},
+    types::{Ability, GenericType, StructType, Type, TypeParameter, Typed},
+    FunctionType,
 };
 use enuminto::EnumInto;
 use framework::ASTNode;
@@ -94,7 +95,7 @@ impl Typed for Struct {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeParameters {
-    pub types: Vec<TypeParameters>,
+    pub types: Vec<TypeParameter>,
 }
 
 impl Default for TypeParameters {
@@ -117,12 +118,29 @@ pub struct Function {
     pub body: Block,
 }
 
+impl Typed for Function {
+    fn ty(&self) -> Type {
+        self.signature.ty()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Signature {
     pub name: Id,
     pub type_params: TypeParameters,
     pub parameters: Vec<Variable>,
     pub return_type: Option<Type>,
+}
+
+impl Typed for Signature {
+    fn ty(&self) -> Type {
+        Type::Generic(GenericType::Function(FunctionType {
+            name: self.name.clone(),
+            type_params: self.type_params.types.clone(),
+            params: self.parameters.iter().map(|p| p.ty()).collect(),
+            return_type: self.return_type.clone().map(Box::new),
+        }))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -168,6 +186,12 @@ pub struct Variable {
     pub typ: Type,
     pub declare: bool,
     pub show_type: bool,
+}
+
+impl Typed for Variable {
+    fn ty(&self) -> Type {
+        self.typ.clone()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

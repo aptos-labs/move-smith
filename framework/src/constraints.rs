@@ -32,6 +32,17 @@ impl AnyConstraint {
         self
     }
 
+    pub fn with_constraint(mut self, another: &Self) -> Self {
+        self.update(another);
+        self
+    }
+
+    pub fn update(&mut self, another: &Self) {
+        for (k, v) in &another.map {
+            self.map.insert(k.clone(), Rc::clone(v));
+        }
+    }
+
     /// Insert a key-value pair into the constraint
     pub fn insert<T: AnyDebug + Clone>(&mut self, key: &str, value: T) {
         self.map.insert(key.to_string(), Rc::new(value));

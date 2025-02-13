@@ -51,12 +51,10 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
             ));
         }
 
-        let mut func_constraints = AnyConstraint::new();
-        func_constraints.insert("has_return", false);
         for _ in 0..num_funcs {
             subtrees.push(Subtree::new_generator_subtree(
                 FunctionGenerator::label(),
-                func_constraints.clone(),
+                AnyConstraint::new(),
             ));
         }
 
@@ -94,7 +92,8 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        _gen_constraint: &AnyConstraint,
+        _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
         ast.as_movemodule().is_some()

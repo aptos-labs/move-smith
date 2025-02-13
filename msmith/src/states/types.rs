@@ -1,12 +1,13 @@
 use crate::{
+    generators::{LetGenerator, SignatureGenerator, StructGenerator},
     move_ast::MoveAST,
     states::{ids::Id, GenerationConfig},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    selection::choose_item_weighted, GenLabel, LabelledState, Register, State, StateEntry,
-    StateLabel,
+    selection::choose_item_weighted, GenLabel, LabelledGenerator, LabelledState, Register, State,
+    StateEntry, StateLabel,
 };
 use log::{trace, warn};
 use std::collections::BTreeMap;
@@ -19,6 +20,9 @@ pub trait Typed {
 pub struct TypePool {
     /// The defined Structs, Enums, and Type Parameters
     defined_types: BTreeMap<Id, Type>,
+
+    // Defined functions
+    defined_funcs: BTreeMap<Id, Type>,
 
     /// The mapping from variable to type
     variable_types: BTreeMap<Id, Type>,
@@ -276,7 +280,9 @@ impl Register<StateEntry> for TypePool {
         StateEntry {
             label: Self::label(),
             generators: vec![
-                // TODO
+                StructGenerator::label(),
+                SignatureGenerator::label(),
+                LetGenerator::label(),
             ],
         }
     }
@@ -286,10 +292,15 @@ impl State<MoveAST> for TypePool {
     fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {}
 
     fn update_post(&mut self, _u: &mut Unstructured, new_ast: &MoveAST, generator: &GenLabel) {
-        if generator == &GenLabel::new_module_member_level("StructDef") {
+        if generator == &StructGenerator::label() {
             if let MoveAST::Struct(s) = new_ast {
                 let ty = s.ty();
                 self.defined_types.insert(s.name.clone(), ty);
+            }
+        } else if generator == &SignatureGenerator::label() {
+            if let MoveAST::Signature(s) = new_ast {
+                let ty = s.ty();
+                self.defined_funcs.insert(s.name.clone(), ty);
             }
         }
     }
@@ -315,6 +326,7 @@ pub enum GenericType {
     Struct(StructType),
     Vector(VectorType),
     Tuple(TupleType),
+    Function(FunctionType),
     Reference(ReferenceType),
 }
 
@@ -344,9 +356,17 @@ pub struct TypeParameter {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructType {
     pub name: Id,
-    pub type_params: Vec<TypeParameter>, // Must be Type::TypeParameter
+    pub type_params: Vec<TypeParameter>,
     pub fields: Vec<(Id, Type)>,
     pub abilities: Vec<Ability>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionType {
+    pub name: Id,
+    pub type_params: Vec<TypeParameter>,
+    pub params: Vec<Type>,
+    pub return_type: Option<Box<Type>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

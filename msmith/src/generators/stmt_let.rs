@@ -1,7 +1,7 @@
 use crate::{
     generators::StatementGenerator,
     move_ast::{Expression, MoveAST, Statement, Variable},
-    states::{new_id_from_curr_scope, IdKind, NumberType, Primitive, Type},
+    states::{get_config, get_type_pool, new_id_from_curr_scope, IdKind, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -45,26 +45,30 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
 
     fn compose(
         &self,
-        _u: &mut Unstructured,
+        u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
         _constraint: AnyConstraint,
         _asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
         let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
-        Ok(MoveAST::Statement(Statement::Let(Expression::Variable(
-            Variable {
-                name,
-                typ: Type::Primitive(Primitive::Number(NumberType::U64)),
-                declare: true,
-                show_type: true,
-            },
-        ))))
+        let config = get_config(env);
+        let type_selector = TypeSelectorBuilder::all_no(config).number(1).build();
+        let typ = get_type_pool(env).random_type(u, vec![type_selector])?;
+
+        Ok(Statement::Let(Expression::Variable(Variable {
+            name,
+            typ,
+            declare: true,
+            show_type: true,
+        }))
+        .into())
     }
 
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        _gen_constraint: &AnyConstraint,
+        _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
         match ast {

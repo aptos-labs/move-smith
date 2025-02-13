@@ -37,6 +37,10 @@ impl Id {
     pub fn is_var(&self) -> bool {
         self.kind == IdKind::Var
     }
+
+    pub fn is_func(&self) -> bool {
+        self.kind == IdKind::Function
+    }
 }
 
 impl fmt::Display for Id {

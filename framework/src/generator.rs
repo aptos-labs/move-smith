@@ -65,7 +65,13 @@ pub trait Generator<A: ASTNode, C: Constraint>: Register<GeneratorEntry> {
     ) -> Result<A>;
 
     /// Check whether the ASTNode follows the given constraint.
-    fn check_ast(&self, env: &StatePool<A>, constraint: &C, ast: &A) -> bool;
+    fn check_ast(
+        &self,
+        env: &StatePool<A>,
+        gen_constraint: &C,
+        comp_constraint: &C,
+        ast: &A,
+    ) -> bool;
 }
 pub type GeneratorT<A, C> = Box<dyn Generator<A, C>>;
 

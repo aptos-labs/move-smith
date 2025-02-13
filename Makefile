@@ -21,7 +21,7 @@ fuzz-targets:
 	cd fuzz && cargo afl build --bin afl-v1v2
 
 debug:
-	RUST_BACKTRACE=1 RUST_LOG=trace cargo run --bin msmith-debug
+	RUST_BACKTRACE=1 cargo run --bin msmith-debug
 
 test:
 	cargo nextest run --no-capture

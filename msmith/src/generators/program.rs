@@ -70,7 +70,8 @@ impl Generator<MoveAST, AnyConstraint> for ProgramGenerator {
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        _gen_constraint: &AnyConstraint,
+        _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
         ast.as_program().is_some()

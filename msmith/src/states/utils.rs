@@ -12,6 +12,10 @@ pub fn get_type_pool(env: &StatePool<MoveAST>) -> &TypePool {
     env.get::<TypePool>().unwrap()
 }
 
+pub fn get_curr_scope(env: &StatePool<MoveAST>) -> Scope {
+    env.get::<CurrScope>().unwrap().get()
+}
+
 pub fn pop_scope(env: &mut StatePool<MoveAST>) {
     env.get_mut::<CurrScope>().unwrap().pop();
 }

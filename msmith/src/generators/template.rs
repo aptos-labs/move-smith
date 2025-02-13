@@ -48,7 +48,8 @@ impl Generator<MoveAST, AnyConstraint> for TemplateGenerator {
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        _gen_constraint: &AnyConstraint,
+        _comp_constraint: &AnyConstraint,
         _ast: &MoveAST,
     ) -> bool {
         unimplemented!()

@@ -1,7 +1,8 @@
 use crate::{
     move_ast::{MoveAST, Signature, TypeParameters, Variable},
     states::{
-        get_config, get_type_pool, new_id_from_curr_scope, Id, IdKind, Scope, TypeSelectorBuilder,
+        get_config, get_curr_scope, get_type_pool, new_id_from_curr_scope, Id, IdKind, Scope,
+        TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -27,10 +28,15 @@ impl Register<GeneratorEntry> for SignatureGenerator {
 }
 
 impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
-    fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+    fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         constraint.check_exist_and_type::<Id>("name")
             && constraint.check_exist_and_type::<Scope>("scope")
             && constraint.check_not_exist_or_has_type::<bool>("has_return")
+            && {
+                // Make sure the current scope is in a function
+                let curr_scope = get_curr_scope(env);
+                curr_scope.to_id().unwrap().is_func()
+            }
     }
 
     fn subtrees(
@@ -93,9 +99,27 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        gen_constraint: &AnyConstraint,
+        _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        ast.as_signature().is_some()
+        if !ast.as_signature().is_some() {
+            return false;
+        }
+
+        // The signature must use the given name from the constraint
+        let sig = ast.as_signature().unwrap();
+        if gen_constraint.get::<Id>("name").unwrap() != &sig.name {
+            return false;
+        }
+
+        // The signature must respect the return type constraint
+        let does_have_return = sig.return_type.is_some();
+        if let Some(has_return) = gen_constraint.get::<bool>("has_return") {
+            if *has_return != does_have_return {
+                return false;
+            }
+        }
+        true
     }
 }

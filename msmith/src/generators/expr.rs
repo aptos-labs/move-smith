@@ -1,7 +1,7 @@
 use crate::{
     generators::{NumberGenerator, TupleGenerator},
     move_ast::{Expression, MoveAST},
-    states::{get_config, GenericType, Primitive, Type, TypePool, TypeSelectorBuilder},
+    states::{get_config, get_type_pool, GenericType, Primitive, Type, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -39,11 +39,7 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
         let selector = TypeSelectorBuilder::all_no(get_config(env))
             .number(1)
             .build();
-        let random_type = env
-            .get::<TypePool>()
-            .unwrap()
-            .random_type(u, vec![selector])
-            .unwrap();
+        let random_type = get_type_pool(env).random_type(u, vec![selector])?;
         let required_type = constraint.get_or::<Type>("type", random_type);
 
         let mut expr_constraint = AnyConstraint::new();
@@ -80,7 +76,8 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
     fn check_ast(
         &self,
         _env: &StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        _gen_constraint: &AnyConstraint,
+        _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
         ast.as_expression().is_some()
