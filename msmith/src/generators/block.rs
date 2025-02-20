@@ -3,7 +3,7 @@ use crate::{
     move_ast::{Block, Expression, MoveAST},
     states::{
         get_config, get_type_pool, new_id_from_curr_scope_and_push_scope, pop_scope, Id, IdKind,
-        PartialInfo, TypeSelectorBuilder, PARTIAL_SIGNATURE,
+        PartialInfo, Type, TypeSelectorBuilder, PARTIAL_SIGNATURE,
     },
 };
 use anyhow::Result;
@@ -57,9 +57,9 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
             let selector = TypeSelectorBuilder::all_no(get_config(env))
                 .number(1)
                 .build();
-            Some(get_type_pool(env).random_type(u, vec![selector]).unwrap())
+            get_type_pool(env).random_type(u, vec![selector]).unwrap()
         } else {
-            None
+            Type::Unit
         };
 
         let (name, scope, curr_scope) = new_id_from_curr_scope_and_push_scope(env, IdKind::Block);
@@ -87,7 +87,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
             ));
         }
 
-        if let Some(return_type) = return_type {
+        if return_type != Type::Unit {
             compose_constraint.insert("has_return", true);
             trace!("Block {} has return type: {:?}", name, return_type);
 

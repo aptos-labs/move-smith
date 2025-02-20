@@ -194,6 +194,31 @@ impl TypePool {
         self.variable_types.get(id).cloned()
     }
 
+    pub fn all_callable_function_within(&self, curr_func: &Id) -> Vec<FunctionType> {
+        // Find index of curr_func
+        let curr_idx = self
+            .defined_funcs
+            .iter()
+            .position(|(id, _)| id == curr_func)
+            .ok_or_else(|| anyhow::anyhow!("curr_func not found in defined_funcs: {:?}", curr_func))
+            .unwrap();
+
+        // Return the first curr_idx functions
+        let callable = self
+            .defined_funcs
+            .iter()
+            .take(curr_idx)
+            .filter_map(|(_, typ)| {
+                if let Type::Generic(GenericType::Function(f)) = typ {
+                    Some(f.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<FunctionType>>();
+        callable
+    }
+
     pub fn random_defined_type(&self, u: &mut Unstructured) -> Result<Type> {
         let keys = self.defined_types.keys().cloned().collect::<Vec<_>>();
         let id = u.choose(&keys)?;
@@ -284,8 +309,8 @@ impl TypePool {
         if selector.func_return > 0 {
             for func_type in self.defined_funcs.values() {
                 if let Type::Generic(GenericType::Function(f)) = func_type {
-                    if let Some(ret_type) = &f.return_type {
-                        candidates.push((ret_type.as_ref().clone(), selector.func_return));
+                    if f.has_return() {
+                        candidates.push((f.return_type.as_ref().clone(), selector.func_return));
                     }
                 }
             }
@@ -340,11 +365,6 @@ impl State<MoveAST> for TypePool {
                 },
                 E::Assignment(assign) => match assign.lhs.as_ref() {
                     E::Variable(v) => {
-                        trace!(
-                            "searchme: adding variable type: {:?} : {:?}",
-                            v.name,
-                            v.ty()
-                        );
                         self.variable_types.insert(v.name.clone(), v.ty());
                     },
                     E::Tuple(t) => {
@@ -373,6 +393,12 @@ pub enum Type {
     Primitive(Primitive),
     TypeParameter(TypeParameter),
     Concrete(ConcreteType),
+}
+
+impl Type {
+    pub fn is_unit(&self) -> bool {
+        self == &Type::Unit
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -426,7 +452,13 @@ pub struct FunctionType {
     pub name: Id,
     pub type_params: Vec<TypeParameter>,
     pub params: Vec<Type>,
-    pub return_type: Option<Box<Type>>,
+    pub return_type: Box<Type>,
+}
+
+impl FunctionType {
+    pub fn has_return(&self) -> bool {
+        !self.return_type.is_unit()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

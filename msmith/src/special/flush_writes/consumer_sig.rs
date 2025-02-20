@@ -1,7 +1,9 @@
 use crate::{
     generators::SignatureGenerator,
     move_ast::{MoveAST, Signature, TypeParameters, Variable},
-    states::{get_config, get_type_pool, new_id_from_curr_scope, Id, IdKind, TypeSelectorBuilder},
+    states::{
+        get_config, get_type_pool, new_id_from_curr_scope, Id, IdKind, Type, TypeSelectorBuilder,
+    },
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -61,7 +63,7 @@ impl Generator<MoveAST, AnyConstraint> for ConsumerSignatureGenerator {
                 name: constraint.get::<Id>("name").unwrap().clone(),
                 type_params: TypeParameters::default(),
                 parameters,
-                return_type: None,
+                return_type: Type::Unit,
             }
             .into(),
         );

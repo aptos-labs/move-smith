@@ -1,7 +1,7 @@
 use crate::{
     move_ast::{MoveAST, Signature, TypeParameters, Variable},
     states::{
-        get_config, get_curr_scope, get_type_pool, new_id_from_curr_scope, Id, IdKind, Scope,
+        get_config, get_curr_scope, get_type_pool, new_id_from_curr_scope, Id, IdKind, Scope, Type,
         TypeSelectorBuilder,
     },
 };
@@ -35,7 +35,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             && {
                 // Make sure the current scope is in a function
                 let curr_scope = get_curr_scope(env);
-                curr_scope.to_id().unwrap().is_func()
+                curr_scope.get_last_scope_id().is_func()
             }
     }
 
@@ -49,7 +49,8 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
 
         let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
-        let type_selector = TypeSelectorBuilder::all_yes(&config).build();
+        // let type_selector = TypeSelectorBuilder::all_yes(&config).build();
+        let type_selector = TypeSelectorBuilder::all_no(&config).number(1).build();
         let mut parameters = vec![];
 
         for _ in 0..num_params {
@@ -69,9 +70,9 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         let config = get_config(env);
         let return_type = if has_return {
             let type_selector = TypeSelectorBuilder::all_yes(&config).build();
-            Some(get_type_pool(env).random_type(u, vec![type_selector])?)
+            get_type_pool(env).random_type(u, vec![type_selector])?
         } else {
-            None
+            Type::Unit
         };
 
         let subtree = Subtree::new_single_candidate(
@@ -114,7 +115,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         }
 
         // The signature must respect the return type constraint
-        let does_have_return = sig.return_type.is_some();
+        let does_have_return = sig.has_return();
         if let Some(has_return) = gen_constraint.get::<bool>("has_return") {
             if *has_return != does_have_return {
                 return false;

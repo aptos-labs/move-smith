@@ -28,6 +28,7 @@ pub enum MoveAST {
     Assignment(Assignment),
     NumberLiteral(NumberLiteral),
     Tuple(Tuple),
+    FunctionCall(FunctionCall),
 }
 
 impl ASTNode for MoveAST {}
@@ -129,7 +130,13 @@ pub struct Signature {
     pub name: Id,
     pub type_params: TypeParameters,
     pub parameters: Vec<Variable>,
-    pub return_type: Option<Type>,
+    pub return_type: Type,
+}
+
+impl Signature {
+    pub fn has_return(&self) -> bool {
+        !self.return_type.is_unit()
+    }
 }
 
 impl Typed for Signature {
@@ -138,7 +145,7 @@ impl Typed for Signature {
             name: self.name.clone(),
             type_params: self.type_params.types.clone(),
             params: self.parameters.iter().map(|p| p.ty()).collect(),
-            return_type: self.return_type.clone().map(Box::new),
+            return_type: Box::new(self.return_type.clone()),
         }))
     }
 }
@@ -167,6 +174,7 @@ pub enum Expression {
     Assignment(Assignment),
     Variable(Variable),
     NumberLiteral(NumberLiteral),
+    FunctionCall(FunctionCall),
 }
 
 impl Typed for Expression {
@@ -176,6 +184,7 @@ impl Typed for Expression {
             Expression::Assignment(a) => a.ty(),
             Expression::Variable(v) => v.ty(),
             Expression::NumberLiteral(n) => n.ty(),
+            Expression::FunctionCall(f) => f.ty(),
         }
     }
 }
@@ -228,6 +237,18 @@ pub struct NumberLiteral {
 impl Typed for NumberLiteral {
     fn ty(&self) -> Type {
         self.typ.clone()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionCall {
+    pub func_type: FunctionType,
+    pub arguments: Vec<Expression>,
+}
+
+impl Typed for FunctionCall {
+    fn ty(&self) -> Type {
+        self.func_type.return_type.as_ref().clone()
     }
 }
 

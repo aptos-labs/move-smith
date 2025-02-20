@@ -155,9 +155,10 @@ impl CodeGenerator for Signature {
             .map(|p| p.emit_code())
             .collect::<Vec<String>>();
         code.push_str(&format!("({})", params.join(", ")));
-        if let Some(ret_typ) = &self.return_type {
+
+        if self.has_return() {
             code.push_str(": ");
-            code.push_str(&ret_typ.emit_code());
+            code.push_str(&self.return_type.emit_code());
         }
         vec![code]
     }
@@ -215,6 +216,7 @@ impl CodeGenerator for Expression {
             E::Variable(v) => v.emit_code_lines(),
             E::NumberLiteral(n) => n.emit_code_lines(),
             E::Tuple(t) => t.emit_code_lines(),
+            E::FunctionCall(f) => f.emit_code_lines(),
         }
     }
 }
@@ -258,6 +260,16 @@ impl CodeGenerator for Variable {
 impl CodeGenerator for NumberLiteral {
     fn emit_code_lines(&self) -> Vec<String> {
         vec![format!("{}{}", self.value, self.typ.emit_code())]
+    }
+}
+
+impl CodeGenerator for FunctionCall {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut args = vec![];
+        for arg in &self.arguments {
+            args.push(arg.emit_code());
+        }
+        vec![format!("{}({})", self.func_type.name, args.join(", "))]
     }
 }
 

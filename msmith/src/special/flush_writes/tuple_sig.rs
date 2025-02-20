@@ -51,7 +51,7 @@ impl Generator<MoveAST, AnyConstraint> for TupleSignatureGenerator {
                 name: constraint.get::<Id>("name").unwrap().clone(),
                 type_params: TypeParameters::default(),
                 parameters: vec![],
-                return_type: Some(ret_type),
+                return_type: ret_type,
             }
             .into(),
         );

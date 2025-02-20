@@ -20,5 +20,6 @@ export_all!(
     expr_of_type,
     eot_var,
     eot_tuple,
-    eot_number
+    eot_number,
+    eot_call
 );

@@ -5,7 +5,9 @@
 
 use crate::move_ast::MoveAST;
 use arbitrary::Unstructured;
+use core::panic;
 use framework::{GenLabel, LabelledState, Register, State, StateEntry, StateLabel};
+use log::trace;
 use std::{collections::HashMap, fmt};
 
 /// Represents a Move Id.
@@ -130,6 +132,16 @@ impl Scope {
         Some(Id { name, kind })
     }
 
+    pub fn get_last_scope_id(&self) -> Id {
+        let pieces = self.to_pieces();
+        let last = pieces.last().unwrap();
+        let kind = IdKind::from_name(last);
+        Id {
+            name: last.clone(),
+            kind,
+        }
+    }
+
     /// Remove all hidden scopes whose name starts with an underscore
     /// e.g. `Module1::function1::_block1::_block2` will result in `Module1::function1`
     pub fn remove_hidden_scopes(&self) -> Scope {
@@ -209,11 +221,26 @@ impl IdPool {
         self.insert_new_id(&typ, new_id.clone());
 
         self.scopes.insert(new_id.clone(), scope.clone());
+        trace!("Inserted new id: {:?} under scope: {:?}", new_id, scope);
 
         let child_scope = Scope(Some(name.clone()));
         let new_scope: Scope = self.merge_scopes(scope, &child_scope);
 
         (new_id, new_scope)
+    }
+
+    pub fn get_func_scope_id_of(&self, id: &Id) -> Id {
+        match self.get_parent_scope_of(id) {
+            Some(parent) => {
+                let parent_id = parent.get_last_scope_id();
+                if parent_id.is_func() {
+                    parent_id
+                } else {
+                    self.get_func_scope_id_of(&parent_id)
+                }
+            },
+            None => panic!("Id {} has no parent scope", id),
+        }
     }
 
     /// Get the outer most scope where the given Id is accessible.
