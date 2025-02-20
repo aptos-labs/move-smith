@@ -3,7 +3,11 @@
 
 use crate::{
     move_ast::*,
-    states::{ids::Id, types::Type, GenericType, NumberType, Primitive},
+    states::{
+        ids::Id,
+        types::{Type, Typed},
+        GenericType, NumberType, Primitive,
+    },
 };
 
 /// The code put before each generated Move source code.
@@ -221,7 +225,12 @@ impl CodeGenerator for Tuple {
         for expr in &self.expressions {
             elems.push(expr.emit_code());
         }
-        vec![format!("({})", elems.join(", "))]
+        let mut code = format!("({})", elems.join(", "));
+        if self.show_type {
+            code.push_str(": ");
+            code.push_str(&self.ty().emit_code());
+        }
+        vec![code]
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     move_ast::MoveAST,
-    states::{CurrScope, GenerationConfig, Id, IdKind, IdPool, Scope, TypePool},
+    states::{CurrScope, GenerationConfig, Id, IdKind, IdPool, Scope, Type, TypePool},
 };
 use framework::StatePool;
 
@@ -10,6 +10,10 @@ pub fn get_config(env: &StatePool<MoveAST>) -> &GenerationConfig {
 
 pub fn get_type_pool(env: &StatePool<MoveAST>) -> &TypePool {
     env.get::<TypePool>().unwrap()
+}
+
+pub fn get_id_pool(env: &StatePool<MoveAST>) -> &IdPool {
+    env.get::<IdPool>().unwrap()
 }
 
 pub fn get_curr_scope(env: &StatePool<MoveAST>) -> Scope {
@@ -50,4 +54,29 @@ pub fn new_id(env: &mut StatePool<MoveAST>, id_kind: IdKind, parent_scope: &Scop
 pub fn new_id_from_curr_scope(env: &mut StatePool<MoveAST>, id_kind: IdKind) -> (Id, Scope) {
     let curr_scope = env.get::<CurrScope>().unwrap().get();
     new_id(env, id_kind, &curr_scope)
+}
+
+pub fn get_vars_in_curr_scope(env: &StatePool<MoveAST>) -> Vec<Id> {
+    let curr_scope = env.get::<CurrScope>().unwrap().get();
+    let id_pool = env.get::<IdPool>().unwrap();
+    let all_ids = id_pool.get_ids_of_ident_kind(IdKind::Var);
+    id_pool.filter_id_in_scope(&all_ids, &curr_scope)
+}
+
+pub fn get_vars_in_curr_scope_of_type(env: &StatePool<MoveAST>, typ: Option<&Type>) -> Vec<Id> {
+    let ids = get_vars_in_curr_scope(env);
+    let type_pool = get_type_pool(env);
+    if let Some(typ) = typ {
+        ids.into_iter()
+            .filter(|id| {
+                if let Some(var_type) = type_pool.get_var_type(id) {
+                    var_type == *typ
+                } else {
+                    false
+                }
+            })
+            .collect()
+    } else {
+        ids
+    }
 }

@@ -1,4 +1,4 @@
-use super::ExpressionGenerator;
+use super::ExprOfTypeGenerator;
 use crate::{
     move_ast::{MoveAST, Tuple},
     states::TupleType,
@@ -41,7 +41,7 @@ impl Generator<MoveAST, AnyConstraint> for TupleGenerator {
         for elem_typ in &tuple_type.types {
             let expr_constraint = AnyConstraint::new().with("type", elem_typ.clone());
             subtrees.push(Subtree::new_generator_subtree(
-                ExpressionGenerator::label(),
+                ExprOfTypeGenerator::label(),
                 expr_constraint,
             ));
         }
@@ -59,7 +59,11 @@ impl Generator<MoveAST, AnyConstraint> for TupleGenerator {
             .into_iter()
             .map(|ast| ast.into_expression().unwrap())
             .collect();
-        Ok(Tuple { expressions }.into())
+        Ok(Tuple {
+            expressions,
+            show_type: false,
+        }
+        .into())
     }
 
     fn check_ast(

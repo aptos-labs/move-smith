@@ -15,7 +15,7 @@ pub struct NumberGenerator;
 
 impl LabelledGenerator for NumberGenerator {
     fn label() -> GenLabel {
-        GenLabel::new("NumberGenerator").into()
+        GenLabel::new("TypedNumberGenerator").into()
     }
 }
 

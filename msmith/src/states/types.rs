@@ -1,6 +1,6 @@
 use crate::{
     generators::{LetGenerator, SignatureGenerator, StructGenerator},
-    move_ast::MoveAST,
+    move_ast::{Expression, MoveAST, Statement},
     states::{ids::Id, GenerationConfig},
 };
 use anyhow::Result;
@@ -40,6 +40,7 @@ pub struct TypeSelector {
     tuple_weight: u32,
     reference_weight: u32,
     mut_reference_weight: u32,
+    func_return: u32,
 }
 
 impl TypeSelector {
@@ -53,18 +54,20 @@ impl TypeSelector {
             && self.tuple_weight == 0
             && self.reference_weight == 0
             && self.mut_reference_weight == 0
+            && self.func_return == 0
     }
 
     pub fn is_all_yes(&self) -> bool {
-        self.unit_weight == 1
-            && self.bool_weight == 1
-            && self.number_weight == 1
-            && self.address_weight == 1
-            && self.struct_weight == 1
-            && self.vector_weight == 1
-            && self.tuple_weight == 1
-            && self.reference_weight == 1
-            && self.mut_reference_weight == 1
+        self.unit_weight > 0
+            && self.bool_weight > 0
+            && self.number_weight > 0
+            && self.address_weight > 0
+            && self.struct_weight > 0
+            && self.vector_weight > 0
+            && self.tuple_weight > 0
+            && self.reference_weight > 0
+            && self.mut_reference_weight > 0
+            && self.func_return > 0
     }
 }
 
@@ -86,6 +89,7 @@ impl TypeSelectorBuilder {
                 tuple_weight: 1,
                 reference_weight: 1,
                 mut_reference_weight: 1,
+                func_return: 1,
             },
         }
     }
@@ -103,6 +107,7 @@ impl TypeSelectorBuilder {
                 tuple_weight: 0,
                 reference_weight: 0,
                 mut_reference_weight: 0,
+                func_return: 0,
             },
         }
     }
@@ -120,6 +125,7 @@ impl TypeSelectorBuilder {
                 tuple_weight: 0,
                 reference_weight: 0,
                 mut_reference_weight: 0,
+                func_return: 0,
             },
         }
     }
@@ -169,12 +175,25 @@ impl TypeSelectorBuilder {
         self
     }
 
+    pub fn func_return(mut self, weight: u32) -> Self {
+        self.selector.func_return = weight;
+        self
+    }
+
     pub fn build(self) -> TypeSelector {
         self.selector
     }
 }
 
 impl TypePool {
+    pub fn get_defined_type(&self, id: &Id) -> Option<Type> {
+        self.defined_types.get(id).cloned()
+    }
+
+    pub fn get_var_type(&self, id: &Id) -> Option<Type> {
+        self.variable_types.get(id).cloned()
+    }
+
     pub fn random_defined_type(&self, u: &mut Unstructured) -> Result<Type> {
         let keys = self.defined_types.keys().cloned().collect::<Vec<_>>();
         let id = u.choose(&keys)?;
@@ -261,6 +280,17 @@ impl TypePool {
             unimplemented!();
         }
 
+        // TODO: make all func return types into one list
+        if selector.func_return > 0 {
+            for func_type in self.defined_funcs.values() {
+                if let Type::Generic(GenericType::Function(f)) = func_type {
+                    if let Some(ret_type) = &f.return_type {
+                        candidates.push((ret_type.as_ref().clone(), selector.func_return));
+                    }
+                }
+            }
+        }
+
         trace!("Candidates: {:?}", candidates);
         trace!("Selector: {:?}", selector);
         let chosen = choose_item_weighted(u, &candidates)?;
@@ -291,17 +321,47 @@ impl Register<StateEntry> for TypePool {
 impl State<MoveAST> for TypePool {
     fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {}
 
-    fn update_post(&mut self, _u: &mut Unstructured, new_ast: &MoveAST, generator: &GenLabel) {
-        if generator == &StructGenerator::label() {
-            if let MoveAST::Struct(s) = new_ast {
-                let ty = s.ty();
-                self.defined_types.insert(s.name.clone(), ty);
-            }
-        } else if generator == &SignatureGenerator::label() {
-            if let MoveAST::Signature(s) = new_ast {
-                let ty = s.ty();
-                self.defined_funcs.insert(s.name.clone(), ty);
-            }
+    fn update_post(&mut self, _u: &mut Unstructured, new_ast: &MoveAST, _generator: &GenLabel) {
+        use Expression as E;
+        use MoveAST as M;
+        match &new_ast {
+            M::Struct(s) => {
+                self.defined_types.insert(s.name.clone(), s.ty());
+            },
+            M::Signature(s) => {
+                self.defined_funcs.insert(s.name.clone(), s.ty());
+                for p in &s.parameters {
+                    self.variable_types.insert(p.name.clone(), p.ty());
+                }
+            },
+            M::Statement(Statement::Let(e)) => match e {
+                E::Variable(v) => {
+                    self.variable_types.insert(v.name.clone(), v.ty());
+                },
+                E::Assignment(assign) => match assign.lhs.as_ref() {
+                    E::Variable(v) => {
+                        trace!(
+                            "searchme: adding variable type: {:?} : {:?}",
+                            v.name,
+                            v.ty()
+                        );
+                        self.variable_types.insert(v.name.clone(), v.ty());
+                    },
+                    E::Tuple(t) => {
+                        for elem in &t.expressions {
+                            match elem {
+                                E::Variable(v) => {
+                                    self.variable_types.insert(v.name.clone(), v.ty());
+                                },
+                                _ => unimplemented!(),
+                            }
+                        }
+                    },
+                    _ => unimplemented!(),
+                },
+                _ => {},
+            },
+            _ => {},
         }
     }
 }

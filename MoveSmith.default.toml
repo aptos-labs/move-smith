@@ -13,6 +13,7 @@ num_type_params_in_struct = { min = 0, target = 2, max = 32 }
 ######## Function Related ######## 
 num_stmts_in_sequence = { min = 0, target = 4, max = 30 }
 num_sequences_in_block = { min = 0, target = 1, max = 3 }
+# num_sequences_in_block = { min = 0, target = 0, max = 0 }
 num_params_in_func = { min = 0, target = 4, max = 255 }
 num_type_params_in_func = { min = 0, target = 2, max = 32 }
 num_inline_funcs = { min = 0, target = 0, max = 0 }

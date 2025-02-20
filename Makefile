@@ -23,6 +23,9 @@ fuzz-targets:
 debug:
 	RUST_BACKTRACE=1 cargo run --bin msmith-debug
 
+debug-trace:
+	RUST_LOG=TRACE RUST_BACKTRACE=1 cargo run --bin msmith-debug
+
 test:
 	cargo nextest run --no-capture
 

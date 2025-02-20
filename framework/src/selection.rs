@@ -153,7 +153,7 @@ where
         let chosen = u.int_in_range(0..=indices.len() - 1)?;
         let idx = indices[chosen];
         if filter(&items[idx]) {
-            return Ok(Some(indices[idx]));
+            return Ok(Some(idx));
         }
         indices.remove(chosen);
     }

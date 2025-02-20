@@ -15,5 +15,10 @@ export_all!(
     stmt_expr,
     stmt_let,
     number,
-    tuple
+    tuple,
+    call,
+    expr_of_type,
+    eot_var,
+    eot_tuple,
+    eot_number
 );

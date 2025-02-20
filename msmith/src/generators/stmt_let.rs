@@ -1,7 +1,10 @@
 use crate::{
-    generators::StatementGenerator,
-    move_ast::{Expression, MoveAST, Statement, Variable},
-    states::{get_config, get_type_pool, new_id_from_curr_scope, IdKind, TypeSelectorBuilder},
+    generators::{ExprOfTypeGenerator, StatementGenerator},
+    move_ast::{Assignment, Expression, MoveAST, Statement, Tuple, Variable},
+    states::{
+        get_config, get_type_pool, new_id_from_curr_scope, GenericType, IdKind, Type,
+        TypeSelectorBuilder,
+    },
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -22,9 +25,7 @@ impl LabelledGenerator for LetGenerator {
 
 impl Register<GeneratorEntry> for LetGenerator {
     fn register(&self) -> GeneratorEntry {
-        let mut entry = GeneratorEntry::new::<Self>();
-        entry.add_parent::<StatementGenerator>();
-        entry
+        GeneratorEntry::new::<Self>().with_parent::<StatementGenerator>()
     }
 }
 
@@ -36,32 +37,60 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
 
     fn subtrees(
         &self,
-        _u: &mut Unstructured,
-        _env: &mut StatePool<MoveAST>,
+        u: &mut Unstructured,
+        env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        Ok((vec![], AnyConstraint::new()))
+        let config = get_config(env);
+        let type_selector = TypeSelectorBuilder::all_no(config)
+            .number(1)
+            .func_return(1)
+            .build();
+        let typ = get_type_pool(env).random_type(u, vec![type_selector])?;
+
+        let constraint = AnyConstraint::new().with("type", typ.clone());
+        let subtree =
+            Subtree::new_generator_subtree(ExprOfTypeGenerator::label(), constraint.clone());
+        Ok((vec![subtree], constraint))
     }
 
     fn compose(
         &self,
-        u: &mut Unstructured,
+        _u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
-        _constraint: AnyConstraint,
-        _asts: Vec<MoveAST>,
+        constraint: AnyConstraint,
+        asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
-        let config = get_config(env);
-        let type_selector = TypeSelectorBuilder::all_no(config).number(1).build();
-        let typ = get_type_pool(env).random_type(u, vec![type_selector])?;
-
-        Ok(Statement::Let(Expression::Variable(Variable {
-            name,
-            typ,
-            declare: true,
-            show_type: true,
-        }))
-        .into())
+        let typ = constraint.get::<Type>("type").unwrap().clone();
+        let lhs = Box::new(match typ {
+            Type::Generic(GenericType::Tuple(t)) => {
+                let mut exprs = vec![];
+                for elem_typ in t.types {
+                    let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
+                    exprs.push(Expression::Variable(Variable {
+                        name: name.clone(),
+                        typ: elem_typ.clone(),
+                        declare: false,
+                        show_type: false,
+                    }));
+                }
+                Expression::Tuple(Tuple {
+                    expressions: exprs,
+                    show_type: true,
+                })
+            },
+            _ => {
+                let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
+                Expression::Variable(Variable {
+                    name: name.clone(),
+                    typ: typ.clone(),
+                    declare: true,
+                    show_type: true,
+                })
+            },
+        });
+        let rhs = Box::new(asts.into_iter().next().unwrap().into_expression().unwrap());
+        Ok(Statement::Let(Expression::Assignment(Assignment { lhs, rhs })).into())
     }
 
     fn check_ast(

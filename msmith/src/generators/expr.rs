@@ -1,7 +1,7 @@
+use super::ExprOfTypeGenerator;
 use crate::{
-    generators::{NumberGenerator, TupleGenerator},
-    move_ast::{Expression, MoveAST},
-    states::{get_config, get_type_pool, GenericType, Primitive, Type, TypeSelectorBuilder},
+    move_ast::MoveAST,
+    states::{get_config, get_type_pool, Type, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -36,24 +36,15 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let selector = TypeSelectorBuilder::all_no(get_config(env))
-            .number(1)
-            .build();
-        let random_type = get_type_pool(env).random_type(u, vec![selector])?;
-        let required_type = constraint.get_or::<Type>("type", random_type);
-
-        let mut expr_constraint = AnyConstraint::new();
-        let subtree = match required_type {
-            Type::Primitive(Primitive::Number(n)) => {
-                expr_constraint.insert("type", n.clone());
-                Subtree::new_generator_subtree(NumberGenerator::label(), expr_constraint)
-            },
-            Type::Generic(GenericType::Tuple(t)) => {
-                expr_constraint.insert("type", t.clone());
-                Subtree::new_generator_subtree(TupleGenerator::label(), expr_constraint)
-            },
-            _ => unimplemented!(),
-        };
+        let mut gen_constraint = constraint.clone();
+        if constraint.get::<Type>("type").is_none() {
+            let selector = TypeSelectorBuilder::all_no(get_config(env))
+                .number(1)
+                .build();
+            let random_type = get_type_pool(env).random_type(u, vec![selector])?;
+            gen_constraint.insert("type", random_type);
+        }
+        let subtree = Subtree::new_generator_subtree(ExprOfTypeGenerator::label(), gen_constraint);
         Ok((vec![subtree], AnyConstraint::new()))
     }
 
@@ -64,13 +55,7 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
         _constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        use MoveAST as M;
-        let node = asts.into_iter().next().unwrap();
-        Ok(match node {
-            M::NumberLiteral(n) => Expression::NumberLiteral(n).into(),
-            M::Tuple(t) => Expression::Tuple(t).into(),
-            _ => unimplemented!(),
-        })
+        Ok(asts.into_iter().next().unwrap())
     }
 
     fn check_ast(

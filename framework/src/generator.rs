@@ -32,6 +32,21 @@ impl GeneratorEntry {
         }
     }
 
+    pub fn with_parent<T: LabelledGenerator>(mut self) -> Self {
+        self.parents.push(T::label());
+        self
+    }
+
+    pub fn with_forward(mut self, forward: bool) -> Self {
+        self.forward = forward;
+        self
+    }
+
+    pub fn with_skip_parent(mut self, skip_parent: bool) -> Self {
+        self.skip_parent = skip_parent;
+        self
+    }
+
     pub fn add_parent<T: LabelledGenerator>(&mut self) {
         self.parents.push(T::label());
     }

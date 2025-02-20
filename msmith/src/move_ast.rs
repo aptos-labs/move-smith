@@ -1,7 +1,7 @@
 use crate::states::{
     ids::{Id, IdKind},
     types::{Ability, GenericType, StructType, Type, TypeParameter, Typed},
-    FunctionType,
+    FunctionType, TupleType,
 };
 use enuminto::EnumInto;
 use framework::ASTNode;
@@ -169,15 +169,40 @@ pub enum Expression {
     NumberLiteral(NumberLiteral),
 }
 
+impl Typed for Expression {
+    fn ty(&self) -> Type {
+        match self {
+            Expression::Tuple(t) => t.ty(),
+            Expression::Assignment(a) => a.ty(),
+            Expression::Variable(v) => v.ty(),
+            Expression::NumberLiteral(n) => n.ty(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tuple {
     pub expressions: Vec<Expression>,
+    pub show_type: bool,
+}
+
+impl Typed for Tuple {
+    fn ty(&self) -> Type {
+        let elem_types = self.expressions.iter().map(|e| e.ty()).collect();
+        Type::Generic(GenericType::Tuple(TupleType { types: elem_types }))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment {
     pub lhs: Box<Expression>,
     pub rhs: Box<Expression>,
+}
+
+impl Typed for Assignment {
+    fn ty(&self) -> Type {
+        Type::Unit
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -198,6 +223,12 @@ impl Typed for Variable {
 pub struct NumberLiteral {
     pub value: BigUint,
     pub typ: Type,
+}
+
+impl Typed for NumberLiteral {
+    fn ty(&self) -> Type {
+        self.typ.clone()
+    }
 }
 
 impl Default for Program {

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{AnyConstraint, Framework, FrameworkBuilder, LabelledGenerator};
-use log::debug;
 
 pub mod cli;
 pub mod codegen;
@@ -50,6 +49,10 @@ impl MoveSmith {
             .add_generator::<ExprStmtGenerator>()
             .add_generator::<NumberGenerator>()
             .add_generator::<TupleGenerator>()
+            .add_generator::<ExprOfTypeGenerator>()
+            .add_generator::<EOTNumberGenerator>()
+            .add_generator::<EOTTupleGenerator>()
+            .add_generator::<EOTVariableGenerator>()
             .add_state::<states::config::GenerationConfig>()
             .add_state::<states::TypePool>()
             .add_state::<states::IdPool>()
@@ -72,8 +75,6 @@ impl MoveSmith {
         let prog = self
             .framework
             .generate(u, &ProgramGenerator::label(), &AnyConstraint::new())?;
-        debug!("The generated program:");
-        debug!("{:#?}", prog);
         Ok(prog.emit_code())
     }
 }

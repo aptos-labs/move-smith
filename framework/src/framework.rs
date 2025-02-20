@@ -100,6 +100,7 @@ where
         constraint: &C,
     ) -> Result<A> {
         trace!("Generating ASTNode with label: {}", base_label);
+        trace!("Generation constraint: {:?}", constraint);
 
         // The constraint should be at least be well-formed for the base label
         let generator = self.generators.get(&base_label).unwrap();
@@ -114,6 +115,7 @@ where
         // For all the usable generators, randomly select one that the constraint is well-formed for
         // If none of the specialized generators can be used, we will fall back to the base generator
         let usable_generators: Vec<GenLabel> = self.generators.generators_from(base_label, true);
+        trace!("Usable generators: {:?}", usable_generators);
         let selected_idx = choose_idx_filter(u, &usable_generators, |g| {
             self.generators
                 .get(g)
