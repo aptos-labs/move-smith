@@ -10,6 +10,10 @@ use framework::{GenLabel, LabelledState, Register, State, StateEntry, StateLabel
 use log::trace;
 use std::{collections::HashMap, fmt};
 
+pub trait Named {
+    fn name(&self) -> Id;
+}
+
 /// Represents a Move Id.
 /// Key invariant: each Id is globally unique.
 /// This is achieved by appending a monotonic counter to the Id name.

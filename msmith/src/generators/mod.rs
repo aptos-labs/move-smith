@@ -5,7 +5,6 @@ export_all!(
     program,
     module,
     structs,
-    struct_field,
     function,
     signature,
     block,
@@ -21,5 +20,6 @@ export_all!(
     eot_var,
     eot_tuple,
     eot_number,
-    eot_call
+    eot_call,
+    eot_struct
 );

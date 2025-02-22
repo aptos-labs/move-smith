@@ -1,6 +1,6 @@
 use crate::{
     generators::{ExprOfTypeGenerator, StatementGenerator},
-    move_ast::{Assignment, Expression, MoveAST, Statement, Tuple, Variable},
+    move_ast::{Assignment, Expression, MoveAST, SingleVariable, Statement, Tuple, Variable},
     states::{
         get_config, get_type_pool, new_id_from_curr_scope, GenericType, IdKind, Type,
         TypeSelectorBuilder,
@@ -45,6 +45,7 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
         let type_selector = TypeSelectorBuilder::all_no(config)
             .number(1)
             .func_return(1)
+            .struct_(1)
             .build();
         let typ = get_type_pool(env).random_type(u, vec![type_selector])?;
 
@@ -67,12 +68,9 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
                 let mut exprs = vec![];
                 for elem_typ in t.types {
                     let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
-                    exprs.push(Expression::Variable(Variable {
-                        name: name.clone(),
-                        typ: elem_typ.clone(),
-                        declare: false,
-                        show_type: false,
-                    }));
+                    let var: Variable = SingleVariable::new(&name, &elem_typ).into();
+                    let expr: Expression = var.into();
+                    exprs.push(expr);
                 }
                 Expression::Tuple(Tuple {
                     expressions: exprs,
@@ -81,12 +79,8 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
             },
             _ => {
                 let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
-                Expression::Variable(Variable {
-                    name: name.clone(),
-                    typ: typ.clone(),
-                    declare: true,
-                    show_type: true,
-                })
+                let var: Variable = SingleVariable::new_declare(name, typ).into();
+                var.into()
             },
         });
         let rhs = Box::new(asts.into_iter().next().unwrap().into_expression().unwrap());

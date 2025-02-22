@@ -1,7 +1,10 @@
 use crate::{
     generators::{LetGenerator, SignatureGenerator, StructGenerator},
-    move_ast::{Expression, MoveAST, Statement},
-    states::{ids::Id, GenerationConfig},
+    move_ast::{Expression, MoveAST, Statement, Variable},
+    states::{
+        ids::{Id, Named},
+        GenerationConfig,
+    },
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -14,18 +17,6 @@ use std::collections::BTreeMap;
 
 pub trait Typed {
     fn ty(&self) -> Type;
-}
-
-#[derive(Debug, Default)]
-pub struct TypePool {
-    /// The defined Structs, Enums, and Type Parameters
-    defined_types: BTreeMap<Id, Type>,
-
-    // Defined functions
-    defined_funcs: BTreeMap<Id, Type>,
-
-    /// The mapping from variable to type
-    variable_types: BTreeMap<Id, Type>,
 }
 
 #[derive(Debug, Clone)]
@@ -185,6 +176,18 @@ impl TypeSelectorBuilder {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct TypePool {
+    /// The defined Structs, Enums, and Type Parameters
+    defined_types: BTreeMap<Id, Type>,
+
+    // Defined functions
+    defined_funcs: BTreeMap<Id, Type>,
+
+    /// The mapping from variable to type
+    variable_types: BTreeMap<Id, Type>,
+}
+
 impl TypePool {
     pub fn get_defined_type(&self, id: &Id) -> Option<Type> {
         self.defined_types.get(id).cloned()
@@ -225,16 +228,15 @@ impl TypePool {
         Ok(self.defined_types.get(id).unwrap().clone())
     }
 
-    pub fn random_number_type(&self, u: &mut Unstructured) -> Result<NumberType> {
-        let typ = choose_item_weighted(u, &[
-            (NumberType::U8, 10),
-            (NumberType::U16, 10),
-            (NumberType::U32, 10),
-            (NumberType::U64, 10),
-            (NumberType::U128, 1),
-            (NumberType::U256, 1),
-        ])?;
-        Ok(typ)
+    pub fn number_type_selection_weights(&self) -> Vec<(Type, u32)> {
+        vec![
+            (Type::Primitive(Primitive::Number(NumberType::U8)), 10),
+            (Type::Primitive(Primitive::Number(NumberType::U16)), 10),
+            (Type::Primitive(Primitive::Number(NumberType::U32)), 10),
+            (Type::Primitive(Primitive::Number(NumberType::U64)), 10),
+            (Type::Primitive(Primitive::Number(NumberType::U128)), 1),
+            (Type::Primitive(Primitive::Number(NumberType::U256)), 1),
+        ]
     }
 
     pub fn random_type(
@@ -247,28 +249,45 @@ impl TypePool {
             _ => selectors.pop().unwrap(),
         };
 
-        let mut candidates = vec![];
+        // Outer vector element: (type candidates in a category, weight of the category)
+        // Inner vector element: (type candidate, weight of the candidate)
+        let mut candidates: Vec<(Vec<(Type, u32)>, u32)> = vec![];
 
         if selector.unit_weight > 0 {
-            candidates.push((Type::Unit, selector.unit_weight));
+            candidates.push((vec![(Type::Unit, 1)], selector.unit_weight));
         }
 
         if selector.bool_weight > 0 {
-            candidates.push((Type::Primitive(Primitive::Bool), selector.bool_weight));
+            candidates.push((
+                vec![(Type::Primitive(Primitive::Bool), 1)],
+                selector.bool_weight,
+            ));
         }
 
         if selector.number_weight > 0 {
-            let typ = Type::Primitive(Primitive::Number(self.random_number_type(u)?));
-            candidates.push((typ, selector.number_weight));
+            let types = self.number_type_selection_weights();
+            candidates.push((types, selector.number_weight));
         }
 
         if selector.address_weight > 0 {
-            candidates.push((Type::Primitive(Primitive::Address), selector.address_weight));
+            candidates.push((
+                vec![(Type::Primitive(Primitive::Address), 1)],
+                selector.address_weight,
+            ));
         }
 
         if selector.struct_weight > 0 {
-            warn!("random Struct type not implemented");
-            unimplemented!();
+            let struct_types = self
+                .defined_types
+                .iter()
+                .filter(|(_, typ)| typ.is_generic_struct())
+                .map(|(_, typ)| (typ.clone(), 1))
+                .collect::<Vec<(Type, u32)>>();
+            if struct_types.is_empty() {
+                warn!("No struct types defined");
+            } else {
+                candidates.push((struct_types, selector.struct_weight));
+            }
         }
 
         if selector.vector_weight > 0 {
@@ -292,7 +311,7 @@ impl TypePool {
                 .map(|_| self.random_type(u, selectors.clone()))
                 .collect::<Result<Vec<Type>>>()?;
             let typ = Type::Generic(GenericType::Tuple(TupleType { types: elems }));
-            candidates.push((typ, selector.tuple_weight));
+            candidates.push((vec![(typ, 1)], selector.tuple_weight));
         }
 
         if selector.reference_weight > 0 {
@@ -305,20 +324,29 @@ impl TypePool {
             unimplemented!();
         }
 
-        // TODO: make all func return types into one list
         if selector.func_return > 0 {
-            for func_type in self.defined_funcs.values() {
-                if let Type::Generic(GenericType::Function(f)) = func_type {
-                    if f.has_return() {
-                        candidates.push((f.return_type.as_ref().clone(), selector.func_return));
+            let ret_types = self
+                .defined_funcs
+                .values()
+                .filter_map(|typ| {
+                    if let Type::Generic(GenericType::Function(f)) = typ {
+                        if f.has_return() {
+                            Some((f.return_type.as_ref().clone(), 1))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
                     }
-                }
-            }
+                })
+                .collect::<Vec<(Type, u32)>>();
+            candidates.push((ret_types, selector.func_return));
         }
 
         trace!("Candidates: {:?}", candidates);
         trace!("Selector: {:?}", selector);
-        let chosen = choose_item_weighted(u, &candidates)?;
+        let chosen_category = choose_item_weighted(u, &candidates)?;
+        let chosen = choose_item_weighted(u, &chosen_category)?;
         trace!("Chosen type: {:?}", chosen);
         Ok(chosen)
     }
@@ -360,17 +388,17 @@ impl State<MoveAST> for TypePool {
                 }
             },
             M::Statement(Statement::Let(e)) => match e {
-                E::Variable(v) => {
+                E::Variable(Variable::SingleVariable(v)) => {
                     self.variable_types.insert(v.name.clone(), v.ty());
                 },
                 E::Assignment(assign) => match assign.lhs.as_ref() {
-                    E::Variable(v) => {
+                    E::Variable(Variable::SingleVariable(v)) => {
                         self.variable_types.insert(v.name.clone(), v.ty());
                     },
                     E::Tuple(t) => {
                         for elem in &t.expressions {
                             match elem {
-                                E::Variable(v) => {
+                                E::Variable(Variable::SingleVariable(v)) => {
                                     self.variable_types.insert(v.name.clone(), v.ty());
                                 },
                                 _ => unimplemented!(),
@@ -399,12 +427,61 @@ impl Type {
     pub fn is_unit(&self) -> bool {
         self == &Type::Unit
     }
+
+    pub fn is_generic(&self) -> bool {
+        matches!(self, Type::Generic(_))
+    }
+
+    pub fn is_primitive(&self) -> bool {
+        matches!(self, Type::Primitive(_))
+    }
+
+    pub fn is_type_parameter(&self) -> bool {
+        matches!(self, Type::TypeParameter(_))
+    }
+
+    pub fn is_concrete(&self) -> bool {
+        matches!(self, Type::Concrete(_))
+    }
+
+    pub fn is_generic_struct(&self) -> bool {
+        matches!(self, Type::Generic(GenericType::Struct(_)))
+    }
+
+    pub fn is_concrete_struct(&self) -> bool {
+        matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_struct())
+    }
+}
+
+impl Named for Type {
+    fn name(&self) -> Id {
+        match self {
+            Type::Generic(GenericType::Struct(s)) => s.name.clone(),
+            Type::Concrete(c) => c.name(),
+            _ => unimplemented!(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteType {
     pub mapping: BTreeMap<TypeParameter, Type>,
     pub typ: Box<Type>,
+}
+
+impl Named for ConcreteType {
+    fn name(&self) -> Id {
+        self.typ.name()
+    }
+}
+
+impl ConcreteType {
+    pub fn new_with_empty_mapping(typ: &Type) -> Self {
+        Self {
+            mapping: BTreeMap::new(),
+            typ: Box::new(typ.clone()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

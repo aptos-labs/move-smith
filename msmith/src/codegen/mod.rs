@@ -4,9 +4,9 @@
 use crate::{
     move_ast::*,
     states::{
-        ids::Id,
+        ids::{Id, Named},
         types::{Type, Typed},
-        GenericType, NumberType, Primitive,
+        Ability, GenericType, NumberType, Primitive,
     },
 };
 
@@ -62,7 +62,7 @@ fn append_block(program: &mut Vec<String>, mut block: Vec<String>, indentation: 
         return;
     }
 
-    let suffix = format!(" {}", block.remove(0));
+    let suffix = format!("{}", block.remove(0));
     program.last_mut().unwrap().push_str(&suffix);
     if block.is_empty() {
         return;
@@ -131,16 +131,60 @@ impl CodeGenerator for Address {
 
 impl CodeGenerator for Struct {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = vec![format!("struct {} {{", self.name)];
+        let abilities = if self.abilities.is_empty() {
+            "".to_string()
+        } else {
+            format!(
+                " has {} ",
+                self.abilities
+                    .iter()
+                    .map(|a| a.emit_code())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )
+        };
+        let mut code = vec![format!("struct {}{}{{", self.name, abilities)];
+        let fields = self
+            .fields
+            .iter()
+            .map(|f| format!("{},", f.emit_code()))
+            .collect::<Vec<String>>();
+        append_code_lines_with_indentation(&mut code, fields, INDENTATION_SIZE);
         code.push("}".to_string());
         code
     }
 }
 
+impl CodeGenerator for StructInstantiation {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec![format!("{} {{", self.struct_type.name())];
+        let fields = self
+            .fields
+            .iter()
+            .map(|(v, e)| format!("{}: {},", v.name, e.emit_code()))
+            .collect::<Vec<String>>();
+        append_code_lines_with_indentation(&mut code, fields, INDENTATION_SIZE);
+        code.push("}".to_string());
+        code
+    }
+}
+
+impl CodeGenerator for Ability {
+    fn emit_code_lines(&self) -> Vec<String> {
+        use Ability as A;
+        vec![match self {
+            A::Copy => "copy".to_string(),
+            A::Drop => "drop".to_string(),
+            A::Store => "store".to_string(),
+            A::Key => "key".to_string(),
+        }]
+    }
+}
+
 impl CodeGenerator for Function {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = vec![self.signature.emit_code()];
-        append_block(&mut code, self.body.emit_code_lines(), INDENTATION_SIZE);
+        let mut code = vec![format!("{} ", self.signature.emit_code())];
+        append_block(&mut code, self.body.emit_code_lines(), 0);
         code
     }
 }
@@ -198,7 +242,11 @@ impl CodeGenerator for Sequence {
 impl CodeGenerator for Statement {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code_lines = match self {
-            Statement::Let(e) => vec![format!("let {}", e.emit_code())],
+            Statement::Let(e) => {
+                let mut code = vec!["let ".to_string()];
+                append_block(&mut code, e.emit_code_lines(), 0);
+                code
+            },
             Statement::Expression(e) => e.emit_code_lines(),
         };
         if !code_lines.is_empty() {
@@ -212,6 +260,7 @@ impl CodeGenerator for Expression {
     fn emit_code_lines(&self) -> Vec<String> {
         use Expression as E;
         match self {
+            E::StructInstantiation(s) => s.emit_code_lines(),
             E::Assignment(a) => a.emit_code_lines(),
             E::Variable(v) => v.emit_code_lines(),
             E::NumberLiteral(n) => n.emit_code_lines(),
@@ -238,15 +287,22 @@ impl CodeGenerator for Tuple {
 
 impl CodeGenerator for Assignment {
     fn emit_code_lines(&self) -> Vec<String> {
-        vec![format!(
-            "{} = {}",
-            self.lhs.emit_code(),
-            self.rhs.emit_code()
-        )]
+        let mut code = vec![format!("{} = ", self.lhs.emit_code(),)];
+        append_block(&mut code, self.rhs.emit_code_lines(), 0);
+        code
     }
 }
 
 impl CodeGenerator for Variable {
+    fn emit_code_lines(&self) -> Vec<String> {
+        match self {
+            Variable::SingleVariable(v) => v.emit_code_lines(),
+            Variable::DotVariable(v) => v.emit_code_lines(),
+        }
+    }
+}
+
+impl CodeGenerator for SingleVariable {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code = format!("{}", self.name);
         if self.show_type {
@@ -254,6 +310,17 @@ impl CodeGenerator for Variable {
             code.push_str(&self.typ.emit_code());
         }
         vec![code]
+    }
+}
+
+impl CodeGenerator for DotVariable {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let ids = self
+            .vars
+            .iter()
+            .map(|(id, _)| id.emit_code())
+            .collect::<Vec<String>>();
+        vec![ids.join(".")]
     }
 }
 

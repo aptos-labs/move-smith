@@ -1,7 +1,7 @@
 use crate::states::{
     ids::{Id, IdKind},
     types::{Ability, GenericType, StructType, Type, TypeParameter, Typed},
-    FunctionType, TupleType,
+    ConcreteType, FunctionType, Named, TupleType,
 };
 use enuminto::EnumInto;
 use framework::ASTNode;
@@ -17,7 +17,6 @@ pub enum MoveAST {
     Program(Program),
     MoveModule(MoveModule),
     Struct(Struct),
-    StructField(StructField),
     Function(Function),
     Signature(Signature),
     Block(Block),
@@ -29,6 +28,7 @@ pub enum MoveAST {
     NumberLiteral(NumberLiteral),
     Tuple(Tuple),
     FunctionCall(FunctionCall),
+    StructInstantiation(StructInstantiation),
 }
 
 impl ASTNode for MoveAST {}
@@ -76,7 +76,7 @@ pub struct Struct {
     pub name: Id,
     pub type_params: TypeParameters,
     pub abilities: Vec<Ability>,
-    pub fields: Vec<StructField>,
+    pub fields: Vec<SingleVariable>,
 }
 
 impl Typed for Struct {
@@ -87,7 +87,7 @@ impl Typed for Struct {
             fields: self
                 .fields
                 .iter()
-                .map(|f| (f.name.clone(), f.ty.clone()))
+                .map(|f| (f.name.clone(), f.ty().clone()))
                 .collect(),
             abilities: self.abilities.clone(),
         }))
@@ -103,13 +103,6 @@ impl Default for TypeParameters {
     fn default() -> Self {
         TypeParameters { types: vec![] }
     }
-}
-
-/// A field in a struct
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructField {
-    pub name: Id,
-    pub ty: Type,
 }
 
 /// The definition of the whole function
@@ -129,7 +122,7 @@ impl Typed for Function {
 pub struct Signature {
     pub name: Id,
     pub type_params: TypeParameters,
-    pub parameters: Vec<Variable>,
+    pub parameters: Vec<SingleVariable>,
     pub return_type: Type,
 }
 
@@ -168,8 +161,9 @@ pub enum Statement {
     Expression(Expression),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, EnumInto)]
 pub enum Expression {
+    StructInstantiation(StructInstantiation),
     Tuple(Tuple),
     Assignment(Assignment),
     Variable(Variable),
@@ -180,12 +174,32 @@ pub enum Expression {
 impl Typed for Expression {
     fn ty(&self) -> Type {
         match self {
+            Expression::StructInstantiation(s) => s.ty(),
             Expression::Tuple(t) => t.ty(),
             Expression::Assignment(a) => a.ty(),
             Expression::Variable(v) => v.ty(),
             Expression::NumberLiteral(n) => n.ty(),
             Expression::FunctionCall(f) => f.ty(),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructInstantiation {
+    pub struct_type: ConcreteType,
+    pub abilities: Vec<Ability>,
+    pub fields: Vec<(SingleVariable, Expression)>,
+}
+
+impl Named for StructInstantiation {
+    fn name(&self) -> Id {
+        self.struct_type.name()
+    }
+}
+
+impl Typed for StructInstantiation {
+    fn ty(&self) -> Type {
+        Type::Concrete(self.struct_type.clone())
     }
 }
 
@@ -214,17 +228,75 @@ impl Typed for Assignment {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, EnumInto)]
+pub enum Variable {
+    SingleVariable(SingleVariable),
+    DotVariable(DotVariable),
+}
+
+impl Typed for Variable {
+    fn ty(&self) -> Type {
+        match self {
+            Variable::SingleVariable(v) => v.ty(),
+            Variable::DotVariable(v) => v.ty(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Variable {
+pub struct DotVariable {
+    pub vars: Vec<(Id, Type)>,
+}
+
+impl Typed for DotVariable {
+    fn ty(&self) -> Type {
+        self.vars.last().unwrap().1.clone()
+    }
+}
+
+impl DotVariable {
+    pub fn new(vars: Vec<(Id, Type)>) -> Self {
+        DotVariable { vars }
+    }
+
+    pub fn new_with_prefix(prefix: &Self, var: (Id, Type)) -> Self {
+        let mut vars = prefix.vars.clone();
+        vars.push(var);
+        DotVariable { vars }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SingleVariable {
     pub name: Id,
     pub typ: Type,
     pub declare: bool,
     pub show_type: bool,
 }
 
-impl Typed for Variable {
+impl Typed for SingleVariable {
     fn ty(&self) -> Type {
         self.typ.clone()
+    }
+}
+
+impl SingleVariable {
+    pub fn new(name: &Id, typ: &Type) -> Self {
+        SingleVariable {
+            name: name.clone(),
+            typ: typ.clone(),
+            declare: false,
+            show_type: false,
+        }
+    }
+
+    pub fn new_declare(name: Id, typ: Type) -> Self {
+        SingleVariable {
+            name,
+            typ,
+            declare: true,
+            show_type: true,
+        }
     }
 }
 

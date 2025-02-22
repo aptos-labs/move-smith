@@ -37,6 +37,7 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let mut gen_constraint = constraint.clone();
+
         if constraint.get::<Type>("type").is_none() {
             let selector = TypeSelectorBuilder::all_no(get_config(env))
                 .number(1)
@@ -44,6 +45,7 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
             let random_type = get_type_pool(env).random_type(u, vec![selector])?;
             gen_constraint.insert("type", random_type);
         }
+
         let subtree = Subtree::new_generator_subtree(ExprOfTypeGenerator::label(), gen_constraint);
         Ok((vec![subtree], AnyConstraint::new()))
     }

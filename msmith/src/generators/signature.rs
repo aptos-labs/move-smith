@@ -1,5 +1,5 @@
 use crate::{
-    move_ast::{MoveAST, Signature, TypeParameters, Variable},
+    move_ast::{MoveAST, Signature, SingleVariable, TypeParameters},
     states::{
         get_config, get_curr_scope, get_type_pool, new_id_from_curr_scope, Id, IdKind, Scope, Type,
         TypeSelectorBuilder,
@@ -57,12 +57,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             // Create a new var name under the function scope
             let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
             let typ = get_type_pool(env).random_type(u, vec![type_selector.clone()])?;
-            parameters.push(Variable {
-                name,
-                typ,
-                declare: true,
-                show_type: true,
-            });
+            parameters.push(SingleVariable::new_declare(name, typ));
         }
 
         let has_return = constraint.get_or::<bool>("has_return", false);

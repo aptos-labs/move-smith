@@ -1,7 +1,7 @@
 use crate::{
     generators::ExprOfTypeGenerator,
-    move_ast::{Expression, MoveAST, Variable},
-    states::{get_type_pool, get_vars_in_curr_scope_of_type, Type},
+    move_ast::{Expression, MoveAST},
+    states::{get_vars_in_curr_scope_of_type, Type, Typed},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -33,10 +33,6 @@ impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
             let typ = constraint.get::<Type>("type");
             let vars = get_vars_in_curr_scope_of_type(env, typ);
             trace!("Finding vars of type {:?}: {:?}", typ, vars);
-            for var in &get_vars_in_curr_scope_of_type(env, None) {
-                let var_typ = get_type_pool(env).get_var_type(var);
-                trace!("Var {} has type {:?}", var, var_typ);
-            }
             !vars.is_empty()
         }
     }
@@ -49,17 +45,9 @@ impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let picked_typ = constraint.get::<Type>("type").cloned();
         let vars = get_vars_in_curr_scope_of_type(env, picked_typ.as_ref());
-        let name = u.choose(&vars)?.clone();
-        let typ = get_type_pool(env).get_var_type(&name).unwrap().clone();
-        let subtree = Subtree::new_single_candidate(
-            Variable {
-                name,
-                typ,
-                declare: false,
-                show_type: false,
-            }
-            .into(),
-        );
+        let chosen_var = u.choose(&vars)?.clone();
+
+        let subtree = Subtree::new_single_candidate(chosen_var.into());
         Ok((vec![subtree], AnyConstraint::new()))
     }
 
@@ -84,7 +72,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
         match ast.as_expression().as_ref() {
             Some(Expression::Variable(v)) => {
                 if let Some(t) = gen_constraint.get::<Type>("type") {
-                    t == &v.typ
+                    t == &v.ty()
                 } else {
                     true
                 }

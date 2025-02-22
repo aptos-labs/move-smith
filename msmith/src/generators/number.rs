@@ -1,6 +1,6 @@
 use crate::{
     move_ast::{MoveAST, NumberLiteral},
-    states::{get_type_pool, NumberType, Primitive, Type},
+    states::{get_config, get_type_pool, NumberType, Primitive, Type, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::{Arbitrary, Unstructured};
@@ -38,10 +38,18 @@ impl Generator<MoveAST, AnyConstraint> for NumberGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let type_pool = get_type_pool(env);
         let num_typ = match constraint.get::<NumberType>("type") {
             Some(typ) => typ.clone(),
-            None => type_pool.random_number_type(u)?,
+            None => {
+                let selector = TypeSelectorBuilder::all_no(get_config(env))
+                    .number(1)
+                    .build();
+                let random_typ = get_type_pool(env).random_type(u, vec![selector]).unwrap();
+                match random_typ {
+                    Type::Primitive(Primitive::Number(typ)) => typ,
+                    _ => panic!("NumberGenerator::subtrees: random type is not a number"),
+                }
+            },
         };
 
         let mut value = match &num_typ {
