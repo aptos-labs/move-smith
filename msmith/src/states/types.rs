@@ -405,6 +405,26 @@ impl State<MoveAST> for TypePool {
                             }
                         }
                     },
+                    E::StructDestructure(sd) => {
+                        if let Type::Generic(GenericType::Struct(struct_type)) =
+                            &sd.struct_type.typ.as_ref()
+                        {
+                            let field_types = struct_type
+                                .fields
+                                .iter()
+                                .map(|(_, typ)| typ.clone())
+                                .collect::<Vec<Type>>();
+                            field_types
+                                .iter()
+                                .zip(&sd.new_vars)
+                                .for_each(|(field_typ, var)| {
+                                    if let Some(v) = var {
+                                        self.variable_types
+                                            .insert(v.name.clone(), field_typ.clone());
+                                    }
+                                });
+                        }
+                    },
                     _ => unimplemented!(),
                 },
                 _ => {},

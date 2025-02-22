@@ -49,6 +49,7 @@ impl MoveSmith {
             .add_generator::<NumberGenerator>()
             .add_generator::<TupleGenerator>()
             .add_generator::<FuncCallGenerator>()
+            .add_generator::<AssignmentGenerator>()
             .add_generator::<ExprOfTypeGenerator>()
             .add_generator::<EOTNumberGenerator>()
             .add_generator::<EOTTupleGenerator>()

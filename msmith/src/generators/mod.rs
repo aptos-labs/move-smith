@@ -16,6 +16,7 @@ export_all!(
     number,
     tuple,
     call,
+    assignment,
     expr_of_type,
     eot_var,
     eot_tuple,

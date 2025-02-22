@@ -57,7 +57,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             // Create a new var name under the function scope
             let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
             let typ = get_type_pool(env).random_type(u, vec![type_selector.clone()])?;
-            parameters.push(SingleVariable::new_declare(name, typ));
+            parameters.push(SingleVariable::new_declare(&name, &typ));
         }
 
         let has_return = constraint.get_or::<bool>("has_return", false);

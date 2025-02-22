@@ -29,6 +29,7 @@ pub enum MoveAST {
     Tuple(Tuple),
     FunctionCall(FunctionCall),
     StructInstantiation(StructInstantiation),
+    StructDestructure(StructDestructure),
 }
 
 impl ASTNode for MoveAST {}
@@ -164,6 +165,7 @@ pub enum Statement {
 #[derive(Debug, Clone, PartialEq, Eq, EnumInto)]
 pub enum Expression {
     StructInstantiation(StructInstantiation),
+    StructDestructure(StructDestructure),
     Tuple(Tuple),
     Assignment(Assignment),
     Variable(Variable),
@@ -175,12 +177,25 @@ impl Typed for Expression {
     fn ty(&self) -> Type {
         match self {
             Expression::StructInstantiation(s) => s.ty(),
+            Expression::StructDestructure(s) => s.ty(),
             Expression::Tuple(t) => t.ty(),
             Expression::Assignment(a) => a.ty(),
             Expression::Variable(v) => v.ty(),
             Expression::NumberLiteral(n) => n.ty(),
             Expression::FunctionCall(f) => f.ty(),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructDestructure {
+    pub struct_type: ConcreteType,
+    pub new_vars: Vec<Option<SingleVariable>>,
+}
+
+impl Typed for StructDestructure {
+    fn ty(&self) -> Type {
+        Type::Concrete(self.struct_type.clone())
     }
 }
 
@@ -290,10 +305,10 @@ impl SingleVariable {
         }
     }
 
-    pub fn new_declare(name: Id, typ: Type) -> Self {
+    pub fn new_declare(name: &Id, typ: &Type) -> Self {
         SingleVariable {
-            name,
-            typ,
+            name: name.clone(),
+            typ: typ.clone(),
             declare: true,
             show_type: true,
         }
