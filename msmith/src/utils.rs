@@ -93,7 +93,7 @@ pub fn create_compiler_config_v2() -> BuildConfig {
 
 /// Compile the Move package at the given path using the given compiler config.
 pub fn compile_with_config(package_path: &Path, config: BuildConfig, name: &str) -> bool {
-    match config.compile_package_no_exit(package_path, &mut stderr()) {
+    match config.compile_package_no_exit(package_path, vec![], &mut stderr()) {
         Ok(_) => {
             info!("Successfully compiled the package with compiler {}", name);
             true
