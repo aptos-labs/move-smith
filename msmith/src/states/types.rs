@@ -340,7 +340,11 @@ impl TypePool {
                     }
                 })
                 .collect::<Vec<(Type, u32)>>();
-            candidates.push((ret_types, selector.func_return));
+            if ret_types.is_empty() {
+                warn!("No function defined so far");
+            } else {
+                candidates.push((ret_types, selector.func_return));
+            }
         }
 
         trace!("Candidates: {:?}", candidates);

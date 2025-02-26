@@ -6,7 +6,7 @@ use crate::{
     },
 };
 use anyhow::Result;
-use arbitrary::Unstructured;
+use arbitrary::{Arbitrary, Unstructured};
 use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
@@ -49,8 +49,11 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
 
         let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
-        // let type_selector = TypeSelectorBuilder::all_yes(&config).build();
-        let type_selector = TypeSelectorBuilder::all_no(&config).number(1).build();
+        // TODO: allow more types when ready
+        let type_selector = TypeSelectorBuilder::all_no(&config)
+            .number(1)
+            .struct_(1)
+            .build();
         let mut parameters = vec![];
 
         for _ in 0..num_params {
@@ -60,11 +63,16 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             parameters.push(SingleVariable::new_declare(&name, &typ));
         }
 
-        let has_return = constraint.get_or::<bool>("has_return", false);
+        let has_return = constraint.get_or::<bool>("has_return", bool::arbitrary(u)?);
 
         let config = get_config(env);
         let return_type = if has_return {
-            let type_selector = TypeSelectorBuilder::all_yes(&config).build();
+            // TODO: allow more types when ready
+            let type_selector = TypeSelectorBuilder::all_no(&config)
+                .number(1)
+                .struct_(1)
+                .tuple(1)
+                .build();
             get_type_pool(env).random_type(u, vec![type_selector])?
         } else {
             Type::Unit
