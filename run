@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Ensure the script fails on errors
+set -e
+
+# Define the image name and container name
+IMAGE="move-smith"
+CONTAINER_NAME="move-smith-dev"
+
+# Get the current user's UID and GID
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+
+# Define the directories to be mounted
+CURRENT_DIR=$(pwd)
+APTOS_CORE_PATH=${APTOS_CORE_PATH:-$(realpath "../aptos-core")} # Default path if APTOS_CORE_PATH is not set
+
+# Function to stop and remove the container
+stop_and_remove_container() {
+    echo "Stopping and removing container: ${CONTAINER_NAME}"
+    docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || echo "No running container to stop."
+    docker rm "${CONTAINER_NAME}" >/dev/null 2>&1 || echo "No container to remove."
+}
+
+# Function to check and build the image if not present
+check_and_build_image() {
+    if ! docker images --format "{{.Repository}}" | grep -q "^${IMAGE}$"; then
+        echo "Image '${IMAGE}' not found. Building the image..."
+        docker build --build-arg HOST_UID=${USER_ID} --build-arg HOST_GID=${GROUP_ID} -t "${IMAGE}" .
+    else
+        echo "Image '${IMAGE}' exists."
+    fi
+}
+
+# Function to check if the image has been updated and handle container restart
+check_image_update_and_restart_container() {
+    if docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        # Get the image ID of the running container
+        RUNNING_IMAGE_ID=$(docker inspect --format='{{.Image}}' "${CONTAINER_NAME}")
+        # Get the latest image ID of the image
+        LATEST_IMAGE_ID=$(docker inspect --format='{{.Id}}' "${IMAGE}")
+
+        if [[ "${RUNNING_IMAGE_ID}" != "${LATEST_IMAGE_ID}" ]]; then
+            echo "Image has been updated. Restarting the container..."
+            stop_and_remove_container
+        fi
+    fi
+}
+
+# Handle "stop" command to stop the container
+if [[ "$1" == "stop" ]]; then
+    stop_and_remove_container
+    exit 0
+fi
+
+# Ensure the image is built
+check_and_build_image
+
+# Check if the image has been updated and restart the container if necessary
+check_image_update_and_restart_container
+
+# Check if the container is already running
+if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+    # If not running, start a new container
+    echo "Starting a new container: ${CONTAINER_NAME}"
+    docker run -d \
+        --name "${CONTAINER_NAME}" \
+        -u "${USER_ID}:${GROUP_ID}" \
+        -v "${CURRENT_DIR}:/home/runner/move-smith" \
+        -v "${APTOS_CORE_PATH}:/home/runner/aptos-core" \
+        -it "${IMAGE}" tail -f /dev/null
+fi
+
+# Use the existing container to run the command
+echo "Using container: ${CONTAINER_NAME}"
+docker exec -it "${CONTAINER_NAME}" "$@"

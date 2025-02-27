@@ -1,32 +1,47 @@
-# MoveSmith [TO-BE-UPDATED]
+# MoveSmith
 
 A Move source code level fuzzer.
 
-# Usage
+# Compile
 
-Make sure you have all the necessary [dependencies](#dependencies).
-
-## Fuzzing
-
-To start a basic fuzzing session, run
 ```bash
-cargo fuzz run <fuzz_target>
+# Rebuild is necessary for using your uid
+make build-docker
+
+# The run script will run commands in the docker container
+./run make
 ```
 
-To run more advanced session that runs 10 workers in parallel, use the `fuzz.sh` script:
+If you have Rust and cargo installed locally, you can simply run `make`.
+
+# Fuzzing
+
+## Fuzz Targets
+
+The fuzz targets lives in `fuzz/fuzz_targets`:
+
+|Target|Oracle|Fuzzing Engine|
+|------|------|--------------|
+|[`v1v2.rs`](./fuzz/fuzz_targets/v1v2.rs)|Compiler V1 vs. V2|libFuzzer|
+|[`opt_noopt.rs`](./fuzz/fuzz_targets/opt_noopt.rs)|Optimization On vs. Off|libFuzzer|
+|[`hfuzz_v1v2.rs`](./fuzz/fuzz_targets/hfuzz_v1v2.rs)|Compiler V1 vs. V2|honggfuzz|
+|[`afl_v1v2.rs`](./fuzz/fuzz_targets/afl_v1v2.rs)|Compiler V1 vs. V2|afl++|
+|[`random.rs`](./fuzz/fuzz_targets/random.rs)|Compiler V1 vs. V2|Pure random input|
+
+## Running a session
+
 ```bash
-./scripts/fuzz.sh <fuzz_target> [total_hour] [max_input_len] [timeout]
-# If `max_input_len` is 0, initial random corpus will be generated.
+./scripts/fuzz.sh <fuzz_target> [total_hour] [jobs] [max_input_len] [timeout]
 
 # For example
-./scripts/fuzz.sh transactional 24 4 3
-# This will run the `transactional` target for 24 hours with randomly created
-# seeds whose size doesn't exceed 4KB.
+./scripts/fuzz.sh v1v2 24 32 4 3
+# This will run the `v1v2` target for 24 hours using 32 cores,
+# with randomly created seeds whose size doesn't exceed 4KB.
 # For each input, it will timeout after 3 seconds.
 
 
 # If a fuzz target starts with `afl++`, the script will spawn nodes in a tmux session:
-./scripts/fuzz.sh afl-transactional 24 4
+./scripts/fuzz.sh afl-v1v2 24
 # This will create a tmux session `afl_fuzzing` where each node occupies a window.
 ```
 
@@ -34,56 +49,8 @@ The script will keep a copy of log under `logs`.
 Note that the script will automatically spawn tmux sessions for running AFL++
 fuzzing sessions so be careful using AFL inside a tmux session.
 
-### Fuzz Targets
-
-All fuzz targets live in `fuzz/fuzz_targets`:
-
-* `compile_only`: compiles the generated Move programs using both compiler V1 and V2 and compare if they both success or fail
-* `transactional`: run the generated Move programs as transactional tests so that we can cover compiler V1, V2, and the VM
-* `afl-transactional`: the same as transactional but uses AFL++ instead of libfuzzer
-
 For libFuzzer, crashing inputs are stored in `fuzz/artifacts/<fuzz_target>`.
 For AFL++, they are stored in `fuzz/afl/<fuzz_target>_out/fuzzer#/crashes`.
-
-## CLI Helpers
-
-`raw2move` converts bytes from STDIN to a Move program the same as how the fuzzer
-uses raw input. The resulting Move code will be printed to STDOUT.
-```bash
-cargo run --bin raw2move < fuzz/artifacts/<fuzz_target>/<input_file>
-```
-
----
-
-`generator` can statically generate a number of Move files/packages with a fixed seed.
-This could be helpful to debug the fuzzer or to use the generated files for other purposes.
-
-The generator can be used by `cargo run --bin generator -- <Options>` and available options are:
-```
-Options:
-  -o, --output-dir <OUTPUT_DIR>  The output directory to store the generated Move files
-  -s, --seed <SEED>              An optional number as seed, the default should be 0 [default: 0]
-  -n, --num-files <NUM_FILES>    An optional number as the number of files to generate, the default should be 100 [default: 100]
-  -p, --package                  A boolean flag to create a package, default to false
-```
-
----
-
-`run_transactional` takes input the path to a Move file and runs it as transactional test.
-```bash
-cargo run --bin run_transactional path/to/file.move
-```
-
----
-
-`check_artifact` essentially is the combination of `raw2move` and `run_transactional`:
-it reads a file that contains raw bytes, converts it to Move, compiles and runs it as
-transactional test.
-
-```bash
-cargo run --bin check_artifact -- -f path/to/raw/input
-```
-
 
 ## Coverage
 
@@ -107,40 +74,29 @@ For libFuzzer results, you can use the `scipts/coverage_graph.py` to draw a cove
 python scripts/coverage_graph.py path/to/log
 ```
 
-For AFL++ results, you can use
-```bash
-cargo afl plot fuzz/afl/<fuzz_target>_out/fuzzer0 <ouput_dir>
-```
-to plot several key statistics.
-They can be viewed at `<output_dir>/index.html`.
-
-## Debugging
-
-### Compilation
-
-The script `./scripts/check_output.sh` is a helper for checking the generated programs.
-By default it generates 10 Move packages stored in `output/`, compiles with both compilers, run transactional tests,
-and reports any error encountered.
-
-Use `./scripts/check_output.sh N` to generate `N` packages instead.
-
-### Transactional test
-
-To execute the generated Move programs as transactional tests, use the script:
-```
-./scripts/transactional-test.sh N
-```
-
-This script will generate `N` programs under `third_party/move/move-compiler-v2/transactional-tests/tests/move-smith`.
-It will than apply a patch to the test harness to only run with the newly generated files.
 
 # Dependencies
+MoveSmith depend on the following crates for fuzzing:
 
-## cargo-fuzz
-
-[cargo-fuzz][cargo-fuzz] provides many handy commands for running fuzzing. Install with:
 ```bash
 cargo install cargo-fuzz
+cargo install cargo-afl
+cargo install cargo-binutils
+cargo install honggfuzz
+```
+
+## [Optional] Coverage
+
+To generate human-readable coverage reports, we need `llvm` coverage tools.
+They can be installed with:
+```bash
+cargo install cargo-binutils
+rustup component add --toolchain nightly llvm-tools-preview
+```
+
+We also need a demangler installed:
+```
+cargo install rustfilt
 ```
 
 ## [Optional] cargo-afl
@@ -154,70 +110,27 @@ To plot AFL++ statistics, you might need to install `gnuplot`:
 brew install gnuplot
 ```
 
-## Nightly Toolchain
-
-The nightly rust toolchain is required for instrumenting the code. Install with:
+To view AFL++ coverage over time, you can use
 ```bash
-rustup install nightly
+cargo afl plot fuzz/afl/<fuzz_target>_out/fuzzer0 <ouput_dir>
 ```
-
-To overwrite the top-level `rust-toolchain.toml`, use:
-```bash
-rustup override set nightly
-```
-
-## [Optional] Coverage
-
-To generate human-readable coverage reports, we need `llvm` coverage tools.
-They can be installed with:
-```bash
-cargo install cargo-binutils
-rustup component add --toolchain nightly llvm-tools-preview
-```
+to plot several key statistics.
+They can be viewed at `<output_dir>/index.html`.
 
 # Code Structure
 
 ```
 .
-├── Cargo.toml
-├── README.md
+├── enuminto               // Helper crate
+├── framework              // The core generation framework
 ├── fuzz
-│   ├── Cargo.toml
-│   ├── artifacts                 # The inputs that trigger crashes (created after a fuzzing session starts)
-│   ├── corpus                    # The corpus of inputs for all fuzz targets (created after a fuzzing session starts)
-│   ├── coverage                  # Stores the aggregated raw coverage files (created after collecting coverage)
-│   └── fuzz_targets
-│       ├── afl_transactional.rs  # Same as `transactional` but uses AFL++
-│       ├── compile_only.rs       # Generates and compiles a module with both compiler V1 and V2
-│       └── transactional.rs      # Run the generated Move programs as transactional tests to cover V1, V2, and the VM
-├── scripts
-│   ├── check_artifacts.sh        # Parse, compile, and run a raw input file
-│   ├── check_output.sh           # Generate Move programs/packages and try to compile them
-│   ├── coverage.sh               # Collect coverage and generate human-readable reports.
-│   ├── coverage_graph.py         # Parses libfuzzer output and draw a coverage-over-time graph.
-│   ├── fuzz.sh                   # Helper script for running libfuzzer and AFL++
-│   ├── take_snapshot.sh          # Take a snapshot of a fuzzing session run on a remote machine
-│   ├── transactional-test.sh     # Generate Move programs and execute them as transactional tests.
-│   └── transactional-tests.patch # Disables all other tests and only run MoveSmith generated ones.
-├── src
-│   ├── ast.rs                    # The AST for the Move language by the fuzzer
-│   ├── cli
-│   │   ├── check_artifact.rs     # ra2move + run_transactional
-│   │   ├── flame.rs              # Helper CLI for profiling the fuzzer
-│   │   ├── generator.rs          # The static generator for debugging
-│   │   ├── raw2move.rs           # Converts raw bytes from stdin to a Move program
-│   │   └── run_transactional.rs  # Run a Move file as transactional test
-│   ├── codegen.rs                # Converts the AST to textual Move code
-│   ├── config.rs                 # Fuzzer configurations
-│   ├── env.rs                    # Keep track of information about the already generated partial program
-│   ├── lib.rs
-│   ├── move_smith.rs             # The core generation logic
-│   ├── names.rs                  # Manages identifiers, scoping, liveness
-│   ├── types.rs                  # Manages type checking, abilities
-│   └── utils.rs                  # Connects to compilers & VM
-└── tests
-    └── integration_test.rs       # Various sanity checks
+│   └── fuzz_targets       // All the fuzz targets
+├── msmith                 // The Move generators, states, and peripherals
+│   └── src
+│       ├── cli            // The `msmith` command line tool
+│       ├── codegen        // Turn MoveAST to text format Move code
+│       ├── execution      // Execution engine using transactional test
+│       ├── generators     // Move generators
+│       └── states         // Move states
+└── scripts                // Helper scripts for running fuzzing and collecting coverage 
 ```
-
-[cargo-fuzz]: https://github.com/rust-fuzz/cargo-fuzz
-[cargo-afl]: https://github.com/rust-fuzz/afl.rs

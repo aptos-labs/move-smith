@@ -1,54 +1,3 @@
-[package]
-name = "move-smith"
-version = "0.1.0"
-description = "A Move source code level fuzzer."
-license = "Apache-2.0"
-edition = "2021"
-
-[features]
-default = []
-git_deps = [
-    "move-compiler-v2",
-    "move-model",
-    "move-package",
-    "move-transactional-test-runner",
-]
-local_deps = [
-    "move-compiler-v2-local",
-    "move-model-local",
-    "move-package-local",
-    "move-transactional-test-runner-local",
-]
-
-[dependencies]
-anyhow = { workspace = true }
-arbitrary = { workspace = true }
-clap = { workspace = true }
-derive_builder = { workspace = true }
-env_logger = { workspace = true }
-indicatif = { workspace = true }
-log = { workspace = true }
-move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-compiler-v2", optional = true }
-move-compiler-v2-local = { path = "../aptos-core/third_party/move/move-compiler-v2", package = "move-compiler-v2", optional = true }
-move-model = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-model", optional = true }
-move-model-local = { path = "../aptos-core/third_party/move/move-model", package = "move-model", optional = true }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-package", optional = true }
-move-package-local = { path = "../aptos-core/third_party/move/tools/move-package", package = "move-package", optional = true }
-move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true }
-move-transactional-test-runner-local = { path = "../aptos-core/third_party/move/testing-infra/transactional-test-runner", package = "move-transactional-test-runner", optional = true }
-num-bigint = { workspace = true }
-num_cpus = { workspace = true }
-once_cell = { workspace = true }
-rand = { workspace = true }
-rand_distr = { workspace = true }
-rayon = { workspace = true }
-regex = { workspace = true }
-serde = { workspace = true }
-tempfile = { workspace = true }
-tokio = { workspace = true }
-toml = { workspace = true }
-serde_json = { workspace = true }
-
 [workspace.dependencies]
 anyhow = "1.0.86"
 num_cpus = "1.16.0"
@@ -69,21 +18,9 @@ tempfile = "3.12.0"
 tokio = "1.39.2"
 toml = "0.8.19"
 serde_json = "1.0.127"
+enuminto = { path = "enuminto" }
+framework = { path = "framework" }
 
 [workspace]
-members = ["fuzz"]
-
-[lib]
-name = "move_smith"
-path = "src/lib.rs"
-required-features = ["git_deps"]
-
-[[bin]]
-name = "move-smith"
-path = "src/cli/main.rs"
-required-features = ["git_deps"]
-
-[[bin]]
-name = "move-smith-local"
-path = "src/cli/main.rs"
-required-features = ["local_deps"]
+members = ["enuminto", "framework", "msmith"]
+exclude = ["fuzz"]

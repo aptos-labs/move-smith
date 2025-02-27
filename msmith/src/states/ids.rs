@@ -1,0 +1,398 @@
+// Copyright (c) Aptos Foundation
+// SPDX-License-ID: Apache-2.0
+
+//! Manages IDs and scope information during generation.
+
+use crate::move_ast::MoveAST;
+use arbitrary::Unstructured;
+use core::panic;
+use framework::{GenLabel, LabelledState, Register, State, StateEntry, StateLabel};
+use log::trace;
+use std::{collections::HashMap, fmt};
+
+pub trait Named {
+    fn name(&self) -> Id;
+}
+
+/// Represents a Move Id.
+/// Key invariant: each Id is globally unique.
+/// This is achieved by appending a monotonic counter to the Id name.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub struct Id {
+    pub name: String,
+    pub kind: IdKind,
+}
+
+impl Id {
+    pub fn new(name: String, kind: IdKind) -> Self {
+        Self { name, kind }
+    }
+
+    pub fn new_str(name: &str, kind: IdKind) -> Self {
+        Self {
+            name: name.to_string(),
+            kind,
+        }
+    }
+
+    /// Convert the Id to a scope.
+    pub fn to_scope(&self) -> Scope {
+        Scope(Some(self.name.clone()))
+    }
+
+    pub fn is_var(&self) -> bool {
+        self.kind == IdKind::Var
+    }
+
+    pub fn is_func(&self) -> bool {
+        self.kind == IdKind::Function
+    }
+}
+
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+/// The types of IDs.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub enum IdKind {
+    #[default]
+    Var,
+    Struct,
+    Function,
+    Module,
+    Script,
+    Constant,
+    Type,
+    TypeParameter,
+    Field,
+    Address,
+
+    // Block IDs are only used to keep track of scope.
+    Block,
+}
+
+impl IdKind {
+    pub fn from_name(name: &str) -> Self {
+        match name {
+            _ if name.starts_with("var") => IdKind::Var,
+            _ if name.starts_with("Struct") => IdKind::Struct,
+            _ if name.starts_with("function") => IdKind::Function,
+            _ if name.starts_with("Module") => IdKind::Module,
+            _ if name.starts_with("Script") => IdKind::Script,
+            _ if name.starts_with("CONST") => IdKind::Constant,
+            _ if name.starts_with("_type") => IdKind::Type,
+            _ if name.starts_with('T') => IdKind::TypeParameter,
+            _ if name.starts_with("field") => IdKind::Field,
+            _ if name.starts_with("_block") => IdKind::Block,
+            _ if name.starts_with("_address") => IdKind::Address,
+            _ => panic!("Unknown Id kind: {}", name),
+        }
+    }
+
+    pub fn get_kind_name(&self) -> String {
+        match self {
+            IdKind::Var => "var",
+            IdKind::Struct => "Struct",
+            IdKind::Function => "function",
+            IdKind::Module => "Module",
+            IdKind::Script => "Script",
+            IdKind::Constant => "Constant",
+            IdKind::Type => "_type",
+            IdKind::TypeParameter => "T",
+            IdKind::Field => "field",
+            IdKind::Block => "_block",
+            IdKind::Address => "_address",
+        }
+        .to_string()
+    }
+}
+
+/// Scope is the namespace where a variable can be accessed.
+/// None: represents the root scope.
+/// Some(scope): the scope must have the format "parent::child".
+/// e.g. "Module1::function1"
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Scope(pub Option<String>);
+
+impl Scope {
+    /// Return if the scope is the root scope.
+    pub fn is_root(&self) -> bool {
+        self.0.is_none()
+    }
+
+    pub fn get_name(&self) -> String {
+        self.0.clone().unwrap_or("".to_string())
+    }
+
+    /// Convert the scope to an Id.
+    pub fn to_id(&self) -> Option<Id> {
+        self.0.as_ref()?;
+        let name = self.get_name();
+        let pieces = self.to_pieces();
+        let kind = IdKind::from_name(pieces.last().unwrap());
+        Some(Id { name, kind })
+    }
+
+    pub fn get_last_scope_id(&self) -> Id {
+        let pieces = self.to_pieces();
+        let last = pieces.last().unwrap();
+        let kind = IdKind::from_name(last);
+        Id {
+            name: last.clone(),
+            kind,
+        }
+    }
+
+    /// Remove all hidden scopes whose name starts with an underscore
+    /// e.g. `Module1::function1::_block1::_block2` will result in `Module1::function1`
+    pub fn remove_hidden_scopes(&self) -> Scope {
+        if self.is_root() {
+            return self.clone();
+        }
+
+        let pieces = self.to_pieces();
+        let new_scope = pieces
+            .into_iter()
+            .filter(|s| !s.starts_with('_'))
+            .map(String::from)
+            .collect::<Vec<String>>()
+            .join("::");
+        Scope(Some(new_scope))
+    }
+
+    /// Split the scope into individual pieces.
+    /// e.g., `Module1::function1::_block1::_block2` will result in
+    /// `["Module1", "function1", "_block1", "_block2"]`
+    pub fn to_pieces(&self) -> Vec<String> {
+        match &self.0 {
+            Some(name) => name.split("::").map(String::from).collect(),
+            None => vec![],
+        }
+    }
+
+    /// Get all parent scopes of the current scope, including self
+    pub fn ancestors(&self) -> Vec<Scope> {
+        let pieces = self.to_pieces();
+        let mut parents = vec![ROOT_SCOPE.clone()];
+        for i in 1..pieces.len() {
+            let parent = pieces[0..i].join("::");
+            parents.push(Scope(Some(parent)));
+        }
+        parents.push(self.clone());
+        parents
+    }
+}
+
+/// Represents the root scope.
+pub const ROOT_SCOPE: Scope = Scope(None);
+
+/// Keeps track of all used IDs and the scope information.
+/// Each different kind of Id (var, struct, function, etc.) has its own counter.
+/// The `scopes` map keeps track of the scope information for each Id.
+/// Key invariant: each scope should be complete, meaning no chasing should be needed.
+#[derive(Debug, Default)]
+pub struct IdPool {
+    all_ids: Vec<Id>,
+    counters: HashMap<IdKind, usize>,
+    scopes: HashMap<Id, Scope>,
+}
+
+impl IdPool {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Creates a new Id under the given scope.
+    /// Returns the scope that this new Id owns.
+    ///
+    /// For example, to create a new function under a module `Module1`,
+    /// `next_ID(..., Module1)` will return (function1, Module1::function1)
+    /// Then to create a new local variable in function1,
+    /// the call `next_ID(..., Module1::function1)` should be used.
+    /// This should be followed during generation to maintain the scope hierarchy.
+    // TODO: add extra check for the completeness of the scope
+    pub fn next_id(&mut self, typ: IdKind, scope: &Scope) -> (Id, Scope) {
+        let cnt = self.id_count(&typ);
+        let name = self.construct_name(&typ, cnt);
+        let new_id = Id {
+            name: name.clone(),
+            kind: typ.clone(),
+        };
+
+        self.insert_new_id(&typ, new_id.clone());
+
+        self.scopes.insert(new_id.clone(), scope.clone());
+        trace!("Inserted new id: {:?} under scope: {:?}", new_id, scope);
+
+        let child_scope = Scope(Some(name.clone()));
+        let new_scope: Scope = self.merge_scopes(scope, &child_scope);
+
+        (new_id, new_scope)
+    }
+
+    pub fn get_func_scope_id_of(&self, id: &Id) -> Id {
+        match self.get_parent_scope_of(id) {
+            Some(parent) => {
+                let parent_id = parent.get_last_scope_id();
+                if parent_id.is_func() {
+                    parent_id
+                } else {
+                    self.get_func_scope_id_of(&parent_id)
+                }
+            },
+            None => panic!("Id {} has no parent scope", id),
+        }
+    }
+
+    /// Get the outer most scope where the given Id is accessible.
+    pub fn get_parent_scope_of(&self, id: &Id) -> Option<Scope> {
+        self.scopes.get(id).cloned()
+    }
+
+    /// Get the scope where the children of the given Id are accessible.
+    pub fn get_scope_for_children(&self, id: &Id) -> Scope {
+        match self.scopes.get(id) {
+            Some(scope) => self.merge_scopes(scope, &id.to_scope()),
+            None => id.to_scope(),
+        }
+    }
+
+    /// Get the flattened access for an Id used for script generation.
+    // TODO: this currently contains _block scopes, which might cause trouble.
+    pub fn flatten_access(&self, id: &Id) -> Id {
+        match self.scopes.get(id) {
+            Some(scope) => self.merge_scopes(scope, &id.to_scope()).to_id().unwrap(),
+            None => id.clone(),
+        }
+    }
+
+    /// Check if an Id is accessible in the given scope.
+    pub fn is_id_in_scope(&self, id: &Id, scope: &Scope) -> bool {
+        // let flat_id = self.flatten_access(id);
+        let parent_of_id = self.get_parent_scope_of(id);
+        match parent_of_id {
+            Some(parent) => self.is_in_scope(scope, &parent),
+            None => true,
+        }
+    }
+
+    /// Check if an Id is accessible within another Id.
+    /// The parent Id should be function, block, struct, etc.
+    pub fn is_id_in_id(&self, child: &Id, parent: &Id) -> bool {
+        let parent_scope = self.get_parent_scope_of(parent).unwrap();
+        self.is_id_in_scope(child, &parent_scope)
+    }
+
+    /// Returns whether child is the same as or within parent
+    /// e.g. (M1::F1::B1::B2, M1::F1) ==> true
+    fn is_in_scope(&self, child: &Scope, parent: &Scope) -> bool {
+        match (&child.0, &parent.0) {
+            (Some(c), Some(p)) => c == p || c.starts_with(&format!("{}::", p)),
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (None, None) => true,
+        }
+    }
+
+    /// Helper function to filter IDs that are in the given scope.
+    pub fn filter_id_in_scope(&self, ids: &Vec<Id>, parent_scope: &Scope) -> Vec<Id> {
+        let mut in_scope = Vec::new();
+        for id in ids {
+            if self.is_id_in_scope(id, parent_scope) {
+                in_scope.push(id.clone());
+            }
+        }
+        in_scope
+    }
+
+    /// Returns all IDs in use.
+    pub fn get_all_ids(&self) -> Vec<Id> {
+        self.scopes.keys().cloned().collect()
+    }
+
+    /// Returns all IDs of the given Id kind.
+    /// e.g. get all function IDs.
+    pub fn get_ids_of_ident_kind(&self, typ: IdKind) -> Vec<Id> {
+        self.all_ids
+            .iter()
+            .filter(|id| id.kind == typ)
+            .cloned()
+            .collect()
+    }
+
+    /// Add a new Id to the pool.
+    fn insert_new_id(&mut self, typ: &IdKind, id: Id) {
+        self.counters
+            .entry(typ.clone())
+            .and_modify(|e| *e += 1)
+            .or_insert(1);
+        self.all_ids.push(id);
+    }
+
+    /// Get the count of IDs of the given type.
+    fn id_count(&self, typ: &IdKind) -> usize {
+        return self.counters.get(typ).cloned().unwrap_or(0);
+    }
+
+    /// Create the name of an Id.
+    fn construct_name(&self, typ: &IdKind, idx: usize) -> String {
+        format!("{}{}", typ.get_kind_name(), idx)
+    }
+
+    fn merge_scopes(&self, parent: &Scope, child: &Scope) -> Scope {
+        Scope(match (&parent.0, &child.0) {
+            (Some(p), Some(c)) => Some(format!("{}::{}", p, c)),
+            (Some(p), None) => Some(p.clone()),
+            (None, Some(c)) => Some(c.clone()),
+            (None, None) => None,
+        })
+    }
+}
+
+#[test]
+fn test_scope() {
+    let scope = Scope(Some("Module1::function1::_block1::_block2".to_string()));
+    let pieces = scope.to_pieces();
+    assert_eq!(pieces, vec!["Module1", "function1", "_block1", "_block2"]);
+    let ans = scope.ancestors();
+    assert_eq!(ans.len(), 5);
+}
+
+#[test]
+fn test_id_type() {
+    let mut id_pool = IdPool::new();
+
+    let _ = id_pool.next_id(IdKind::Block, &ROOT_SCOPE);
+    let _ = id_pool.next_id(IdKind::Block, &ROOT_SCOPE);
+    let _ = id_pool.next_id(IdKind::Struct, &ROOT_SCOPE);
+
+    let bids = id_pool.get_ids_of_ident_kind(IdKind::Block);
+    println!("{:?}", bids);
+    assert!(bids.len() == 2);
+    let sids = id_pool.get_ids_of_ident_kind(IdKind::Struct);
+    assert!(sids.len() == 1);
+}
+
+impl LabelledState for IdPool {
+    fn label() -> StateLabel {
+        StateLabel::new("IdPool").into()
+    }
+}
+
+impl Register<StateEntry> for IdPool {
+    fn register(&self) -> StateEntry {
+        StateEntry {
+            label: Self::label(),
+            generators: vec![],
+        }
+    }
+}
+
+impl State<MoveAST> for IdPool {
+    fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {}
+
+    fn update_post(&mut self, _u: &mut Unstructured, _new_ast: &MoveAST, _generator: &GenLabel) {}
+}

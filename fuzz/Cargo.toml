@@ -8,13 +8,12 @@ edition = "2021"
 cargo-fuzz = true
 
 [dependencies]
-honggfuzz = "0.5"
 afl = "*"
-arbitrary = { workspace = true }
+honggfuzz = "0.5"
 libfuzzer-sys = "0.4.7"
-move-smith = { path = "..", features = ["git_deps"] }
-once_cell = { workspace = true }
-rand = { workspace = true }
+msmith = { path = "../msmith" }
+once_cell = "1.19.0"
+rand = "0.8.5"
 
 [[bin]]
 name = "v1v2"
@@ -24,8 +23,8 @@ doc = false
 bench = false
 
 [[bin]]
-name = "afl-transactional"
-path = "fuzz_targets/afl_transactional.rs"
+name = "afl-v1v2"
+path = "fuzz_targets/afl_v1v2.rs"
 test = false
 doc = false
 bench = false
@@ -47,6 +46,13 @@ bench = false
 [[bin]]
 name = "hfuzz-v1v2"
 path = "fuzz_targets/hfuzz_v1v2.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "v2-only"
+path = "fuzz_targets/v2_only.rs"
 test = false
 doc = false
 bench = false

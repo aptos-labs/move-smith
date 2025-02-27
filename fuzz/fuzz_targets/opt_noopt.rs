@@ -3,30 +3,18 @@
 
 #![no_main]
 
-use arbitrary::Unstructured;
 use libfuzzer_sys::fuzz_target;
-use move_smith::{
-    config::Config,
+use msmith::{
     execution::{
         transactional::{
             CommonRunConfig, TransactionalExecutor, TransactionalInputBuilder, TransactionalResult,
         },
         ExecutionManager,
     },
-    selection::RandomNumber,
-    CodeGenerator, MoveSmith,
+    MoveSmith,
 };
 use once_cell::sync::Lazy;
-use std::{env, path::PathBuf, sync::Mutex};
-
-static CONFIG: Lazy<Config> = Lazy::new(|| {
-    let config_path =
-        env::var("MOVE_SMITH_CONFIG").unwrap_or_else(|_| "MoveSmith.toml".to_string());
-    let config_path = PathBuf::from(config_path);
-    let mut config = Config::from_toml_file_or_default(&config_path);
-    config.generation.num_inline_funcs = RandomNumber::new(0, 0, 0);
-    config
-});
+use std::sync::Mutex;
 
 static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalResult, TransactionalExecutor>>> =
     Lazy::new(|| {
@@ -34,13 +22,11 @@ static RUNNER: Lazy<Mutex<ExecutionManager<TransactionalResult, TransactionalExe
     });
 
 fuzz_target!(|data: &[u8]| {
-    let u = &mut Unstructured::new(data);
-    let mut smith = MoveSmith::new(&CONFIG.generation);
-    match smith.generate(u) {
-        Ok(()) => (),
+    let smith = MoveSmith::new();
+    let code = match smith.generate(data) {
+        Ok(code) => code,
         Err(_) => return,
     };
-    let code = smith.get_compile_unit().emit_code();
     let mut input_builder = TransactionalInputBuilder::new();
     let input = input_builder
         .set_code(&code)
