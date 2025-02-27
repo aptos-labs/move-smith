@@ -75,6 +75,7 @@ impl RunConfig {
 #[derive(ValueEnum, Debug, Clone, Default)]
 pub enum CommonRunConfig {
     #[default]
+    V2Only,
     V1V2Comparison,
     V2OptNoOpt,
     All,
@@ -84,6 +85,10 @@ impl CommonRunConfig {
     pub fn to_run_configs(&self) -> Vec<RunConfig> {
         use CommonRunConfig::*;
         match self {
+            V2Only => vec![RunConfig {
+                mode: ExecutionMode::V2Only,
+                v2_setting: Some(V2Setting::Optimization),
+            }],
             V1V2Comparison => vec![RunConfig {
                 mode: ExecutionMode::V1V2Comparison,
                 v2_setting: Some(V2Setting::Optimization),

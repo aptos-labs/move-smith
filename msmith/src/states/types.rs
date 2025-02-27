@@ -141,7 +141,7 @@ impl TypeSelectorBuilder {
         self
     }
 
-    pub fn struct_(mut self, weight: u32) -> Self {
+    pub fn structs(mut self, weight: u32) -> Self {
         self.selector.struct_weight = weight;
         self
     }

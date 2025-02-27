@@ -50,6 +50,7 @@ RUN source $HOME/.cargo/env && cargo install cargo-fuzz \
     honggfuzz \
     cargo-sort \
     && cargo install cargo-nextest --locked
+    && cargo install rustfilt
 
 RUN rustup component add --toolchain nightly llvm-tools-preview clippy
 

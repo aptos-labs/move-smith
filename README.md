@@ -94,6 +94,11 @@ cargo install cargo-binutils
 rustup component add --toolchain nightly llvm-tools-preview
 ```
 
+We also need a demangler installed:
+```
+cargo install rustfilt
+```
+
 ## [Optional] cargo-afl
 To run AFL++ targets, you need to install [cargo-afl][cargo-afl]:
 ```bash

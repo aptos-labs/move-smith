@@ -86,8 +86,8 @@ pub fn create_compiler_config_v1() -> BuildConfig {
 /// Create the build configuration for compiler V2
 pub fn create_compiler_config_v2() -> BuildConfig {
     let mut config = BuildConfig::default();
-    config.compiler_config.compiler_version = Some(CompilerVersion::V2_0);
-    config.compiler_config.language_version = Some(LanguageVersion::V2_0);
+    config.compiler_config.compiler_version = Some(CompilerVersion::V2_1);
+    config.compiler_config.language_version = Some(LanguageVersion::V2_1);
     config
 }
 

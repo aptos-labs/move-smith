@@ -102,8 +102,7 @@ function run_libfuzzer() {
         -timeout=$timeout \
         -ignore_timeouts=1 \
         -ignore_crashes=1 \
-        -detect_leaks=0 \
-        -print_final_stats=1 2>&1 | tee -a $log_file
+        -detect_leaks=0 2>&1 | tee -a $log_file
 }
 
 function afl_in_tmux() {

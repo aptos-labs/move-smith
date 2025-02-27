@@ -52,7 +52,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         // TODO: allow more types when ready
         let type_selector = TypeSelectorBuilder::all_no(&config)
             .number(1)
-            .struct_(1)
+            .structs(1)
             .build();
         let mut parameters = vec![];
 
@@ -70,7 +70,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             // TODO: allow more types when ready
             let type_selector = TypeSelectorBuilder::all_no(&config)
                 .number(1)
-                .struct_(1)
+                .structs(1)
                 .tuple(1)
                 .build();
             get_type_pool(env).random_type(u, vec![type_selector])?

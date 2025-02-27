@@ -1,7 +1,9 @@
 use log::{warn, LevelFilter};
 use msmith::{
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInputBuilder, TransactionalResult},
+        transactional::{
+            CommonRunConfig, TransactionalExecutor, TransactionalInputBuilder, TransactionalResult,
+        },
         ExecutionManager,
     },
     MoveSmith, Variant,
@@ -22,7 +24,10 @@ pub fn main() {
         return;
     }
 
-    let input = TransactionalInputBuilder::new().set_code(&code).build();
+    let input = TransactionalInputBuilder::new()
+        .with_common_runs(&CommonRunConfig::V2Only)
+        .set_code(&code)
+        .build();
     let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::new();
     let result = executor.execute(&input);
     match result {

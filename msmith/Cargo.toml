@@ -47,7 +47,7 @@ toml = { workspace = true }
 
 [[bin]]
 name = "msmith-debug"
-path = "src/main.rs"
+path = "src/debug.rs"
 
 [[bin]]
 name = "msmith"
