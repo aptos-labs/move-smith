@@ -82,7 +82,7 @@ pub enum OutputMode {
 pub struct Compile {
     #[arg(value_name = "FILE")]
     pub file: String,
-    #[arg(long, default_value = "false")]
+    #[arg(long, default_value = "true")]
     pub no_v1: bool,
     #[arg(long, default_value = "false")]
     pub no_v2: bool,

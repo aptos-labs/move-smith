@@ -6,8 +6,9 @@
 use crate::{
     cli::{common::get_progress_bar_with_msg, raw2move::raw2move, Generate, MoveSmithEnv},
     execution::{
-        transactional::{TransactionalExecutor, TransactionalInputBuilder, TransactionalResult},
-        ExecutionManager,
+        compile::{CompileExecutor, CompileInput, CompileStatus},
+        transactional::V2Setting,
+        Executor,
     },
     utils::create_move_package,
 };
@@ -45,17 +46,16 @@ pub fn handle_generate(_env: &MoveSmithEnv, cmd: &Generate) {
 
     if !cmd.skip_run {
         println!("[2/2] Running transactional tests...");
-        let executor = ExecutionManager::<TransactionalResult, TransactionalExecutor>::default();
+        let executor = CompileExecutor;
         let pb = get_progress_bar_with_msg(cmd.num, "Running");
         let timer = Instant::now();
         let results = codes
             .par_iter()
             .map(|code| {
-                let mut input_buidler = TransactionalInputBuilder::new();
-                let input = input_buidler.set_code(code).with_default_run().build();
-                let result = executor.execute_check_new_bug(&input);
+                let input = CompileInput::new_v2(code.clone(), V2Setting::default());
+                let result = executor.execute_one(&input);
                 pb.inc(1);
-                result.unwrap_or(false)
+                result.status != CompileStatus::Success
             })
             .collect::<Vec<bool>>();
         pb.finish_and_clear();

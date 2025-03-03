@@ -5,60 +5,52 @@
 
 use crate::{
     cli::{Compile, MoveSmithEnv},
-    execution::transactional::V2Setting,
-    utils::compile_move_code,
+    execution::{
+        compile::{CompileExecutor, CompileInput, CompileResult, CompileStatus},
+        transactional::V2Setting,
+        Executor,
+    },
 };
-use std::{fs, time::Instant};
+use std::fs;
 
 pub fn handle_compile(_env: &MoveSmithEnv, cmd: &Compile) {
     let code = fs::read_to_string(&cmd.file).unwrap();
     println!("Loaded code from file: {:?}", cmd.file);
 
+    let executor = CompileExecutor;
     if cmd.no_v1 {
         println!("V1 compilation skipped.")
     } else {
-        let comp_log = compile_move_code_with_setting(&code, false);
-        println!("{}", comp_log);
+        let input = CompileInput::new_v1(code.clone());
+        let result = executor.execute_one(&input);
+        print_result(&input, &result);
     }
 
     if cmd.no_v2 {
         println!("V2 compilation skipped.")
     } else {
-        let comp_log = compile_move_code_with_setting(&code, true);
-        println!("{}", comp_log);
+        let input = CompileInput::new_v2(code.clone(), V2Setting::default());
+        let result = executor.execute_one(&input);
+        print_result(&input, &result);
     }
     println!("Done!")
 }
 
-fn compile_move_code_with_setting(code: &str, v2: bool) -> String {
-    let version = if v2 { "v2" } else { "v1" };
-    set_v2_experiments(&V2Setting::default());
-    let timer = Instant::now();
-    let result = std::panic::catch_unwind(|| compile_move_code(code.to_string(), !v2, v2));
-
-    let duration = timer.elapsed();
-
-    match result {
-        Ok(true) => format!(
+fn print_result(input: &CompileInput, result: &CompileResult) {
+    let version = if input.v1 { "v1" } else { "v2" };
+    println!("{}", result.log);
+    let msg = match result.status {
+        CompileStatus::Success => format!(
             "Successfully compiled with {} in {}ms",
             version,
-            duration.as_millis()
+            result.duration.as_millis()
         ),
-        Ok(false) => format!(
+        CompileStatus::Failure => format!(
             "Failed to compile with {} in {}ms",
             version,
-            duration.as_millis(),
+            result.duration.as_millis()
         ),
-        Err(e) => format!("Paniced during {} compilation:\n{:?}", version, e),
-    }
-}
-
-pub fn set_v2_experiments(setting: &V2Setting) {
-    let mut feats = vec![];
-    let experiments = setting.to_experiments();
-    for (exp, enabled) in experiments.iter() {
-        feats.push(format!("{}={}", exp, if *enabled { "on" } else { "off" }));
-    }
-    let feats_value = feats.join(",");
-    std::env::set_var("MVC_EXP", feats_value);
+        CompileStatus::Panic => format!("Paniced during {} compilation", version),
+    };
+    println!("{}", msg);
 }

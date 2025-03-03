@@ -92,8 +92,17 @@ pub fn create_compiler_config_v2() -> BuildConfig {
 }
 
 /// Compile the Move package at the given path using the given compiler config.
-pub fn compile_with_config(package_path: &Path, config: BuildConfig, name: &str) -> bool {
-    match config.compile_package_no_exit(package_path, vec![], &mut stderr()) {
+pub fn compile_with_config<W: Write>(
+    package_path: &Path,
+    config: BuildConfig,
+    name: &str,
+    writer: Option<&mut W>,
+) -> bool {
+    let result = match writer {
+        Some(writer) => config.compile_package_no_exit(package_path, vec![], writer),
+        None => config.compile_package_no_exit(package_path, vec![], &mut stderr()),
+    };
+    match result {
         Ok(_) => {
             info!("Successfully compiled the package with compiler {}", name);
             true
@@ -118,29 +127,32 @@ pub fn create_tmp_move_package(code: String) -> (PathBuf, TempDir) {
 
 /// Create a temporary package and compiler the given Move code.
 /// V1 and V2 can be enabled/disabled separately.
-pub fn compile_move_code(code: String, v1: bool, v2: bool) -> bool {
+pub fn compile_move_code<W: Write>(
+    code: String,
+    v1: bool,
+    v2: bool,
+    writer: Option<&mut W>,
+) -> bool {
+    if v1 == v2 {
+        panic!("V1 and V2 cannot be enabled/disabled at the same time");
+    }
+
     let (package_path, dir) = create_tmp_move_package(code.clone());
     info!("created temp move package at {:?}", package_path);
 
-    let v1_result = if v1 {
+    let result = if v1 {
         let config = create_compiler_config_v1();
-        compile_with_config(&package_path, config, "v1")
+        let result = compile_with_config(&package_path, config, "v1", writer);
+        info!("Done compiling with V1");
+        result
     } else {
-        true
-    };
-    info!("Done compiling with V1, result is: {}", v1_result);
-
-    let v2_result = if v2 {
         let config = create_compiler_config_v2();
-        compile_with_config(&package_path, config, "v2")
-    } else {
-        true
+        let result = compile_with_config(&package_path, config, "v2", writer);
+        info!("Done compiling with V2");
+        result
     };
-    info!("Done compiling with V2, result is: {}", v1_result);
-
     dir.close().unwrap();
-
-    v1_result == v2_result
+    result
 }
 
 #[cfg(test)]

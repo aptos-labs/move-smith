@@ -1,3 +1,5 @@
+#![feature(internal_output_capture)]
+
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{AnyConstraint, Framework, FrameworkBuilder, LabelledGenerator};

@@ -222,7 +222,11 @@ impl CodeGenerator for Enum {
         let variants = self
             .variants
             .iter()
-            .map(|v| v.emit_code_lines())
+            .map(|v| {
+                let mut lines = v.emit_code_lines();
+                lines.last_mut().unwrap().push_str(",");
+                lines
+            })
             .flatten()
             .collect::<Vec<String>>();
         append_code_lines_with_indentation(&mut code, variants, INDENTATION_SIZE);

@@ -1,10 +1,12 @@
 use log::{warn, LevelFilter};
 use msmith::{
     execution::{
+        compile::{print_compile_result, CompileExecutor, CompileInput, CompileStatus},
         transactional::{
             CommonRunConfig, TransactionalExecutor, TransactionalInputBuilder, TransactionalResult,
+            V2Setting,
         },
-        ExecutionManager,
+        ExecutionManager, Executor,
     },
     MoveSmith, Variant,
 };
@@ -21,6 +23,16 @@ pub fn main() {
     println!("{}", code);
     if log::max_level() == LevelFilter::Trace {
         warn!("Trace level logging is enabled, skipping compilation & execution.");
+        return;
+    }
+
+    let compiler = CompileExecutor;
+    let comp_input = CompileInput::new_v2(code.clone(), V2Setting::default());
+    let comp_result = compiler.execute_one(&comp_input);
+    print_compile_result(&comp_input, &comp_result);
+
+    if comp_result.status != CompileStatus::Success {
+        println!("Compilation failed, skipping execution.");
         return;
     }
 

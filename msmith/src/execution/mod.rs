@@ -11,6 +11,7 @@ use std::{
     thread::ThreadId,
 };
 
+pub mod compile;
 pub mod transactional;
 
 #[derive(ValueEnum, Clone, Debug)]

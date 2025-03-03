@@ -22,7 +22,7 @@ pub enum ExecutionMode {
     V1V2Comparison,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub enum V2Setting {
     #[default]
     Optimization,
