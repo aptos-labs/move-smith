@@ -25,40 +25,48 @@ pub struct GenerationConfig {
     pub num_modules: RandomNumber,
     pub num_functions_in_module: RandomNumber,
     pub num_structs_in_module: RandomNumber,
+    pub num_enum_in_module: RandomNumber,
 
     /******** Struct Related ********/
     pub num_fields_in_struct: RandomNumber,
-    /// The maximum total number of fields in all structs that can have
-    /// type of another struct
-    pub num_fields_of_struct_type: RandomNumber,
-    // Maximum number of type parameters in a struct definition
+    /// The maximum total number of fields in all structs that can be composite
+    pub total_num_composite_type_in_struct: RandomNumber,
+    /// Maximum number of type parameters in a struct definition
     pub num_type_params_in_struct: RandomNumber,
+
+    /******** Enum Related ********/
+    pub num_variants_in_enum: RandomNumber,
+    pub num_fields_in_enum_variant: RandomNumber,
+    /// The maximum total number of fields in all enums that can be composite
+    pub total_num_composite_type_in_enum: RandomNumber,
+    /// Maximum number of type parameters in an enum definition
+    pub num_type_params_in_enum: RandomNumber,
 
     /******** Function Related ********/
     pub num_stmts_in_sequence: RandomNumber,
     pub num_sequences_in_block: RandomNumber,
     pub num_params_in_func: RandomNumber,
 
-    // Maximum number of type parameters in a function
+    /// Maximum number of type parameters in a function
     pub num_type_params_in_func: RandomNumber,
 
     /// The number of functions that can have `inline`
     pub num_inline_funcs: RandomNumber,
 
-    // Allow recursive calls in the generated code
+    /// Allow recursive calls in the generated code
     pub allow_recursive_calls: bool,
 
     /******** Expression Related ********/
-    // Maximum depth of nested expression
+    /// Maximum depth of nested expression
     pub expr_depth: RandomNumber,
 
-    // Maximum number of bytes to construct hex or byte string
+    /// Maximum number of bytes to construct hex or byte string
     pub hex_byte_str_size: RandomNumber,
 
     /******** Type Related ********/
-    // Maximum depth of nested type instantiation
+    /// Maximum depth of nested type instantiation
     pub type_depth: RandomNumber,
-    // Number of elements in a tuple
+    /// Number of elements in a tuple
     pub num_elem_in_tuple: RandomNumber,
 
     /******** Execution ********/
@@ -67,7 +75,7 @@ pub struct GenerationConfig {
     /// The number of `//# run 0xCAFE::ModuleX::funX` to invoke
     pub num_runs_per_func: RandomNumber,
 
-    // Timeout in seconds
+    /// Timeout in seconds
     pub generation_timeout_sec: usize, // MoveSmith generation timeout
 }
 

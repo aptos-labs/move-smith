@@ -1,5 +1,5 @@
 use crate::{
-    generators::{FunctionGenerator, StructGenerator},
+    generators::{EnumGenerator, FunctionGenerator, StructGenerator},
     move_ast::{Address, MoveAST, MoveModule},
     states::{get_config, new_id_and_push_scope, pop_scope, Id, IdKind, ROOT_SCOPE},
 };
@@ -42,11 +42,19 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
 
         let config = get_config(env);
         let num_structs = config.num_structs_in_module.select(u)?;
+        let num_enums = config.num_structs_in_module.select(u)?;
         let num_funcs = config.num_functions_in_module.select(u)?;
 
         for _ in 0..num_structs {
             subtrees.push(Subtree::new_generator_subtree(
                 StructGenerator::label(),
+                AnyConstraint::new(),
+            ));
+        }
+
+        for _ in 0..num_enums {
+            subtrees.push(Subtree::new_generator_subtree(
+                EnumGenerator::label(),
                 AnyConstraint::new(),
             ));
         }
@@ -72,10 +80,12 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
     ) -> Result<MoveAST> {
         pop_scope(env);
         let mut structs = vec![];
+        let mut enums = vec![];
         let mut functions = vec![];
         for node in asts {
             match node {
                 MoveAST::Struct(s) => structs.push(s),
+                MoveAST::Enum(e) => enums.push(e),
                 MoveAST::Function(f) => functions.push(f),
                 _ => return Err(anyhow!("Unexpected AST node")),
             }
@@ -84,6 +94,7 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
             address: Address::default(),
             name: constraint.get::<Id>("name").unwrap().clone(),
             structs,
+            enums,
             functions,
         }
         .into())

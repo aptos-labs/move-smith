@@ -1,7 +1,4 @@
-use crate::{
-    generators::{ExprOfTypeGenerator, ExpressionGenerator},
-    move_ast::MoveAST,
-};
+use crate::{generators::ExprOfTypeGenerator, move_ast::MoveAST};
 use arbitrary::Unstructured;
 use framework::{
     GenLabel, LabelledGenerator, LabelledState, Register, State, StateEntry, StateLabel,

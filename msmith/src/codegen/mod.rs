@@ -62,7 +62,7 @@ fn append_block(program: &mut Vec<String>, mut block: Vec<String>, indentation: 
         return;
     }
 
-    let suffix = format!("{}", block.remove(0));
+    let suffix = format!(" {}", block.remove(0));
     program.last_mut().unwrap().push_str(&suffix);
     if block.is_empty() {
         return;
@@ -112,6 +112,10 @@ impl CodeGenerator for MoveModule {
 
         for s in &self.structs {
             append_code_lines_with_indentation(&mut code, s.emit_code_lines(), INDENTATION_SIZE);
+        }
+
+        for e in &self.enums {
+            append_code_lines_with_indentation(&mut code, e.emit_code_lines(), INDENTATION_SIZE);
         }
 
         for f in &self.functions {
@@ -200,6 +204,63 @@ impl CodeGenerator for StructDestructure {
     }
 }
 
+impl CodeGenerator for Enum {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let abilities = if self.abilities.is_empty() {
+            "".to_string()
+        } else {
+            format!(
+                " has {} ",
+                self.abilities
+                    .iter()
+                    .map(|a| a.emit_code())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )
+        };
+        let mut code = vec![format!("enum {}{}{{", self.name, abilities)];
+        let variants = self
+            .variants
+            .iter()
+            .map(|v| v.emit_code_lines())
+            .flatten()
+            .collect::<Vec<String>>();
+        append_code_lines_with_indentation(&mut code, variants, INDENTATION_SIZE);
+        code.push("}".to_string());
+        code
+    }
+}
+
+impl CodeGenerator for EnumVariant {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec![];
+
+        if self.positional {
+            let mut line = format!("{}(", self.name);
+            let fields = self
+                .fields
+                .iter()
+                .map(|f| f.typ.inline())
+                .collect::<Vec<String>>();
+            line.push_str(&fields.join(", "));
+            line.push_str(")");
+            code.push(line);
+        } else {
+            code.push(self.name.inline());
+            let mut body = vec!["{".to_string()];
+            let fields = self
+                .fields
+                .iter()
+                .map(|f| format!("{},", f.emit_code()))
+                .collect::<Vec<String>>();
+            append_code_lines_with_indentation(&mut body, fields, 0);
+            body.push("}".to_string());
+            append_block(&mut code, body, INDENTATION_SIZE);
+        };
+        code
+    }
+}
+
 impl CodeGenerator for Ability {
     fn emit_code_lines(&self) -> Vec<String> {
         use Ability as A;
@@ -214,7 +275,7 @@ impl CodeGenerator for Ability {
 
 impl CodeGenerator for Function {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = vec![format!("{} ", self.signature.emit_code())];
+        let mut code = vec![format!("{}", self.signature.emit_code())];
         append_block(&mut code, self.body.emit_code_lines(), 0);
         code
     }
@@ -319,7 +380,7 @@ impl CodeGenerator for Tuple {
 
 impl CodeGenerator for Assignment {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = vec![format!("{} = ", self.lhs.emit_code(),)];
+        let mut code = vec![format!("{} =", self.lhs.emit_code(),)];
         append_block(&mut code, self.rhs.emit_code_lines(), 0);
         code
     }

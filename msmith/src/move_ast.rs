@@ -1,7 +1,7 @@
 use crate::states::{
     ids::{Id, IdKind},
-    types::{Ability, GenericType, StructType, Type, TypeParameter, Typed},
-    ConcreteType, FunctionType, Named, TupleType,
+    types::{Ability, EnumVariantType, GenericType, StructType, Type, TypeParameter, Typed},
+    ConcreteType, EnumType, FunctionType, Named, TupleType,
 };
 use enuminto::EnumInto;
 use framework::ASTNode;
@@ -16,7 +16,6 @@ use num_bigint::BigUint;
 pub enum MoveAST {
     Program(Program),
     MoveModule(MoveModule),
-    Struct(Struct),
     Function(Function),
     Signature(Signature),
     Block(Block),
@@ -28,8 +27,11 @@ pub enum MoveAST {
     NumberLiteral(NumberLiteral),
     Tuple(Tuple),
     FunctionCall(FunctionCall),
+    Struct(Struct),
     StructInstantiation(StructInstantiation),
     StructDestructure(StructDestructure),
+    Enum(Enum),
+    EnumVariant(EnumVariant),
 }
 
 impl ASTNode for MoveAST {}
@@ -54,6 +56,7 @@ pub struct MoveModule {
     pub address: Address,
     pub name: Id,
     pub structs: Vec<Struct>,
+    pub enums: Vec<Enum>,
     pub functions: Vec<Function>,
 }
 
@@ -78,6 +81,7 @@ pub struct Struct {
     pub type_params: TypeParameters,
     pub abilities: Vec<Ability>,
     pub fields: Vec<SingleVariable>,
+    pub positional: bool,
 }
 
 impl Typed for Struct {
@@ -90,6 +94,46 @@ impl Typed for Struct {
                 .iter()
                 .map(|f| (f.name.clone(), f.ty().clone()))
                 .collect(),
+            abilities: self.abilities.clone(),
+        }))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Enum {
+    pub name: Id,
+    pub type_params: TypeParameters,
+    pub abilities: Vec<Ability>,
+    pub variants: Vec<EnumVariant>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumVariant {
+    pub name: Id,
+    pub fields: Vec<SingleVariable>,
+    pub positional: bool,
+}
+
+impl Typed for Enum {
+    fn ty(&self) -> Type {
+        let variants = self
+            .variants
+            .iter()
+            .map(|v| {
+                (v.name.clone(), EnumVariantType {
+                    name: v.name.clone(),
+                    fields: v
+                        .fields
+                        .iter()
+                        .map(|f| (f.name.clone(), f.ty().clone()))
+                        .collect(),
+                })
+            })
+            .collect();
+        Type::Generic(GenericType::Enum(EnumType {
+            name: self.name.clone(),
+            type_params: vec![],
+            variants,
             abilities: self.abilities.clone(),
         }))
     }
@@ -346,6 +390,7 @@ impl Default for Program {
                 address: Address::default(),
                 name: Id::new_str("Module1", IdKind::Module),
                 structs: vec![],
+                enums: vec![],
                 functions: vec![],
             }],
         }

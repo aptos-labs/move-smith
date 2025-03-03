@@ -3,11 +3,18 @@
 num_modules = { min = 1, target = 1, max = 1 }
 num_functions_in_module = { min = 3, target = 10, max = 255 }
 num_structs_in_module = { min = 0, target = 3, max = 255 }
+num_enum_in_module = { min = 0, target = 3, max = 255 }
 
 ######## Struct Related ######## 
 num_fields_in_struct = { min = 0, target = 4, max = 255 }
-num_fields_of_struct_type = { min = 1, target = 5, max = 255 }
+total_num_composite_type_in_struct = { min = 1, target = 5, max = 255 }
 num_type_params_in_struct = { min = 0, target = 2, max = 32 }
+
+######## Enum Related ########
+num_variants_in_enum = { min = 1, target = 4, max = 255 }
+num_fields_in_enum_variant = { min = 0, target = 4, max = 255 }
+total_num_composite_type_in_enum = { min = 1, target = 5, max = 255 }
+num_type_params_in_enum = { min = 0, target = 2, max = 32 }
 
 ######## Function Related ######## 
 num_stmts_in_sequence = { min = 0, target = 8, max = 30 }

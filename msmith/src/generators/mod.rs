@@ -22,5 +22,6 @@ export_all!(
     eot_tuple,
     eot_number,
     eot_call,
-    eot_struct
+    eot_struct,
+    enums
 );

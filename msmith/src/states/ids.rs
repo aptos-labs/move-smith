@@ -61,6 +61,8 @@ pub enum IdKind {
     #[default]
     Var,
     Struct,
+    Enum,
+    EnumVariant,
     Function,
     Module,
     Script,
@@ -79,6 +81,8 @@ impl IdKind {
         match name {
             _ if name.starts_with("var") => IdKind::Var,
             _ if name.starts_with("Struct") => IdKind::Struct,
+            _ if name.starts_with("Enum") => IdKind::Enum,
+            _ if name.starts_with("Variant") => IdKind::EnumVariant,
             _ if name.starts_with("function") => IdKind::Function,
             _ if name.starts_with("Module") => IdKind::Module,
             _ if name.starts_with("Script") => IdKind::Script,
@@ -96,6 +100,8 @@ impl IdKind {
         match self {
             IdKind::Var => "var",
             IdKind::Struct => "Struct",
+            IdKind::Enum => "Enum",
+            IdKind::EnumVariant => "Variant",
             IdKind::Function => "function",
             IdKind::Module => "Module",
             IdKind::Script => "Script",

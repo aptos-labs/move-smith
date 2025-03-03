@@ -1,5 +1,5 @@
 use crate::{
-    generators::{LetGenerator, SignatureGenerator, StructGenerator},
+    generators::{EnumGenerator, LetGenerator, SignatureGenerator, StructGenerator},
     move_ast::{Expression, MoveAST, Statement, Variable},
     states::{
         ids::{Id, Named},
@@ -27,6 +27,7 @@ pub struct TypeSelector {
     number_weight: u32,
     address_weight: u32,
     struct_weight: u32,
+    enum_weight: u32,
     vector_weight: u32,
     tuple_weight: u32,
     reference_weight: u32,
@@ -41,6 +42,7 @@ impl TypeSelector {
             && self.number_weight == 0
             && self.address_weight == 0
             && self.struct_weight == 0
+            && self.enum_weight == 0
             && self.vector_weight == 0
             && self.tuple_weight == 0
             && self.reference_weight == 0
@@ -54,6 +56,7 @@ impl TypeSelector {
             && self.number_weight > 0
             && self.address_weight > 0
             && self.struct_weight > 0
+            && self.enum_weight > 0
             && self.vector_weight > 0
             && self.tuple_weight > 0
             && self.reference_weight > 0
@@ -76,6 +79,7 @@ impl TypeSelectorBuilder {
                 number_weight: 1,
                 address_weight: 1,
                 struct_weight: 1,
+                enum_weight: 1,
                 vector_weight: 1,
                 tuple_weight: 1,
                 reference_weight: 1,
@@ -94,6 +98,7 @@ impl TypeSelectorBuilder {
                 number_weight: 0,
                 address_weight: 0,
                 struct_weight: 0,
+                enum_weight: 0,
                 vector_weight: 0,
                 tuple_weight: 0,
                 reference_weight: 0,
@@ -112,6 +117,7 @@ impl TypeSelectorBuilder {
                 number_weight: 1,
                 address_weight: 0,
                 struct_weight: 0,
+                enum_weight: 0,
                 vector_weight: 0,
                 tuple_weight: 0,
                 reference_weight: 0,
@@ -143,6 +149,11 @@ impl TypeSelectorBuilder {
 
     pub fn structs(mut self, weight: u32) -> Self {
         self.selector.struct_weight = weight;
+        self
+    }
+
+    pub fn enums(mut self, weight: u32) -> Self {
+        self.selector.enum_weight = weight;
         self
     }
 
@@ -290,6 +301,10 @@ impl TypePool {
             }
         }
 
+        if selector.enum_weight > 0 {
+            unimplemented!();
+        }
+
         if selector.vector_weight > 0 {
             warn!("random Vector type not implemented");
             unimplemented!();
@@ -368,6 +383,7 @@ impl Register<StateEntry> for TypePool {
             label: Self::label(),
             generators: vec![
                 StructGenerator::label(),
+                EnumGenerator::label(),
                 SignatureGenerator::label(),
                 LetGenerator::label(),
             ],
@@ -384,6 +400,9 @@ impl State<MoveAST> for TypePool {
         match &new_ast {
             M::Struct(s) => {
                 self.defined_types.insert(s.name.clone(), s.ty());
+            },
+            M::Enum(e) => {
+                self.defined_types.insert(e.name.clone(), e.ty());
             },
             M::Signature(s) => {
                 self.defined_funcs.insert(s.name.clone(), s.ty());
@@ -511,6 +530,7 @@ impl ConcreteType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GenericType {
     Struct(StructType),
+    Enum(EnumType),
     Vector(VectorType),
     Tuple(TupleType),
     Function(FunctionType),
@@ -546,6 +566,20 @@ pub struct StructType {
     pub type_params: Vec<TypeParameter>,
     pub fields: Vec<(Id, Type)>,
     pub abilities: Vec<Ability>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumType {
+    pub name: Id,
+    pub type_params: Vec<TypeParameter>,
+    pub variants: Vec<(Id, EnumVariantType)>,
+    pub abilities: Vec<Ability>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumVariantType {
+    pub name: Id,
+    pub fields: Vec<(Id, Type)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

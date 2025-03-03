@@ -56,6 +56,7 @@ impl MoveSmith {
             .add_generator::<EOTVariableGenerator>()
             .add_generator::<EOTFuncCallGenerator>()
             .add_generator::<EOTStructGenerator>()
+            .add_generator::<EnumGenerator>()
             .add_state::<states::config::GenerationConfig>()
             .add_state::<states::TypePool>()
             .add_state::<states::IdPool>()
