@@ -11,6 +11,7 @@ use framework::{
 };
 use log::{trace, warn};
 
+/// Generate a variable of the given type.
 #[derive(Default)]
 pub struct EOTVariableGenerator;
 

@@ -240,7 +240,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
     }
 
     /// Returns all generators that specialize the given labelled generator.
-    /// This excludes all forwarding nodes.
+    /// Set `skip_forward` to true to exclude all forwarding nodes.
     pub fn generators_from(&self, label: &GenLabel, skip_forward: bool) -> Vec<GenLabel> {
         let mut visited = vec![];
         let mut stack = vec![label.clone()];

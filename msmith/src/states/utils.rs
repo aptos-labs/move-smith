@@ -1,3 +1,6 @@
+//! Helper functions for accessing and operating on common states
+
+use super::ExpressionDepth;
 use crate::{
     move_ast::{DotVariable, MoveAST, SingleVariable, Variable},
     states::{
@@ -6,24 +9,41 @@ use crate::{
 };
 use framework::StatePool;
 
+#[inline]
 pub fn get_config(env: &StatePool<MoveAST>) -> &GenerationConfig {
     env.get::<GenerationConfig>().unwrap()
 }
 
+#[inline]
 pub fn get_type_pool(env: &StatePool<MoveAST>) -> &TypePool {
     env.get::<TypePool>().unwrap()
 }
 
+#[inline]
 pub fn get_id_pool(env: &StatePool<MoveAST>) -> &IdPool {
     env.get::<IdPool>().unwrap()
 }
 
+#[inline]
 pub fn get_curr_scope(env: &StatePool<MoveAST>) -> Scope {
     env.get::<CurrScope>().unwrap().get()
 }
 
+#[inline]
 pub fn pop_scope(env: &mut StatePool<MoveAST>) {
     env.get_mut::<CurrScope>().unwrap().pop();
+}
+
+#[inline]
+pub fn reached_max_expr_depth(env: &StatePool<MoveAST>) -> bool {
+    env.get::<ExpressionDepth>().unwrap().reached_max_depth()
+}
+
+#[inline]
+pub fn almost_reached_max_expr_depth(env: &StatePool<MoveAST>, threshold: usize) -> bool {
+    env.get::<ExpressionDepth>()
+        .unwrap()
+        .almost_reached_max_expr_depth(threshold)
 }
 
 /// Create a new id from the current scope and use the new scope as current scope
@@ -47,6 +67,7 @@ pub fn new_id_and_push_scope(
     (name, scope)
 }
 
+#[inline]
 pub fn new_id(env: &mut StatePool<MoveAST>, id_kind: IdKind, parent_scope: &Scope) -> (Id, Scope) {
     env.get_mut::<IdPool>()
         .unwrap()

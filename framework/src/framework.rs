@@ -25,6 +25,8 @@ where
             framework: Framework {
                 generators: GeneratorPool::empty(),
                 states: RefCell::new(StatePool::empty()),
+                cnt: RefCell::new(0),
+                depth: RefCell::new(0),
             },
         }
     }
@@ -77,6 +79,10 @@ where
 pub struct Framework<A: ASTNode, C: Constraint> {
     generators: GeneratorPool<A, C>,
     states: RefCell<StatePool<A>>,
+    /// Keep track of the number of generations for debugging purposes
+    cnt: RefCell<usize>,
+    /// Keep track of the depth of the current generation for debugging purposes
+    depth: RefCell<usize>,
 }
 
 impl<A, C> Framework<A, C>
@@ -99,6 +105,12 @@ where
         base_label: &GenLabel,
         constraint: &C,
     ) -> Result<A> {
+        trace!(
+            "======== Generation Round {}, Depth {} ========",
+            self.cnt.borrow(),
+            self.depth.borrow()
+        );
+        *self.depth.borrow_mut() += 1;
         trace!("Generating ASTNode with label: {}", base_label);
         trace!("Generation constraint: {:?}", constraint);
 
@@ -126,7 +138,6 @@ where
         let selected_label = &usable_generators[selected_idx];
         trace!("Selected generator: {:?}", selected_label);
 
-        // TODO: on only the selected generator or also its parent (or plus all its siblings)
         let state_hook_generators = self.generators.generators_from(base_label, false);
         trace!("State hook generators: {:?}", state_hook_generators);
         trace!("Running all update_pre for base label: {}", base_label);
@@ -194,15 +205,23 @@ where
             ));
         }
 
-        trace!("Running all update_pre for base label: {}", base_label);
+        trace!("Running all update_post for base label: {}", base_label);
         for g in &state_hook_generators {
             trace!("Running update_post for generator: {:?}", g);
             self.states_mut().update_post(u, &new_node, g);
         }
         trace!(
-            "Finished running all update_pre for base label: {}",
+            "Finished running all update_post for base label: {}",
             base_label
         );
+
+        *self.depth.borrow_mut() -= 1;
+        trace!(
+            "======== End Generation Round {}, Depth {} ========",
+            self.cnt.borrow(),
+            self.depth.borrow()
+        );
+        *self.cnt.borrow_mut() += 1;
 
         Ok(new_node)
     }

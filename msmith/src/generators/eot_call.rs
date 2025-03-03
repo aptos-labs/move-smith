@@ -1,7 +1,9 @@
 use super::{ExprOfTypeGenerator, FuncCallGenerator};
 use crate::{
     move_ast::{Expression, MoveAST},
-    states::{get_curr_scope, get_id_pool, get_type_pool, FunctionType, Type},
+    states::{
+        get_curr_scope, get_id_pool, get_type_pool, reached_max_expr_depth, FunctionType, Type,
+    },
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -27,6 +29,10 @@ impl Register<GeneratorEntry> for EOTFuncCallGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for EOTFuncCallGenerator {
     fn check_constraint(&self, env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
+        if reached_max_expr_depth(env) {
+            return false;
+        }
+
         let curr_scope_id = get_curr_scope(env).get_last_scope_id();
         let curr_func_id = get_id_pool(env).get_func_scope_id_of(&curr_scope_id);
         let callable = get_type_pool(env).all_callable_function_within(&curr_func_id);

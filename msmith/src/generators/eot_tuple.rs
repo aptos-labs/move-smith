@@ -2,7 +2,7 @@ use super::TupleGenerator;
 use crate::{
     generators::ExprOfTypeGenerator,
     move_ast::{Expression, MoveAST},
-    states::{GenericType, Type},
+    states::{reached_max_expr_depth, GenericType, Type},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -27,7 +27,7 @@ impl Register<GeneratorEntry> for EOTTupleGenerator {
 }
 
 impl Generator<MoveAST, AnyConstraint> for EOTTupleGenerator {
-    fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+    fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         let typ = constraint.get::<Type>("type").unwrap();
         match typ {
             Type::Generic(GenericType::Tuple(_)) => true,
