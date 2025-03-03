@@ -158,9 +158,11 @@ fn set_v2_experiments(setting: &V2Setting) {
     std::env::set_var("MVC_EXP", feats_value);
 }
 
-pub fn print_compile_result(input: &CompileInput, result: &CompileResult) {
+pub fn print_compile_result(input: &CompileInput, result: &CompileResult, ignore_log: bool) {
     let version = if input.v1 { "v1" } else { "v2" };
-    println!("{}", result.log);
+    if !ignore_log {
+        println!("{}", result.log);
+    }
     let msg = match result.status {
         CompileStatus::Success => format!(
             "Successfully compiled with {} in {}ms",

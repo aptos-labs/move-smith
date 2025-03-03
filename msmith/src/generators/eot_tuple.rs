@@ -29,10 +29,7 @@ impl Register<GeneratorEntry> for EOTTupleGenerator {
 impl Generator<MoveAST, AnyConstraint> for EOTTupleGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         let typ = constraint.get::<Type>("type").unwrap();
-        match typ {
-            Type::Generic(GenericType::Tuple(_)) => true,
-            _ => false,
-        }
+        matches!(typ, Type::Generic(GenericType::Tuple(_)))
     }
 
     fn subtrees(
@@ -69,9 +66,6 @@ impl Generator<MoveAST, AnyConstraint> for EOTTupleGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        match ast.as_expression() {
-            Some(Expression::Tuple(_)) => true,
-            _ => false,
-        }
+        matches!(ast.as_expression(), Some(Expression::Tuple(_)))
     }
 }

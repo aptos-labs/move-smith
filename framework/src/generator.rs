@@ -158,7 +158,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
         for parent in entry.parents {
             self.dependencies
                 .entry(parent.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(entry.label.clone());
             self.to_skip.insert(parent.clone());
         }
@@ -170,7 +170,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
         }
 
         for label in &self.to_skip {
-            if let Some(entry) = self.entries.get_mut(&label) {
+            if let Some(entry) = self.entries.get_mut(label) {
                 entry.forward = true;
             }
         }
@@ -192,7 +192,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
         // Make sure there is no cyclic dependency
         while let Some(label) = to_visit.pop() {
             visited.push(label);
-            if let Some(children) = self.dependencies.get(&label) {
+            if let Some(children) = self.dependencies.get(label) {
                 for child in children {
                     if visited.contains(&child) {
                         error!("Cyclic dependency detected: {:?} --> {:?}", label, child);
@@ -218,7 +218,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
         }
 
         self.initialized = true;
-        return true;
+        true
     }
 
     pub fn get_entry(&self, label: &GenLabel) -> Option<&GeneratorEntry> {

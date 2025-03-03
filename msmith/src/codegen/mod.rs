@@ -222,12 +222,11 @@ impl CodeGenerator for Enum {
         let variants = self
             .variants
             .iter()
-            .map(|v| {
+            .flat_map(|v| {
                 let mut lines = v.emit_code_lines();
-                lines.last_mut().unwrap().push_str(",");
+                lines.last_mut().unwrap().push(',');
                 lines
             })
-            .flatten()
             .collect::<Vec<String>>();
         append_code_lines_with_indentation(&mut code, variants, INDENTATION_SIZE);
         code.push("}".to_string());
@@ -247,7 +246,7 @@ impl CodeGenerator for EnumVariant {
                 .map(|f| f.typ.inline())
                 .collect::<Vec<String>>();
             line.push_str(&fields.join(", "));
-            line.push_str(")");
+            line.push(')');
             code.push(line);
         } else {
             code.push(self.name.inline());
@@ -346,9 +345,9 @@ impl CodeGenerator for Statement {
             Statement::Expression(e) => e.emit_code_lines(),
         };
         if !code_lines.is_empty() {
-            code_lines.last_mut().unwrap().push_str(";");
+            code_lines.last_mut().unwrap().push(';');
         }
-        return code_lines;
+        code_lines
     }
 }
 

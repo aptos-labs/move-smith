@@ -15,6 +15,16 @@ pub struct FrameworkBuilder<A: ASTNode, C: Constraint> {
     framework: Framework<A, C>,
 }
 
+impl<A, C> Default for FrameworkBuilder<A, C>
+where
+    A: ASTNode + 'static,
+    C: Constraint,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<A, C> FrameworkBuilder<A, C>
 where
     A: ASTNode + 'static,
@@ -115,7 +125,7 @@ where
         trace!("Generation constraint: {:?}", constraint);
 
         // The constraint should be at least be well-formed for the base label
-        let generator = self.generators.get(&base_label).unwrap();
+        let generator = self.generators.get(base_label).unwrap();
         if !generator.check_constraint(&self.states(), constraint) {
             return Err(anyhow!(
                 "Constraint not well-formed for base generator{:?}\n{:?}",
@@ -182,7 +192,7 @@ where
             generator.compose(u, &mut self.states_mut(), compose_constraint.clone(), asts)?;
 
         // Use the original given generator to check if the newly created node follows the constraints
-        let result = self.generators.get(&base_label).unwrap().check_ast(
+        let result = self.generators.get(base_label).unwrap().check_ast(
             &self.states(),
             constraint,
             &compose_constraint,

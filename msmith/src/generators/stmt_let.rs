@@ -63,10 +63,8 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
         ast: &MoveAST,
     ) -> bool {
         match ast {
-            MoveAST::Statement(Statement::Let(expr)) => match expr {
-                Expression::Variable(_) => true,
-                Expression::Assignment(_) => true,
-                _ => false,
+            MoveAST::Statement(Statement::Let(expr)) => {
+                matches!(expr, Expression::Variable(_) | Expression::Assignment(_))
             },
             _ => false,
         }

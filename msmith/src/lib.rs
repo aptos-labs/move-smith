@@ -26,6 +26,12 @@ pub enum Variant {
     FlushWrites,
 }
 
+impl Default for MoveSmith {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MoveSmith {
     pub fn new() -> Self {
         Self::variant(Variant::Default)

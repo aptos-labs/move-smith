@@ -50,6 +50,7 @@ pub trait Executor<R: ExecutionResult> {
     fn execute_one(&self, input: &Self::Input) -> R;
 }
 
+type BoxedPanicHook = Box<dyn Fn(&PanicHookInfo) + Send + Sync>;
 /// An execution manager is responsible for saving and clustering the results of test executions
 pub struct ExecutionManager<R: ExecutionResult + Eq + Hash + Clone, E: Executor<R>> {
     save_input: bool,
@@ -60,7 +61,7 @@ pub struct ExecutionManager<R: ExecutionResult + Eq + Hash + Clone, E: Executor<
     pub input_map: Mutex<HashMap<R, Vec<E::Input>>>,
 
     trace_map: Arc<Mutex<HashMap<ThreadId, R>>>,
-    original_panic_hook: Option<Box<dyn Fn(&PanicHookInfo) + Send + Sync>>,
+    original_panic_hook: Option<BoxedPanicHook>,
 }
 
 impl<R, E> Default for ExecutionManager<R, E>
@@ -231,7 +232,7 @@ where
     }
 
     pub fn save_result_to_disk(&self, result: &R, output_file: &Path) {
-        fs::write(&output_file, serde_json::to_string(result).unwrap()).unwrap();
+        fs::write(output_file, serde_json::to_string(result).unwrap()).unwrap();
     }
 
     pub fn load_result_from_disk(&self, input: &Path) -> R {

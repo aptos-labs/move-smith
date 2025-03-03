@@ -15,7 +15,7 @@ pub struct PartialInfo {
 
 impl LabelledState for PartialInfo {
     fn label() -> StateLabel {
-        StateLabel::new("PartialInfo").into()
+        StateLabel::new("PartialInfo")
     }
 }
 

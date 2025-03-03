@@ -102,7 +102,7 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
             }
         })
         .collect();
-    all_moves.extend(move_inputs.into_iter());
+    all_moves.extend(move_inputs);
 
     pb.finish_and_clear();
 
@@ -155,7 +155,7 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
     let pb = get_progress_bar_with_msg(to_execute.len() as u64, "Executing");
     to_execute.par_iter().for_each(|(move_file, input)| {
         let output_file = move_file.with_extension("output");
-        let result = executor.execute_without_save(&input);
+        let result = executor.execute_without_save(input);
         pb.inc(1);
         let mut input = input.clone();
         input.clean();

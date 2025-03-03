@@ -340,7 +340,7 @@ impl IdPool {
 
     /// Get the count of IDs of the given type.
     fn id_count(&self, typ: &IdKind) -> usize {
-        return self.counters.get(typ).cloned().unwrap_or(0);
+        self.counters.get(typ).cloned().unwrap_or(0)
     }
 
     /// Create the name of an Id.
@@ -384,7 +384,7 @@ fn test_id_type() {
 
 impl LabelledState for IdPool {
     fn label() -> StateLabel {
-        StateLabel::new("IdPool").into()
+        StateLabel::new("IdPool")
     }
 }
 

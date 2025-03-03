@@ -5,7 +5,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeSet, error::Error, fmt::Display, panic::PanicHookInfo, time::Duration,
+    collections::BTreeSet, error::Error, fmt::Display, hash::Hash, panic::PanicHookInfo,
+    time::Duration,
 };
 
 const SUCCESS_MSG: &str = "Success";
@@ -49,7 +50,7 @@ pub enum ResultStatus {
     Unknown,
 }
 
-#[derive(Default, Debug, Clone, Eq, Deserialize, Serialize, Hash)]
+#[derive(Default, Debug, Clone, Eq, Deserialize, Serialize)]
 pub struct ResultChunk {
     #[serde(skip)]
     pub original: String,
@@ -57,6 +58,12 @@ pub struct ResultChunk {
     pub kind: ResultChunkKind,
     #[serde(skip)]
     pub lines: Vec<String>,
+}
+
+impl Hash for ResultChunk {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.canonical.hash(state);
+    }
 }
 
 impl PartialEq for ResultChunk {
@@ -105,13 +112,14 @@ impl ResultChunkKind {
     }
 }
 
+type ExeResultType = Result<(), Box<dyn Error>>;
 #[derive(Default)]
 pub struct TransactionalResultBuilder {
     /// Keeps track of the results so far and whether each result is from a V1V2 comparison run (need to split diff)
     ///   - Result from a run
     ///   - Whether the result is a diff
     ///   - Duration of the run
-    results: Vec<(Result<(), Box<dyn Error>>, bool)>,
+    results: Vec<(ExeResultType, bool)>,
 }
 
 impl TransactionalResultBuilder {
@@ -128,8 +136,10 @@ impl TransactionalResultBuilder {
         if self.results.iter().all(|(r, _)| r.is_ok()) {
             return TransactionalResult::success();
         }
-        let mut result = TransactionalResult::default();
-        result.duration = duration;
+        let mut result = TransactionalResult {
+            duration,
+            ..Default::default()
+        };
 
         let mut log_strings = vec![];
         for (i, (res, is_diff)) in self.results.into_iter().enumerate() {

@@ -139,15 +139,9 @@ impl Typed for Enum {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct TypeParameters {
     pub types: Vec<TypeParameter>,
-}
-
-impl Default for TypeParameters {
-    fn default() -> Self {
-        TypeParameters { types: vec![] }
-    }
 }
 
 /// The definition of the whole function

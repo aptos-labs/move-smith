@@ -43,7 +43,7 @@ where
         for generator in entry.generators {
             self.registry
                 .entry(generator.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(entry.label.clone());
         }
     }

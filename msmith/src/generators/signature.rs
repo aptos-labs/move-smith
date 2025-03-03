@@ -50,7 +50,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
         // TODO: allow more types when ready
-        let type_selector = TypeSelectorBuilder::all_no(&config)
+        let type_selector = TypeSelectorBuilder::all_no(config)
             .number(1)
             .structs(1)
             .build();
@@ -68,7 +68,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         let config = get_config(env);
         let return_type = if has_return {
             // TODO: allow more types when ready
-            let type_selector = TypeSelectorBuilder::all_no(&config)
+            let type_selector = TypeSelectorBuilder::all_no(config)
                 .number(1)
                 .structs(1)
                 .tuple(1)
@@ -87,7 +87,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             }
             .into(),
         );
-        return Ok((vec![subtree], AnyConstraint::new()));
+        Ok((vec![subtree], AnyConstraint::new()))
     }
 
     fn compose(
@@ -107,7 +107,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        if !ast.as_signature().is_some() {
+        if ast.as_signature().is_none() {
             return false;
         }
 

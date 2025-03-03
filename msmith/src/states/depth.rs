@@ -29,7 +29,7 @@ impl ExpressionDepth {
 
 impl LabelledState for ExpressionDepth {
     fn label() -> StateLabel {
-        StateLabel::new("ExpressionDepth").into()
+        StateLabel::new("ExpressionDepth")
     }
 }
 

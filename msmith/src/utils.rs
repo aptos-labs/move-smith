@@ -197,7 +197,7 @@ module 0xCAFE::Module0 {
     #[test]
     fn test_compile() {
         let code = MOVE_CODE.to_string();
-        let result = compile_move_code(code, true, true);
+        let result = compile_move_code(code, true, true, Some(&mut stderr()));
         assert!(result);
     }
 
@@ -206,7 +206,9 @@ module 0xCAFE::Module0 {
         let code = MOVE_CODE_V1_ERR.to_string();
 
         // Should not compile with V1
-        let result = panic::catch_unwind(|| compile_move_code(code.clone(), true, true));
+        let result = panic::catch_unwind(|| {
+            compile_move_code(code.clone(), true, true, Some(&mut stderr()))
+        });
         assert!(result.is_err());
     }
 }

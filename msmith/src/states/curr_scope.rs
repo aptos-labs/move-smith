@@ -26,7 +26,7 @@ impl CurrScope {
 
 impl LabelledState for CurrScope {
     fn label() -> StateLabel {
-        StateLabel::new("CurrScope").into()
+        StateLabel::new("CurrScope")
     }
 }
 

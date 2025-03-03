@@ -373,7 +373,7 @@ impl TypePool {
 
 impl LabelledState for TypePool {
     fn label() -> StateLabel {
-        StateLabel::new("TypePool").into()
+        StateLabel::new("TypePool")
     }
 }
 

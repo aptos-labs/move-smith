@@ -20,6 +20,12 @@ impl Clone for AnyConstraint {
 
 impl Constraint for AnyConstraint {}
 
+impl Default for AnyConstraint {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AnyConstraint {
     pub fn new() -> Self {
         Self {

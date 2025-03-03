@@ -7,8 +7,8 @@ use crate::{
     cli::{raw2move::raw2move, MoveSmithEnv, OutputMode, Run},
     execution::{
         transactional::{
-            result::ResultStatus, CommonRunConfig, TransactionalExecutor,
-            TransactionalInputBuilder, TransactionalResult,
+            result::ResultStatus, TransactionalExecutor, TransactionalInputBuilder,
+            TransactionalResult,
         },
         ExecutionManager,
     },
@@ -32,12 +32,7 @@ pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
             input_builder.set_code(&code)
         },
     };
-    let run_config = env
-        .cli
-        .global_options
-        .run
-        .clone()
-        .unwrap_or(CommonRunConfig::default());
+    let run_config = env.cli.global_options.run.clone().unwrap_or_default();
     input_builder.with_common_runs(&run_config);
     let input = input_builder.build();
 

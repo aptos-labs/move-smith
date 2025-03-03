@@ -12,7 +12,7 @@ use serde::Deserialize;
 /// The core number selection logic
 /// * We want to mostly select sane values that are around to some number we specify
 /// * We still want to (very rarely) select large but valid values
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Default, Debug, Clone, Deserialize)]
 pub struct RandomNumber {
     /// The minimum value that can be selected
     pub min: usize,
@@ -22,17 +22,6 @@ pub struct RandomNumber {
     pub max: usize,
     #[serde(skip)]
     once_value: Option<usize>,
-}
-
-impl Default for RandomNumber {
-    fn default() -> Self {
-        Self {
-            min: 0,
-            target: 0,
-            max: 0,
-            once_value: None,
-        }
-    }
 }
 
 /// How often we select sane values vs large values
@@ -149,7 +138,7 @@ where
     F: Fn(&T) -> bool,
 {
     let mut indices = (0..items.len()).collect::<Vec<usize>>();
-    while indices.len() > 0 {
+    while !indices.is_empty() {
         let chosen = u.int_in_range(0..=indices.len() - 1)?;
         let idx = indices[chosen];
         if filter(&items[idx]) {

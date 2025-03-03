@@ -45,7 +45,7 @@ pub fn handle_raw2move(_env: &MoveSmithEnv, cmd: &Raw2move) {
 /// - String: Move code, empty if failed
 pub fn raw2move(bytes: &[u8]) -> (bool, String, String) {
     let msmith = MoveSmith::new();
-    let code = match msmith.generate(&bytes) {
+    let code = match msmith.generate(bytes) {
         Ok(code) => code,
         Err(e) => {
             return (

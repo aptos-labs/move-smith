@@ -15,7 +15,7 @@ pub struct TupleSignatureGenerator;
 
 impl LabelledGenerator for TupleSignatureGenerator {
     fn label() -> GenLabel {
-        GenLabel::new_func_body_level("TupleSignatureGenerator").into()
+        GenLabel::new_func_body_level("TupleSignatureGenerator")
     }
 }
 
@@ -55,7 +55,7 @@ impl Generator<MoveAST, AnyConstraint> for TupleSignatureGenerator {
             }
             .into(),
         );
-        return Ok((vec![subtree], AnyConstraint::new()));
+        Ok((vec![subtree], AnyConstraint::new()))
     }
 
     fn compose(

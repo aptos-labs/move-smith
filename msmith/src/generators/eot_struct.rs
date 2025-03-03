@@ -30,10 +30,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTStructGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         warn!("EOTStructGenerator::check_constraint not implemented, need to check if type parameters and abilities can be created");
         let typ = constraint.get::<Type>("type").unwrap();
-        match typ {
-            Type::Generic(GenericType::Struct(_)) => true,
-            _ => false,
-        }
+        matches!(typ, Type::Generic(GenericType::Struct(_)))
     }
 
     fn subtrees(
@@ -97,9 +94,9 @@ impl Generator<MoveAST, AnyConstraint> for EOTStructGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        match ast.as_expression() {
-            Some(Expression::StructInstantiation(_)) => true,
-            _ => false,
-        }
+        matches!(
+            ast.as_expression(),
+            Some(Expression::StructInstantiation(_))
+        )
     }
 }

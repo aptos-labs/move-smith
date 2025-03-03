@@ -29,11 +29,13 @@ pub fn main() {
     let compiler = CompileExecutor;
     let comp_input = CompileInput::new_v2(code.clone(), V2Setting::default());
     let comp_result = compiler.execute_one(&comp_input);
-    print_compile_result(&comp_input, &comp_result);
 
     if comp_result.status != CompileStatus::Success {
+        print_compile_result(&comp_input, &comp_result, false);
         println!("Compilation failed, skipping execution.");
         return;
+    } else {
+        print_compile_result(&comp_input, &comp_result, true);
     }
 
     let input = TransactionalInputBuilder::new()

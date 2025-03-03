@@ -90,9 +90,6 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncCallGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        match ast.as_expression() {
-            Some(Expression::FunctionCall(_)) => true,
-            _ => false,
-        }
+        matches!(ast.as_expression(), Some(Expression::FunctionCall(_)))
     }
 }

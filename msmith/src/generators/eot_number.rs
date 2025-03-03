@@ -16,7 +16,7 @@ pub struct EOTNumberGenerator;
 
 impl LabelledGenerator for EOTNumberGenerator {
     fn label() -> GenLabel {
-        GenLabel::new("EOTNumberGenerator").into()
+        GenLabel::new("EOTNumberGenerator")
     }
 }
 
@@ -28,12 +28,10 @@ impl Register<GeneratorEntry> for EOTNumberGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for EOTNumberGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
-        let is_num_type = match constraint.get::<Type>("type").unwrap() {
-            Type::Primitive(Primitive::Number(_)) => true,
-            _ => false,
-        };
-        is_num_type
-            && constraint.check_not_exist_or_has_type::<BigUint>("min")
+        matches!(
+            constraint.get::<Type>("type").unwrap(),
+            Type::Primitive(Primitive::Number(_))
+        ) && constraint.check_not_exist_or_has_type::<BigUint>("min")
             && constraint.check_not_exist_or_has_type::<BigUint>("max")
     }
 
@@ -77,9 +75,6 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        match ast.as_expression() {
-            Some(Expression::NumberLiteral(_)) => true,
-            _ => false,
-        }
+        matches!(ast.as_expression(), Some(Expression::NumberLiteral(_)))
     }
 }

@@ -17,7 +17,7 @@ pub struct ConsumerSignatureGenerator;
 
 impl LabelledGenerator for ConsumerSignatureGenerator {
     fn label() -> GenLabel {
-        GenLabel::new_func_body_level("ConsumerSignatureGenerator").into()
+        GenLabel::new_func_body_level("ConsumerSignatureGenerator")
     }
 }
 
@@ -43,14 +43,14 @@ impl Generator<MoveAST, AnyConstraint> for ConsumerSignatureGenerator {
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
-        let type_selector = TypeSelectorBuilder::all_no(&config).number(1).build();
+        let type_selector = TypeSelectorBuilder::all_no(config).number(1).build();
         let mut parameters = vec![];
 
         for _ in 0..num_params {
             // Create a new var name under the function scope
             let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
             let typ = get_type_pool(env).random_type(u, vec![type_selector.clone()])?;
-            parameters.push(SingleVariable::new_declare(&name, &typ).into());
+            parameters.push(SingleVariable::new_declare(&name, &typ));
         }
 
         let subtree = Subtree::new_single_candidate(
@@ -62,7 +62,7 @@ impl Generator<MoveAST, AnyConstraint> for ConsumerSignatureGenerator {
             }
             .into(),
         );
-        return Ok((vec![subtree], AnyConstraint::new()));
+        Ok((vec![subtree], AnyConstraint::new()))
     }
 
     fn compose(
