@@ -351,6 +351,12 @@ pub struct SingleVariable {
     pub show_type: bool,
 }
 
+impl Named for SingleVariable {
+    fn name(&self) -> Id {
+        self.name.clone()
+    }
+}
+
 impl Typed for SingleVariable {
     fn ty(&self) -> Type {
         self.typ.clone()
@@ -393,6 +399,12 @@ impl Typed for NumberLiteral {
 pub struct FunctionCall {
     pub func_type: FunctionType,
     pub arguments: Vec<Expression>,
+}
+
+impl Named for FunctionCall {
+    fn name(&self) -> Id {
+        self.func_type.name()
+    }
 }
 
 impl Typed for FunctionCall {

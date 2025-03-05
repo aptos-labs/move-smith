@@ -29,13 +29,7 @@ pub trait CodeGenerator {
 
     /// Concatenate the code lines with newlines and return one single string.
     fn inline(&self) -> String {
-        // Trim the leading whitespaces added for indentation
-        // and then join them with a space.
-        self.emit_code_lines()
-            .iter()
-            .map(|line| line.trim())
-            .collect::<Vec<&str>>()
-            .join(" ")
+        lines_to_inline(self.emit_code_lines())
     }
 
     /// Each AST node should implement this
@@ -70,6 +64,14 @@ fn append_block(program: &mut Vec<String>, mut block: Vec<String>, indentation: 
     let last_line = block.remove(block.len() - 1);
     append_code_lines_with_indentation(program, block, indentation);
     program.push(last_line);
+}
+
+fn lines_to_inline(lines: Vec<String>) -> String {
+    lines
+        .iter()
+        .map(|line| line.trim())
+        .collect::<Vec<&str>>()
+        .join(" ")
 }
 
 impl CodeGenerator for MoveAST {
@@ -162,11 +164,18 @@ impl CodeGenerator for Struct {
 impl CodeGenerator for StructInstantiation {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code = vec![format!("{} {{", self.struct_type.name())];
-        let fields = self
-            .fields
-            .iter()
-            .map(|(v, e)| format!("{}: {},", v.name, e.emit_code()))
-            .collect::<Vec<String>>();
+        let mut fields = vec![];
+        for (var, expr) in &self.fields {
+            fields.push(format!("{}:", var.name()));
+
+            let expr_liens = expr.emit_code_lines();
+            if expr_liens.len() == 1 {
+                fields.last_mut().unwrap().push_str(&expr_liens[0]);
+            } else {
+                append_block(&mut fields, expr_liens, INDENTATION_SIZE);
+            }
+            fields.last_mut().unwrap().push(',');
+        }
         append_code_lines_with_indentation(&mut code, fields, INDENTATION_SIZE);
         code.push("}".to_string());
         code
@@ -266,28 +275,45 @@ impl CodeGenerator for EnumVariant {
 
 impl CodeGenerator for EnumInstantiation {
     fn emit_code_lines(&self) -> Vec<String> {
+        let open_brace = if self.variant_type.positional {
+            '('
+        } else {
+            '{'
+        };
+        let close_brace = if self.variant_type.positional {
+            ')'
+        } else {
+            '}'
+        };
         let mut code = vec![format!(
-            "{}::{}",
+            "{}::{} {}",
             self.enum_type.name(),
-            self.variant_type.name()
+            self.variant_type.name(),
+            open_brace
         )];
 
-        let fields = match self.variant_type.positional {
-            true => self
-                .fields
-                .iter()
-                .map(|(_var, e)| format!("{},", e.inline()))
-                .collect::<Vec<String>>(),
-            false => self
-                .fields
-                .iter()
-                .map(|(var, e)| format!("{}: {},", var.name, e.inline()))
-                .collect::<Vec<String>>(),
-        };
-        let mut body = vec!['{'.to_string()];
-        append_code_lines_with_indentation(&mut body, fields, INDENTATION_SIZE);
-        body.push('}'.to_string());
-        append_block(&mut code, body, 0);
+        let mut field_lines = vec![];
+        for (var, expr) in &self.fields {
+            let expr_lines = expr.emit_code_lines();
+            if self.variant_type.positional {
+                field_lines.extend(expr_lines);
+            } else {
+                field_lines.push(format!("{}:", var.name()));
+                append_block(&mut field_lines, expr_lines, INDENTATION_SIZE);
+            }
+            field_lines.last_mut().unwrap().push(',');
+        }
+
+        if field_lines.len() < self.variant_type.fields.len() {
+            // Inline generation
+            code.last_mut()
+                .unwrap()
+                .push_str(&lines_to_inline(field_lines));
+            code.last_mut().unwrap().push(close_brace);
+        } else {
+            append_code_lines_with_indentation(&mut code, field_lines, INDENTATION_SIZE);
+            code.push(close_brace.to_string());
+        }
         code
     }
 }
@@ -366,7 +392,7 @@ impl CodeGenerator for Statement {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code_lines = match self {
             Statement::Let(e) => {
-                let mut code = vec!["let ".to_string()];
+                let mut code = vec!["let".to_string()];
                 append_block(&mut code, e.emit_code_lines(), 0);
                 code
             },
@@ -397,16 +423,36 @@ impl CodeGenerator for Expression {
 
 impl CodeGenerator for Tuple {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut elems = vec![];
+        let mut elem_lines = vec![];
         for expr in &self.expressions {
-            elems.push(expr.emit_code());
+            elem_lines.push(expr.emit_code_lines());
         }
-        let mut code = format!("({})", elems.join(", "));
+
+        let mut code = vec!['('.to_string()];
+
+        let total_lines = elem_lines.iter().map(|l| l.len()).sum::<usize>();
+        if total_lines <= self.expressions.len() + 2 {
+            // Inline generation
+            let elems_inline = elem_lines
+                .into_iter()
+                .map(lines_to_inline)
+                .collect::<Vec<String>>();
+            code.last_mut().unwrap().push_str(&elems_inline.join(", "));
+            code.last_mut().unwrap().push(')');
+        } else {
+            for lines in elem_lines {
+                append_code_lines_with_indentation(&mut code, lines, INDENTATION_SIZE);
+                code.last_mut().unwrap().push(',');
+            }
+            code.push(')'.to_string());
+        }
+
         if self.show_type {
-            code.push_str(": ");
-            code.push_str(&self.ty().emit_code());
+            code.last_mut()
+                .unwrap()
+                .push_str(&format!(": {}", self.ty().emit_code()));
         }
-        vec![code]
+        code
     }
 }
 
@@ -457,11 +503,29 @@ impl CodeGenerator for NumberLiteral {
 
 impl CodeGenerator for FunctionCall {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut args = vec![];
+        let mut code = vec![format!("{}(", self.name())];
+
+        let mut arg_lines = vec![];
         for arg in &self.arguments {
-            args.push(arg.emit_code());
+            arg_lines.push(arg.emit_code_lines());
         }
-        vec![format!("{}({})", self.func_type.name, args.join(", "))]
+        let total_lines = arg_lines.iter().map(|l| l.len()).sum::<usize>();
+        if total_lines <= self.arguments.len() + 2 {
+            // Inline generation
+            let args_inline = arg_lines
+                .into_iter()
+                .map(lines_to_inline)
+                .collect::<Vec<String>>();
+            code.last_mut().unwrap().push_str(&args_inline.join(", "));
+            code.last_mut().unwrap().push(')');
+        } else {
+            for lines in arg_lines {
+                append_code_lines_with_indentation(&mut code, lines, INDENTATION_SIZE);
+                code.last_mut().unwrap().push(',');
+            }
+            code.push(')'.to_string());
+        }
+        code
     }
 }
 

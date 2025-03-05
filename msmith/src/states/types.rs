@@ -629,6 +629,12 @@ pub struct FunctionType {
     pub return_type: Box<Type>,
 }
 
+impl Named for FunctionType {
+    fn name(&self) -> Id {
+        self.name.clone()
+    }
+}
+
 impl FunctionType {
     pub fn has_return(&self) -> bool {
         !self.return_type.is_unit()
