@@ -264,6 +264,34 @@ impl CodeGenerator for EnumVariant {
     }
 }
 
+impl CodeGenerator for EnumInstantiation {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec![format!(
+            "{}::{}",
+            self.enum_type.name(),
+            self.variant_type.name()
+        )];
+
+        let fields = match self.variant_type.positional {
+            true => self
+                .fields
+                .iter()
+                .map(|(_var, e)| format!("{},", e.inline()))
+                .collect::<Vec<String>>(),
+            false => self
+                .fields
+                .iter()
+                .map(|(var, e)| format!("{}: {},", var.name, e.inline()))
+                .collect::<Vec<String>>(),
+        };
+        let mut body = vec!['{'.to_string()];
+        append_code_lines_with_indentation(&mut body, fields, INDENTATION_SIZE);
+        body.push('}'.to_string());
+        append_block(&mut code, body, 0);
+        code
+    }
+}
+
 impl CodeGenerator for Ability {
     fn emit_code_lines(&self) -> Vec<String> {
         use Ability as A;
@@ -357,6 +385,7 @@ impl CodeGenerator for Expression {
         match self {
             E::StructInstantiation(s) => s.emit_code_lines(),
             E::StructDestructure(s) => s.emit_code_lines(),
+            E::EnumInstantiation(e) => e.emit_code_lines(),
             E::Assignment(a) => a.emit_code_lines(),
             E::Variable(v) => v.emit_code_lines(),
             E::NumberLiteral(n) => n.emit_code_lines(),
@@ -459,6 +488,7 @@ impl CodeGenerator for GenericType {
                 }
                 format!("({})", code.join(", "))
             },
+            G::Enum(e) => e.name.name.clone(),
             _ => unimplemented!(),
         }]
     }

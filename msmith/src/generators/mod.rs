@@ -23,5 +23,6 @@ export_all!(
     eot_number,
     eot_call,
     eot_struct,
+    eot_enum,
     enums
 );

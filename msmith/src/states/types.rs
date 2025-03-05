@@ -302,7 +302,17 @@ impl TypePool {
         }
 
         if selector.enum_weight > 0 {
-            unimplemented!();
+            let enum_types = self
+                .defined_types
+                .iter()
+                .filter(|(_, typ)| typ.is_generic_enum())
+                .map(|(_, typ)| (typ.clone(), 1))
+                .collect::<Vec<(Type, u32)>>();
+            if enum_types.is_empty() {
+                warn!("No enum types defined");
+            } else {
+                candidates.push((enum_types, selector.enum_weight));
+            }
         }
 
         if selector.vector_weight > 0 {
@@ -494,12 +504,21 @@ impl Type {
     pub fn is_concrete_struct(&self) -> bool {
         matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_struct())
     }
+
+    pub fn is_generic_enum(&self) -> bool {
+        matches!(self, Type::Generic(GenericType::Enum(_)))
+    }
+
+    pub fn is_concrete_enum(&self) -> bool {
+        matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_enum())
+    }
 }
 
 impl Named for Type {
     fn name(&self) -> Id {
         match self {
-            Type::Generic(GenericType::Struct(s)) => s.name.clone(),
+            Type::Generic(GenericType::Struct(s)) => s.name(),
+            Type::Generic(GenericType::Enum(e)) => e.name(),
             Type::Concrete(c) => c.name(),
             _ => unimplemented!(),
         }
@@ -566,6 +585,13 @@ pub struct StructType {
     pub type_params: Vec<TypeParameter>,
     pub fields: Vec<(Id, Type)>,
     pub abilities: Vec<Ability>,
+    pub positional: bool,
+}
+
+impl Named for StructType {
+    fn name(&self) -> Id {
+        self.name.clone()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -576,10 +602,23 @@ pub struct EnumType {
     pub abilities: Vec<Ability>,
 }
 
+impl Named for EnumType {
+    fn name(&self) -> Id {
+        self.name.clone()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnumVariantType {
     pub name: Id,
     pub fields: Vec<(Id, Type)>,
+    pub positional: bool,
+}
+
+impl Named for EnumVariantType {
+    fn name(&self) -> Id {
+        self.name.clone()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

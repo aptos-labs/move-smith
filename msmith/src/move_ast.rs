@@ -32,6 +32,7 @@ pub enum MoveAST {
     StructDestructure(StructDestructure),
     Enum(Enum),
     EnumVariant(EnumVariant),
+    EnumInstantiation(EnumInstantiation),
 }
 
 impl ASTNode for MoveAST {}
@@ -95,6 +96,7 @@ impl Typed for Struct {
                 .map(|f| (f.name.clone(), f.ty().clone()))
                 .collect(),
             abilities: self.abilities.clone(),
+            positional: self.positional,
         }))
     }
 }
@@ -127,6 +129,7 @@ impl Typed for Enum {
                         .iter()
                         .map(|f| (f.name.clone(), f.ty().clone()))
                         .collect(),
+                    positional: v.positional,
                 })
             })
             .collect();
@@ -136,6 +139,25 @@ impl Typed for Enum {
             variants,
             abilities: self.abilities.clone(),
         }))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumInstantiation {
+    pub enum_type: ConcreteType,
+    pub variant_type: EnumVariantType,
+    pub fields: Vec<(SingleVariable, Expression)>,
+}
+
+impl Named for EnumInstantiation {
+    fn name(&self) -> Id {
+        self.enum_type.name()
+    }
+}
+
+impl Typed for EnumInstantiation {
+    fn ty(&self) -> Type {
+        Type::Concrete(self.enum_type.clone())
     }
 }
 
@@ -204,6 +226,7 @@ pub enum Statement {
 pub enum Expression {
     StructInstantiation(StructInstantiation),
     StructDestructure(StructDestructure),
+    EnumInstantiation(EnumInstantiation),
     Tuple(Tuple),
     Assignment(Assignment),
     Variable(Variable),
@@ -216,6 +239,7 @@ impl Typed for Expression {
         match self {
             Expression::StructInstantiation(s) => s.ty(),
             Expression::StructDestructure(s) => s.ty(),
+            Expression::EnumInstantiation(e) => e.ty(),
             Expression::Tuple(t) => t.ty(),
             Expression::Assignment(a) => a.ty(),
             Expression::Variable(v) => v.ty(),

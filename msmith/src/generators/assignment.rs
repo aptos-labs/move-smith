@@ -49,6 +49,7 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
                     .number(1)
                     .func_return(1)
                     .structs(1)
+                    .enums(1)
                     .build();
                 get_type_pool(env).random_type(u, vec![type_selector])?
             },
