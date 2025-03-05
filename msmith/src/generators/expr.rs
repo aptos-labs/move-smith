@@ -46,7 +46,11 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
                     .build()
             } else {
                 TypeSelectorBuilder::all_no(get_config(env))
-                    .func_return(1)
+                    .number(1)
+                    .structs(1)
+                    .enums(1)
+                    .tuple(1)
+                    .func_return(10)
                     .build()
             };
             let random_type = get_type_pool(env).random_type(u, vec![selector])?;

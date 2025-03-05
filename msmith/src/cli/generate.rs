@@ -117,6 +117,12 @@ fn generate_move_with_seed(output_path: &PathBuf, seed: u64, package: bool) -> S
             rng.fill(&mut new_buffer[..]);
             buffer.extend(new_buffer);
         }
+
+        let buffer_file_path = match package {
+            true => output_path.join("buffer.raw"),
+            false => output_path.with_extension("raw"),
+        };
+        fs::write(buffer_file_path, buffer.clone()).expect("Failed to write the raw buffer file");
         let (success, log, code) = raw2move(&buffer);
         if log.contains("ormat") {
             return "".to_string();
@@ -133,10 +139,5 @@ fn generate_move_with_seed(output_path: &PathBuf, seed: u64, package: bool) -> S
         fs::write(output_path, &code).expect("Failed to write the Move file");
     }
 
-    let buffer_file_path = match package {
-        true => output_path.join("buffer.raw"),
-        false => output_path.with_extension("raw"),
-    };
-    fs::write(buffer_file_path, buffer).expect("Failed to write the raw buffer file");
     code
 }

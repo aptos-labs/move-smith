@@ -350,7 +350,7 @@ impl TypePool {
         }
 
         if selector.func_return > 0 {
-            let ret_types = self
+            let mut ret_types = self
                 .defined_funcs
                 .values()
                 .filter_map(|typ| {
@@ -365,6 +365,10 @@ impl TypePool {
                     }
                 })
                 .collect::<Vec<(Type, u32)>>();
+            if selector.tuple_weight == 0 {
+                // Filter out tuple types
+                ret_types.retain(|(typ, _)| !typ.is_generic_tuple());
+            }
             if ret_types.is_empty() {
                 warn!("No function defined so far");
             } else {
@@ -511,6 +515,14 @@ impl Type {
 
     pub fn is_concrete_enum(&self) -> bool {
         matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_enum())
+    }
+
+    pub fn is_generic_tuple(&self) -> bool {
+        matches!(self, Type::Generic(GenericType::Tuple(_)))
+    }
+
+    pub fn is_concrete_tuple(&self) -> bool {
+        matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_tuple())
     }
 }
 
