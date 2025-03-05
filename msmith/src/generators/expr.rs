@@ -46,8 +46,6 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
                     .build()
             } else {
                 TypeSelectorBuilder::all_no(get_config(env))
-                    .number(1)
-                    .structs(1)
                     .func_return(1)
                     .build()
             };

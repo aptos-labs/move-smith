@@ -1,7 +1,7 @@
 use super::ModuleGenerator;
 use crate::{
     move_ast::{MoveAST, Program},
-    states::{get_config, GenerationConfig},
+    states::{get_config, get_config_mut, ExpressionDepth, GenerationConfig},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -37,6 +37,10 @@ impl Generator<MoveAST, AnyConstraint> for ProgramGenerator {
         env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
+        // Setting up states
+        let max_expr_depth = get_config_mut(env).expr_depth.select_once(u)?;
+        env.get_mut::<ExpressionDepth>().unwrap().max_depth = max_expr_depth;
+
         let num_modules = get_config(env).num_modules.select(u)?;
         trace!("Generating {} modules", num_modules);
         let mut subtrees = vec![];

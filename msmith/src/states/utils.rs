@@ -15,6 +15,11 @@ pub fn get_config(env: &StatePool<MoveAST>) -> &GenerationConfig {
 }
 
 #[inline]
+pub fn get_config_mut(env: &mut StatePool<MoveAST>) -> &mut GenerationConfig {
+    env.get_mut::<GenerationConfig>().unwrap()
+}
+
+#[inline]
 pub fn get_type_pool(env: &StatePool<MoveAST>) -> &TypePool {
     env.get::<TypePool>().unwrap()
 }

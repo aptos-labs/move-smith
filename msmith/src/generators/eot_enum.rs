@@ -1,7 +1,7 @@
 use crate::{
     generators::ExprOfTypeGenerator,
     move_ast::{EnumInstantiation, Expression, MoveAST, SingleVariable},
-    states::{ConcreteType, EnumType, EnumVariantType, GenericType, Type},
+    states::{ConcreteType, EnumVariantType, GenericType, Type},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
