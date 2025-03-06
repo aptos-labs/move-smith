@@ -59,7 +59,7 @@ function generate_coverage() {
         --output-dir=$target_dir \
         -Xdemangler=rustfilt \
         --show-branches=count \
-        --ignore-filename-regex='rustc/.*/library|\.cargo'
+        --ignore-filename-regex='.rustup|.cargo/registry|.cargo/git/checkouts/bcs*'
     echo "Generated coverage report in $target_dir/index.html"
 }
 

@@ -102,8 +102,7 @@ function run_libfuzzer() {
         -timeout=$timeout \
         -ignore_timeouts=1 \
         -ignore_crashes=1 \
-        -detect_leaks=0 \
-        -print_final_stats=1 2>&1 | tee -a $log_file
+        -detect_leaks=0 2>&1 | tee -a $log_file
 }
 
 function afl_in_tmux() {
@@ -225,16 +224,16 @@ function check_existing() {
 
 }
 
-if [ "$#" -gt 3 ]; then
-    echo "Usage: ./scripts/fuzz.sh <fuzz_target> [total_hour] [max_input_len]"
+if [ "$#" -lt 2 ]; then
+    echo "Usage: ./scripts/fuzz.sh <fuzz_target> [total_hour] [jobs] [max_input_len] [timeout]"
     exit 1
 fi
 
-fuzz_target=${1:-"transactional"}
+fuzz_target=${1}
 total_hour=${2:-24} # Default to 24 hours
 JOBS=${3:-32}       # Default to 32 jobs
-input_len=${3:-8}   # Default to 8 KB
-timeout=${4:-5}     # Default to 5 seconds
+input_len=${4:-8}   # Default to 8 KB
+timeout=${5:-5}     # Default to 5 seconds
 
 check_existing
 

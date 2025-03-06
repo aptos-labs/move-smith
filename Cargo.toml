@@ -28,13 +28,13 @@ derive_builder = { workspace = true }
 env_logger = { workspace = true }
 indicatif = { workspace = true }
 log = { workspace = true }
-move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-compiler-v2", optional = true }
+move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-compiler-v2", optional = true, rev = "c5166de18cdc85e615a76f87dd6820127230c0cb"}
 move-compiler-v2-local = { path = "../aptos-core/third_party/move/move-compiler-v2", package = "move-compiler-v2", optional = true }
-move-model = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-model", optional = true }
+move-model = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-model", optional = true, rev = "c5166de18cdc85e615a76f87dd6820127230c0cb"}
 move-model-local = { path = "../aptos-core/third_party/move/move-model", package = "move-model", optional = true }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-package", optional = true }
+move-package = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-package", optional = true, rev = "c5166de18cdc85e615a76f87dd6820127230c0cb" }
 move-package-local = { path = "../aptos-core/third_party/move/tools/move-package", package = "move-package", optional = true }
-move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true }
+move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true, rev = "c5166de18cdc85e615a76f87dd6820127230c0cb" }
 move-transactional-test-runner-local = { path = "../aptos-core/third_party/move/testing-infra/transactional-test-runner", package = "move-transactional-test-runner", optional = true }
 num-bigint = { workspace = true }
 num_cpus = { workspace = true }
