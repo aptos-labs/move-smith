@@ -32,6 +32,17 @@ test:
 clean:
 	cargo clean
 
+nuke-fuzz:
+	@read -p "Type Y to nuke fuzz: " ans && [ "$$ans" = Y ] || { echo "Cancelled."; exit 1; }
+	cd fuzz && cargo clean && cargo hfuzz clean && cargo afl clean
+	rm -rf fuzz/artifacts
+	rm -rf fuzz/corpus
+	rm -rf fuzz/coverage
+	rm -rf fuzz/hfuzz_workspace
+	rm -rf afl
+	rm -rf coverage
+	rm -rf logs
+
 format:
 	cargo fmt
 	cargo sort
