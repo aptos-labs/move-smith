@@ -86,18 +86,19 @@ pub fn new_id_from_curr_scope(env: &mut StatePool<MoveAST>, id_kind: IdKind) -> 
 
 pub fn get_all_dot_vars_from_rec(curr: DotVariable) -> Vec<DotVariable> {
     let curr_type = curr.ty();
-    if let Type::Generic(GenericType::Struct(s)) = &curr_type {
-        let mut dot_vars = vec![];
-        for (field_name, field_type) in &s.fields {
-            let new_dot_var =
-                DotVariable::new_with_prefix(&curr, (field_name.clone(), field_type.clone()));
-            dot_vars.push(new_dot_var.clone());
-            dot_vars.extend(get_all_dot_vars_from_rec(new_dot_var));
-        }
-        dot_vars
-    } else {
-        vec![]
+    let fields = match &curr_type {
+        Type::Generic(GenericType::Struct(s)) => &s.fields,
+        Type::Generic(GenericType::Enum(e)) => &e.get_possible_named_fields(),
+        _ => return vec![],
+    };
+    let mut dot_vars = vec![];
+    for (field_name, field_type) in fields {
+        let new_dot_var =
+            DotVariable::new_with_prefix(&curr, (field_name.clone(), field_type.clone()));
+        dot_vars.push(new_dot_var.clone());
+        dot_vars.extend(get_all_dot_vars_from_rec(new_dot_var));
     }
+    dot_vars
 }
 
 pub fn get_all_dot_vars_from(id: &Id, env: &StatePool<MoveAST>) -> Vec<DotVariable> {
@@ -124,13 +125,16 @@ pub fn get_vars_in_curr_scope_of_type(
             all_vars.push(SingleVariable::new(&id, &id_typ).into());
         }
 
-        if let Type::Generic(GenericType::Struct(_)) = &id_typ {
-            let dot_vars = get_all_dot_vars_from(&id, env);
-            for dot_var in dot_vars {
-                if Some(&dot_var.ty()) == wanted {
-                    all_vars.push(dot_var.into());
+        match &id_typ {
+            Type::Generic(GenericType::Enum(_)) | Type::Generic(GenericType::Struct(_)) => {
+                let dot_vars = get_all_dot_vars_from(&id, env);
+                for dot_var in dot_vars {
+                    if Some(&dot_var.ty()) == wanted {
+                        all_vars.push(dot_var.into());
+                    }
                 }
-            }
+            },
+            _ => {},
         }
     }
     all_vars

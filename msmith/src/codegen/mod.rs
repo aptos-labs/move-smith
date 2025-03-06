@@ -170,6 +170,7 @@ impl CodeGenerator for StructInstantiation {
 
             let expr_liens = expr.emit_code_lines();
             if expr_liens.len() == 1 {
+                fields.last_mut().unwrap().push(' ');
                 fields.last_mut().unwrap().push_str(&expr_liens[0]);
             } else {
                 append_block(&mut fields, expr_liens, INDENTATION_SIZE);
@@ -275,27 +276,20 @@ impl CodeGenerator for EnumVariant {
 
 impl CodeGenerator for EnumInstantiation {
     fn emit_code_lines(&self) -> Vec<String> {
-        let open_brace = if self.variant_type.positional {
-            '('
-        } else {
-            '{'
-        };
-        let close_brace = if self.variant_type.positional {
-            ')'
-        } else {
-            '}'
-        };
+        let variant_type = self.get_variant_type();
+        let open_brace = if variant_type.positional { '(' } else { '{' };
+        let close_brace = if variant_type.positional { ')' } else { '}' };
         let mut code = vec![format!(
             "{}::{} {}",
             self.enum_type.name(),
-            self.variant_type.name(),
+            variant_type.name(),
             open_brace
         )];
 
         let mut field_lines = vec![];
         for (var, expr) in &self.fields {
             let expr_lines = expr.emit_code_lines();
-            if self.variant_type.positional {
+            if variant_type.positional {
                 field_lines.extend(expr_lines);
             } else {
                 field_lines.push(format!("{}:", var.name()));
@@ -304,7 +298,7 @@ impl CodeGenerator for EnumInstantiation {
             field_lines.last_mut().unwrap().push(',');
         }
 
-        if field_lines.len() < self.variant_type.fields.len() {
+        if field_lines.len() < variant_type.fields.len() {
             // Inline generation
             code.last_mut()
                 .unwrap()

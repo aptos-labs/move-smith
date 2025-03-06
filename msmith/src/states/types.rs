@@ -13,7 +13,7 @@ use framework::{
     StateEntry, StateLabel,
 };
 use log::{trace, warn};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub trait Typed {
     fn ty(&self) -> Type;
@@ -471,7 +471,7 @@ impl State<MoveAST> for TypePool {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Type {
     Unit,
     Generic(GenericType),
@@ -537,7 +537,7 @@ impl Named for Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct ConcreteType {
     pub mapping: BTreeMap<TypeParameter, Type>,
     pub typ: Box<Type>,
@@ -558,7 +558,7 @@ impl ConcreteType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum GenericType {
     Struct(StructType),
     Enum(EnumType),
@@ -568,14 +568,14 @@ pub enum GenericType {
     Reference(ReferenceType),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Primitive {
     Address,
     Bool,
     Number(NumberType),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum NumberType {
     U8,
     U16,
@@ -585,13 +585,13 @@ pub enum NumberType {
     U256,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct TypeParameter {
     pub name: Id,
     pub abilities: Vec<Ability>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct StructType {
     pub name: Id,
     pub type_params: Vec<TypeParameter>,
@@ -606,12 +606,61 @@ impl Named for StructType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct EnumType {
     pub name: Id,
     pub type_params: Vec<TypeParameter>,
     pub variants: Vec<(Id, EnumVariantType)>,
     pub abilities: Vec<Ability>,
+    /// For a type definition or declaration, this should be None to indicate that any variant is possible.
+    /// e.g. if the enum type if used in function argument
+    /// For an instantiate where the variant is known, the index of the variant should be set.
+    pub variant_pos: Option<usize>,
+}
+
+impl EnumType {
+    pub fn get_possible_variants(&self) -> Vec<(Id, EnumVariantType)> {
+        match self.variant_pos {
+            Some(idx) => vec![self.variants[idx].clone()],
+            None => self.variants.clone(),
+        }
+    }
+
+    /// Return a SET of all possible fields
+    pub fn get_possible_named_fields(&self) -> Vec<(Id, Type)> {
+        self.get_possible_variants()
+            .iter()
+            .flat_map(|(_, variant)| variant.get_all_named_fields())
+            .collect::<BTreeSet<(Id, Type)>>()
+            .into_iter()
+            .collect()
+    }
+
+    /// Return a SET of valid fields that exists in all possible variants
+    pub fn get_valid_named_fields(&self) -> Vec<(Id, Type)> {
+        if self.variant_pos.is_some() {
+            return self.get_possible_named_fields();
+        }
+        let mut counter = BTreeMap::new();
+        for (_, variant) in &self.variants {
+            for field in &variant.fields {
+                let count = counter.entry(field.clone()).or_insert(0);
+                *count += 1;
+            }
+        }
+
+        let total_variants = self.variants.len();
+        counter
+            .into_iter()
+            .filter_map(|(field, count)| {
+                if count == total_variants {
+                    Some(field)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
 }
 
 impl Named for EnumType {
@@ -620,11 +669,20 @@ impl Named for EnumType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct EnumVariantType {
     pub name: Id,
     pub fields: Vec<(Id, Type)>,
     pub positional: bool,
+}
+
+impl EnumVariantType {
+    pub fn get_all_named_fields(&self) -> Vec<(Id, Type)> {
+        match self.positional {
+            true => vec![],
+            false => self.fields.clone(),
+        }
+    }
 }
 
 impl Named for EnumVariantType {
@@ -633,7 +691,7 @@ impl Named for EnumVariantType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct FunctionType {
     pub name: Id,
     pub type_params: Vec<TypeParameter>,
@@ -653,23 +711,23 @@ impl FunctionType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct TupleType {
     pub types: Vec<Type>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct VectorType {
     pub ty: Box<Type>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum ReferenceType {
     Immutable(Box<Type>),
     Mutable(Box<Type>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Ability {
     Copy,
     Drop,

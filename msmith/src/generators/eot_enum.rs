@@ -44,7 +44,8 @@ impl Generator<MoveAST, AnyConstraint> for EOTEnumGenerator {
             panic!("EOTEnumGenerator::subtrees: constraint does not have a struct type");
         };
 
-        let (_, variant_type) = u.choose(&enum_type.variants)?;
+        let variant_pos = u.choose_index(enum_type.variants.len())?;
+        let (_, variant_type) = &enum_type.variants[variant_pos];
 
         let mut subtrees = vec![];
         for (_, field_type) in &variant_type.fields {
@@ -54,6 +55,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTEnumGenerator {
         }
         let comp_constraint = constraint
             .clone()
+            .with("variant_pos", variant_pos)
             .with("variant_type", variant_type.clone());
 
         Ok((subtrees, comp_constraint))
@@ -66,6 +68,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTEnumGenerator {
         constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
+        let variant_pos = *constraint.get::<usize>("variant_pos").unwrap();
         let variant_type = constraint.get::<EnumVariantType>("variant_type").unwrap();
         let vars = variant_type
             .fields
@@ -84,7 +87,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTEnumGenerator {
         // TODO: abilities should be inferred by the instantiated type
         Ok(Expression::EnumInstantiation(EnumInstantiation {
             enum_type: ConcreteType::new_with_empty_mapping(typ),
-            variant_type: variant_type.clone(),
+            variant_pos,
             fields,
         })
         .into())

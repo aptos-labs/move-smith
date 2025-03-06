@@ -138,6 +138,7 @@ impl Typed for Enum {
             type_params: vec![],
             variants,
             abilities: self.abilities.clone(),
+            variant_pos: None,
         }))
     }
 }
@@ -145,8 +146,17 @@ impl Typed for Enum {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnumInstantiation {
     pub enum_type: ConcreteType,
-    pub variant_type: EnumVariantType,
+    pub variant_pos: usize,
     pub fields: Vec<(SingleVariable, Expression)>,
+}
+
+impl EnumInstantiation {
+    pub fn get_variant_type(&self) -> &EnumVariantType {
+        match self.enum_type.typ.as_ref() {
+            Type::Generic(GenericType::Enum(e)) => &e.variants[self.variant_pos].1,
+            _ => panic!("Expected Enum type"),
+        }
+    }
 }
 
 impl Named for EnumInstantiation {
