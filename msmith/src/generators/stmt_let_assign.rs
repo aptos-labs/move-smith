@@ -1,7 +1,7 @@
 use super::AssignmentGenerator;
 use crate::{
     generators::StatementGenerator,
-    move_ast::{Expression, MoveAST, Statement},
+    move_ast::{MoveAST, Statement},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -12,23 +12,23 @@ use framework::{
 use log::warn;
 
 #[derive(Default)]
-pub struct LetGenerator;
+pub struct LetAssignGenerator;
 
-impl LabelledGenerator for LetGenerator {
+impl LabelledGenerator for LetAssignGenerator {
     fn label() -> GenLabel {
-        GenLabel::new_func_body_level("LetGenerator")
+        GenLabel::new_func_body_level("LetAssignGenerator")
     }
 }
 
-impl Register<GeneratorEntry> for LetGenerator {
+impl Register<GeneratorEntry> for LetAssignGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry::new::<Self>().with_parent::<StatementGenerator>()
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for LetGenerator {
+impl Generator<MoveAST, AnyConstraint> for LetAssignGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        warn!("check_constraint not implemented for LetGenerator");
+        warn!("check_constraint not implemented for LetAssignGenerator");
         true
     }
 
@@ -52,7 +52,7 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
         let assign = asts.into_iter().next().unwrap().into_assignment().unwrap();
-        Ok(Statement::Let(Expression::Assignment(assign)).into())
+        Ok(Statement::LetAssign(assign).into())
     }
 
     fn check_ast(
@@ -62,11 +62,6 @@ impl Generator<MoveAST, AnyConstraint> for LetGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        match ast {
-            MoveAST::Statement(Statement::Let(expr)) => {
-                matches!(expr, Expression::Variable(_) | Expression::Assignment(_))
-            },
-            _ => false,
-        }
+        matches!(ast, MoveAST::Statement(Statement::LetAssign(_)))
     }
 }

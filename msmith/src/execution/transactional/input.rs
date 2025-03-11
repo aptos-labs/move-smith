@@ -61,11 +61,11 @@ impl RunConfig {
         match &self.mode {
             ExecutionMode::V1Only => TestRunConfig::CompilerV1,
             ExecutionMode::V2Only => TestRunConfig::CompilerV2 {
-                language_version: LanguageVersion::V2_0,
+                language_version: LanguageVersion::V2_1,
                 v2_experiments,
             },
             ExecutionMode::V1V2Comparison => TestRunConfig::ComparisonV1V2 {
-                language_version: LanguageVersion::V2_0,
+                language_version: LanguageVersion::V2_1,
                 v2_experiments,
             },
         }

@@ -385,10 +385,28 @@ impl CodeGenerator for Sequence {
 impl CodeGenerator for Statement {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code_lines = match self {
-            Statement::Let(e) => {
+            Statement::LetAssign(e) => {
                 let mut code = vec!["let".to_string()];
                 append_block(&mut code, e.emit_code_lines(), 0);
                 code
+            },
+            Statement::LetDeclare(vs) => {
+                let mut code = "let ".to_string();
+                if vs.len() == 1 {
+                    code.push_str(&vs[0].inline());
+                } else {
+                    let names = vs
+                        .iter()
+                        .map(|v| v.name().inline())
+                        .collect::<Vec<String>>();
+                    let types = vs.iter().map(|v| v.ty().inline()).collect::<Vec<String>>();
+                    code.push('(');
+                    code.push_str(&names.join(", "));
+                    code.push_str("): (");
+                    code.push_str(&types.join(", "));
+                    code.push(')');
+                }
+                vec![code]
             },
             Statement::Expression(e) => e.emit_code_lines(),
         };

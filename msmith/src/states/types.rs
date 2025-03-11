@@ -1,5 +1,7 @@
 use crate::{
-    generators::{EnumGenerator, LetGenerator, SignatureGenerator, StructGenerator},
+    generators::{
+        EnumGenerator, LetAssignGenerator, LetDeclGenerator, SignatureGenerator, StructGenerator,
+    },
     move_ast::{Expression, MoveAST, Statement, Variable},
     states::{
         ids::{Id, Named},
@@ -399,7 +401,8 @@ impl Register<StateEntry> for TypePool {
                 StructGenerator::label(),
                 EnumGenerator::label(),
                 SignatureGenerator::label(),
-                LetGenerator::label(),
+                LetAssignGenerator::label(),
+                LetDeclGenerator::label(),
             ],
         }
     }
@@ -424,47 +427,46 @@ impl State<MoveAST> for TypePool {
                     self.variable_types.insert(p.name.clone(), p.ty());
                 }
             },
-            M::Statement(Statement::Let(e)) => match e {
+            M::Statement(Statement::LetAssign(assign)) => match assign.lhs.as_ref() {
                 E::Variable(Variable::SingleVariable(v)) => {
                     self.variable_types.insert(v.name.clone(), v.ty());
                 },
-                E::Assignment(assign) => match assign.lhs.as_ref() {
-                    E::Variable(Variable::SingleVariable(v)) => {
-                        self.variable_types.insert(v.name.clone(), v.ty());
-                    },
-                    E::Tuple(t) => {
-                        for elem in &t.expressions {
-                            match elem {
-                                E::Variable(Variable::SingleVariable(v)) => {
-                                    self.variable_types.insert(v.name.clone(), v.ty());
-                                },
-                                _ => unimplemented!(),
-                            }
+                E::Tuple(t) => {
+                    for elem in &t.expressions {
+                        match elem {
+                            E::Variable(Variable::SingleVariable(v)) => {
+                                self.variable_types.insert(v.name.clone(), v.ty());
+                            },
+                            _ => unimplemented!(),
                         }
-                    },
-                    E::StructDestructure(sd) => {
-                        if let Type::Generic(GenericType::Struct(struct_type)) =
-                            &sd.struct_type.typ.as_ref()
-                        {
-                            let field_types = struct_type
-                                .fields
-                                .iter()
-                                .map(|(_, typ)| typ.clone())
-                                .collect::<Vec<Type>>();
-                            field_types
-                                .iter()
-                                .zip(&sd.new_vars)
-                                .for_each(|(field_typ, var)| {
-                                    if let Some(v) = var {
-                                        self.variable_types
-                                            .insert(v.name.clone(), field_typ.clone());
-                                    }
-                                });
-                        }
-                    },
-                    _ => unimplemented!(),
+                    }
                 },
-                _ => {},
+                E::StructDestructure(sd) => {
+                    if let Type::Generic(GenericType::Struct(struct_type)) =
+                        &sd.struct_type.typ.as_ref()
+                    {
+                        let field_types = struct_type
+                            .fields
+                            .iter()
+                            .map(|(_, typ)| typ.clone())
+                            .collect::<Vec<Type>>();
+                        field_types
+                            .iter()
+                            .zip(&sd.new_vars)
+                            .for_each(|(field_typ, var)| {
+                                if let Some(v) = var {
+                                    self.variable_types
+                                        .insert(v.name.clone(), field_typ.clone());
+                                }
+                            });
+                    }
+                },
+                _ => unimplemented!(),
+            },
+            M::Statement(Statement::LetDeclare(vars)) => {
+                for v in vars {
+                    self.variable_types.insert(v.name.clone(), v.ty());
+                }
             },
             _ => {},
         }

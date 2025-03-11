@@ -228,7 +228,8 @@ pub struct Sequence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
-    Let(Expression),
+    LetDeclare(Vec<SingleVariable>),
+    LetAssign(Assignment),
     Expression(Expression),
 }
 
