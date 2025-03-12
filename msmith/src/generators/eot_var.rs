@@ -1,7 +1,7 @@
 use crate::{
     generators::ExprOfTypeGenerator,
     move_ast::{Expression, MoveAST},
-    states::{get_vars_in_curr_scope_of_type, Type, Typed},
+    states::{get_initialized_vars_in_curr_scope_of_type, Type, Typed},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -32,7 +32,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
         warn!("EOTVariableGenerator::check_constraint is not complete");
         constraint.check_not_exist_or_has_type::<Type>("type") && {
             let typ = constraint.get::<Type>("type");
-            let vars = get_vars_in_curr_scope_of_type(env, typ);
+            let vars = get_initialized_vars_in_curr_scope_of_type(env, typ);
             trace!("Finding vars of type {:?}: {:?}", typ, vars);
             !vars.is_empty()
         }
@@ -45,7 +45,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let picked_typ = constraint.get::<Type>("type").cloned();
-        let vars = get_vars_in_curr_scope_of_type(env, picked_typ.as_ref());
+        let vars = get_initialized_vars_in_curr_scope_of_type(env, picked_typ.as_ref());
         let chosen_var = u.choose(&vars)?.clone();
 
         let subtree = Subtree::new_single_candidate(chosen_var.into());

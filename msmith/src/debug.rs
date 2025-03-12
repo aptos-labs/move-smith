@@ -1,4 +1,5 @@
 use log::{warn, LevelFilter};
+#[allow(unused)]
 use msmith::{
     execution::{
         compile::{print_compile_result, CompileExecutor, CompileInput, CompileStatus},

@@ -4,7 +4,8 @@ use super::ExpressionDepth;
 use crate::{
     move_ast::{DotVariable, MoveAST, SingleVariable, Variable},
     states::{
-        CurrScope, GenerationConfig, GenericType, Id, IdKind, IdPool, Scope, Type, TypePool, Typed,
+        CurrScope, GenerationConfig, GenericType, Id, IdKind, IdPool, InitMap, Scope, Type,
+        TypePool, Typed,
     },
 };
 use framework::StatePool;
@@ -107,7 +108,7 @@ pub fn get_all_dot_vars_from(id: &Id, env: &StatePool<MoveAST>) -> Vec<DotVariab
     get_all_dot_vars_from_rec(id_dot)
 }
 
-pub fn get_vars_in_curr_scope_of_type(
+pub fn get_initialized_vars_in_curr_scope_of_type(
     env: &StatePool<MoveAST>,
     wanted: Option<&Type>,
 ) -> Vec<Variable> {
@@ -115,6 +116,10 @@ pub fn get_vars_in_curr_scope_of_type(
     let id_pool = env.get::<IdPool>().unwrap();
     let all_ids = id_pool.get_ids_of_ident_kind(IdKind::Var);
     let ids = id_pool.filter_id_in_scope(&all_ids, &curr_scope);
+    let ids = ids
+        .into_iter()
+        .filter(|id| env.get::<InitMap>().unwrap().is_var_initialized(id))
+        .collect::<Vec<Id>>();
 
     let type_pool = env.get::<TypePool>().unwrap();
 

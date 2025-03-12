@@ -72,7 +72,8 @@ impl MoveSmith {
             .add_state::<states::IdPool>()
             .add_state::<states::CurrScope>()
             .add_state::<states::PartialInfo>()
-            .add_state::<states::ExpressionDepth>();
+            .add_state::<states::ExpressionDepth>()
+            .add_state::<states::InitMap>();
 
         use Variant as V;
         let framework = match variant {
