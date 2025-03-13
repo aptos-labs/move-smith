@@ -8,7 +8,7 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
-use log::trace;
+use log::error;
 
 #[derive(Default)]
 pub struct PatternGenerator;
@@ -47,10 +47,7 @@ fn get_patterns_for_type(
                     u.choose(&pats).unwrap().clone()
                 })
                 .collect();
-            patterns.push(Pattern {
-                typ: typ.clone(),
-                body: PatternKind::Positional(field_patterns),
-            });
+            patterns.push(Pattern::new_full_positional(typ, field_patterns));
         },
         Type::Generic(GenericType::Struct(s)) if s.positional => {
             let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
@@ -63,7 +60,7 @@ fn get_patterns_for_type(
                     u.choose(&pats).unwrap().clone()
                 })
                 .collect::<Vec<Pattern>>();
-            patterns.push(Pattern::new_positional(typ, field_patterns));
+            patterns.push(Pattern::new_full_positional(typ, field_patterns));
         },
         Type::Generic(GenericType::Struct(s)) if !s.positional => {
             let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
@@ -88,6 +85,41 @@ fn get_patterns_for_type(
     patterns
 }
 
+/// Return ONE random partial patterns for the given position or named pattern.
+/// TODO: maybe return all possible and choose later
+fn get_partial_patterns(u: &mut Unstructured, pat: &Pattern) -> Option<Pattern> {
+    match &pat.body {
+        PatternKind::Positional(pats) => {
+            let mut new_fields = pats.clone();
+            let start_index = u.int_in_range(0..=new_fields.len() - 1).unwrap();
+            let num_elems_left = new_fields.len() - start_index;
+            let len = u.int_in_range(1..=num_elems_left).unwrap();
+            for i in 0..len {
+                let idx = start_index + i;
+                if idx < new_fields.len() {
+                    new_fields[idx] = None;
+                }
+            }
+            Some(Pattern::new_partial_positional(&pat.typ, new_fields))
+        },
+        PatternKind::Named(pairs) => {
+            let mut new_paris = pairs.clone();
+            let total = pairs.len();
+            let num_remove = if total == 1 {
+                1
+            } else {
+                u.int_in_range(1..=total - 1).unwrap()
+            };
+            for _ in 0..num_remove {
+                let idx = u.choose_index(new_paris.len()).unwrap();
+                new_paris.remove(idx);
+            }
+            Some(Pattern::new_named(&pat.typ, new_paris))
+        },
+        _ => None,
+    }
+}
+
 impl Generator<MoveAST, AnyConstraint> for PatternGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         constraint.check_exist_and_type::<Type>("type")
@@ -102,14 +134,20 @@ impl Generator<MoveAST, AnyConstraint> for PatternGenerator {
         let Some(typ) = constraint.get::<Type>("type") else {
             panic!("Type not found in constraint")
         };
-        let patterns = get_patterns_for_type(u, env, typ)
+        let patterns = get_patterns_for_type(u, env, typ);
+        let partials = patterns
+            .iter()
+            .filter_map(|pat| get_partial_patterns(u, pat))
+            .collect::<Vec<Pattern>>();
+        let all_patterns = patterns
             .into_iter()
+            .chain(partials.into_iter())
             .map(|p| p.into())
             .collect::<Vec<MoveAST>>();
-        if patterns.is_empty() {
-            trace!("No patterns found for type {:?}", typ);
+        if all_patterns.is_empty() {
+            error!("No patterns found for type {:?}", typ);
         }
-        let subtree = Subtree::new_candidates_subtree(patterns);
+        let subtree = Subtree::new_candidates_subtree(all_patterns);
         return Ok((vec![subtree], AnyConstraint::new()));
     }
 

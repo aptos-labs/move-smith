@@ -329,7 +329,14 @@ impl Pattern {
         }
     }
 
-    pub fn new_positional(typ: &Type, patterns: Vec<Pattern>) -> Self {
+    pub fn new_full_positional(typ: &Type, patterns: Vec<Pattern>) -> Self {
+        Pattern {
+            typ: typ.clone(),
+            body: PatternKind::Positional(patterns.into_iter().map(Some).collect()),
+        }
+    }
+
+    pub fn new_partial_positional(typ: &Type, patterns: Vec<Option<Pattern>>) -> Self {
         Pattern {
             typ: typ.clone(),
             body: PatternKind::Positional(patterns),
@@ -354,7 +361,7 @@ impl Pattern {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatternKind {
     Variable(Variable),
-    Positional(Vec<Pattern>),
+    Positional(Vec<Option<Pattern>>),
     Named(Vec<(Id, Pattern)>),
     Wildcard,
 }

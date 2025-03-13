@@ -486,7 +486,20 @@ impl CodeGenerator for Pattern {
                 } else {
                     '{'.to_string()
                 };
-                let elems = pats.iter().map(|p| p.inline()).collect::<Vec<String>>();
+                let mut elems = vec![];
+                let mut adding_dot = false;
+                for pat in pats {
+                    match pat {
+                        Some(p) => elems.push(p.inline()),
+                        None => {
+                            if adding_dot {
+                                continue;
+                            }
+                            elems.push("..".to_string());
+                            adding_dot = true;
+                        },
+                    }
+                }
                 code.push_str(&elems.join(", "));
                 code.push(')');
                 vec![code]
@@ -499,6 +512,10 @@ impl CodeGenerator for Pattern {
                 };
                 for (id, pat) in pats {
                     code.push(format!("{}: {},", id.inline(), pat.inline()));
+                }
+                let struct_typ = self.typ.as_struct().unwrap();
+                if pats.len() != struct_typ.fields.len() {
+                    code.push("..".to_string());
                 }
                 code.push('}'.to_string());
                 code

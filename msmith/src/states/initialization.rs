@@ -45,7 +45,13 @@ fn get_initialized_vars_from_pattern(pattern: &Pattern) -> Vec<Id> {
         PatternKind::Variable(Variable::DotVariable(_)) => vec![],
         PatternKind::Positional(pats) => pats
             .iter()
-            .flat_map(|p| get_initialized_vars_from_pattern(p))
+            .flat_map(|f| {
+                if let Some(p) = f {
+                    get_initialized_vars_from_pattern(p)
+                } else {
+                    vec![]
+                }
+            })
             .collect(),
         PatternKind::Named(s) => s
             .iter()

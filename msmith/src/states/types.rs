@@ -414,7 +414,13 @@ fn get_defined_vars_from_pattern(pattern: &Pattern) -> Vec<(Id, Type)> {
         PatternKind::Variable(Variable::DotVariable(_)) => vec![], // Dot variable cannot be defined
         PatternKind::Positional(fields) => fields
             .iter()
-            .map(|f| get_defined_vars_from_pattern(f))
+            .map(|f| {
+                if let Some(p) = f {
+                    get_defined_vars_from_pattern(p)
+                } else {
+                    vec![]
+                }
+            })
             .flatten()
             .collect(),
         PatternKind::Named(pairs) => {
