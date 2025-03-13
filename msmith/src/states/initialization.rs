@@ -1,6 +1,6 @@
 use crate::{
     generators::{AssignmentGenerator, SignatureGenerator},
-    move_ast::{Expression, MoveAST, Variable},
+    move_ast::{Assignment, MoveAST, Pattern, PatternKind, Variable},
     states::Id,
 };
 use arbitrary::Unstructured;
@@ -39,40 +39,38 @@ impl Register<StateEntry> for InitMap {
     }
 }
 
+fn get_initialized_vars_from_pattern(pattern: &Pattern) -> Vec<Id> {
+    match &pattern.body {
+        PatternKind::Variable(Variable::SingleVariable(sv)) => vec![sv.name.clone()],
+        PatternKind::Variable(Variable::DotVariable(_)) => vec![],
+        PatternKind::Positional(pats) => pats
+            .iter()
+            .flat_map(|p| get_initialized_vars_from_pattern(p))
+            .collect(),
+        PatternKind::Named(s) => s
+            .iter()
+            .flat_map(|(_, p)| get_initialized_vars_from_pattern(p))
+            .collect(),
+        PatternKind::Wildcard => vec![],
+    }
+}
+
 /// We only need to monitor the entrance generator `ExprOfTypeGenerator`.
 impl State<MoveAST> for InitMap {
     fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {}
 
     fn update_post(&mut self, _u: &mut Unstructured, new_ast: &MoveAST, _generator: &GenLabel) {
-        use Expression as E;
         match new_ast {
             MoveAST::Signature(sig) => {
                 for param in &sig.parameters {
                     self.init_map.insert(param.name.clone(), true);
                 }
             },
-            MoveAST::Assignment(assign) => match assign.lhs.as_ref() {
-                E::Variable(Variable::SingleVariable(v)) => {
-                    self.init_map.insert(v.name.clone(), true);
-                },
-                E::Tuple(t) => {
-                    for elem in &t.expressions {
-                        match elem {
-                            E::Variable(Variable::SingleVariable(v)) => {
-                                self.init_map.insert(v.name.clone(), true);
-                            },
-                            _ => unimplemented!(),
-                        }
-                    }
-                },
-                E::StructDestructure(sd) => {
-                    sd.new_vars.iter().for_each(|v| {
-                        if let Some(v) = v {
-                            self.init_map.insert(v.name.clone(), true);
-                        }
-                    });
-                },
-                _ => unimplemented!(),
+            MoveAST::Assignment(Assignment::AssignPattern(pat, _)) => {
+                let init_vars = get_initialized_vars_from_pattern(pat);
+                for var in init_vars {
+                    self.init_map.insert(var, true);
+                }
             },
             _ => panic!("Unexpected Assignment, but got: {:?}", new_ast),
         }

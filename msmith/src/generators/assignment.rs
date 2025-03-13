@@ -1,12 +1,7 @@
 use crate::{
-    generators::ExprOfTypeGenerator,
-    move_ast::{
-        Assignment, Expression, MoveAST, SingleVariable, StructDestructure, Tuple, Variable,
-    },
-    states::{
-        get_config, get_type_pool, new_id_from_curr_scope, ConcreteType, GenericType, IdKind, Type,
-        TypeSelectorBuilder,
-    },
+    generators::{ExprOfTypeGenerator, PatternGenerator},
+    move_ast::{Assignment, MoveAST},
+    states::{get_config, get_type_pool, Type, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -14,7 +9,6 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
-use std::collections::BTreeMap;
 
 #[derive(Default)]
 pub struct AssignmentGenerator;
@@ -56,78 +50,24 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
         };
 
         let gen_constraint = AnyConstraint::new().with("type", wanted_type.clone());
-        let subtree =
+        let lhs = Subtree::new_generator_subtree(PatternGenerator::label(), gen_constraint.clone());
+        let rhs =
             Subtree::new_generator_subtree(ExprOfTypeGenerator::label(), gen_constraint.clone());
 
-        Ok((vec![subtree], gen_constraint))
+        Ok((vec![lhs, rhs], gen_constraint))
     }
 
     fn compose(
         &self,
-        u: &mut Unstructured,
-        env: &mut StatePool<MoveAST>,
-        constraint: AnyConstraint,
+        _u: &mut Unstructured,
+        _env: &mut StatePool<MoveAST>,
+        _constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        let typ = constraint.get::<Type>("type").unwrap();
-        let special_lhs = match typ {
-            Type::Generic(GenericType::Tuple(t)) => {
-                let mut exprs = vec![];
-                for elem_typ in &t.types {
-                    let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
-                    let var: Variable = SingleVariable::new(&name, elem_typ).into();
-                    let expr: Expression = var.into();
-                    exprs.push(expr);
-                }
-                Some(
-                    Tuple {
-                        expressions: exprs,
-                        show_type: true,
-                    }
-                    .into(),
-                )
-            },
-            Type::Generic(GenericType::Struct(s)) => {
-                if u.arbitrary::<bool>()? {
-                    let mut new_vars = vec![];
-                    for (_, field_type) in &s.fields {
-                        let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
-                        let mut var = SingleVariable::new_declare(&name, field_type);
-                        var.show_type = false;
-                        new_vars.push(var.into());
-                    }
-                    Some(
-                        StructDestructure {
-                            struct_type: ConcreteType {
-                                mapping: BTreeMap::new(),
-                                typ: Box::new(typ.clone()),
-                            },
-                            new_vars,
-                        }
-                        .into(),
-                    )
-                } else {
-                    None
-                }
-            },
-            _ => None,
-        };
-
-        let lhs = match special_lhs {
-            Some(lhs) => lhs,
-            None => {
-                let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
-                let var: Variable = SingleVariable::new_declare(&name, typ).into();
-                var.into()
-            },
-        };
-
-        let rhs = asts.into_iter().next().unwrap().into_expression().unwrap();
-        Ok(Assignment {
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-        .into())
+        let mut iter = asts.into_iter();
+        let lhs = iter.next().unwrap().into_pattern().unwrap();
+        let rhs = iter.next().unwrap().into_expression().unwrap();
+        Ok(Assignment::AssignPattern(lhs, Box::new(rhs)).into())
     }
 
     fn check_ast(

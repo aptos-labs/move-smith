@@ -470,9 +470,48 @@ impl CodeGenerator for Tuple {
 
 impl CodeGenerator for Assignment {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = vec![format!("{} =", self.lhs.emit_code(),)];
-        append_block(&mut code, self.rhs.emit_code_lines(), 0);
-        code
+        match self {
+            Assignment::AssignPattern(pat, expr) => {
+                let lhs = pat.inline();
+                let mut code = vec![format!("{} =", lhs)];
+                append_block(&mut code, expr.emit_code_lines(), 0);
+                code
+            },
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl CodeGenerator for Pattern {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let typ_name = self.typ.name().inline();
+        match &self.body {
+            PatternKind::Variable(v) => vec![v.inline()],
+            PatternKind::Positional(pats) => {
+                let mut code = if self.typ.is_tuple() || self.typ.is_struct() {
+                    format!("{}(", typ_name)
+                } else {
+                    '{'.to_string()
+                };
+                let elems = pats.iter().map(|p| p.inline()).collect::<Vec<String>>();
+                code.push_str(&elems.join(", "));
+                code.push(')');
+                vec![code]
+            },
+            PatternKind::Named(pats) => {
+                let mut code = if self.typ.is_tuple() || self.typ.is_struct() {
+                    vec![format!("{}{{", typ_name)]
+                } else {
+                    vec!['{'.to_string()]
+                };
+                for (id, pat) in pats {
+                    code.push(format!("{}: {},", id.inline(), pat.inline()));
+                }
+                code.push('}'.to_string());
+                code
+            },
+            PatternKind::Wildcard => vec!['_'.to_string()],
+        }
     }
 }
 

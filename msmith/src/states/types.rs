@@ -2,10 +2,10 @@ use crate::{
     generators::{
         EnumGenerator, LetAssignGenerator, LetDeclGenerator, SignatureGenerator, StructGenerator,
     },
-    move_ast::{Expression, MoveAST, Statement, Variable},
+    move_ast::{Assignment, MoveAST, Pattern, PatternKind, Statement, Variable},
     states::{
         ids::{Id, Named},
-        GenerationConfig,
+        GenerationConfig, IdKind,
     },
 };
 use anyhow::Result;
@@ -408,11 +408,35 @@ impl Register<StateEntry> for TypePool {
     }
 }
 
+fn get_defined_vars_from_pattern(pattern: &Pattern) -> Vec<(Id, Type)> {
+    match &pattern.body {
+        PatternKind::Variable(Variable::SingleVariable(sv)) => vec![(sv.name.clone(), sv.ty())],
+        PatternKind::Variable(Variable::DotVariable(_)) => vec![], // Dot variable cannot be defined
+        PatternKind::Positional(fields) => fields
+            .iter()
+            .map(|f| get_defined_vars_from_pattern(f))
+            .flatten()
+            .collect(),
+        PatternKind::Named(pairs) => {
+            let top_level = pairs
+                .iter()
+                .map(|(id, pat)| (id.clone(), pat.ty()))
+                .collect::<Vec<(Id, Type)>>();
+            let nested = pairs
+                .iter()
+                .map(|(_, pat)| get_defined_vars_from_pattern(pat))
+                .flatten()
+                .collect::<Vec<(Id, Type)>>();
+            top_level.into_iter().chain(nested.into_iter()).collect()
+        },
+        PatternKind::Wildcard => vec![],
+    }
+}
+
 impl State<MoveAST> for TypePool {
     fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {}
 
     fn update_post(&mut self, _u: &mut Unstructured, new_ast: &MoveAST, _generator: &GenLabel) {
-        use Expression as E;
         use MoveAST as M;
         match &new_ast {
             M::Struct(s) => {
@@ -427,41 +451,11 @@ impl State<MoveAST> for TypePool {
                     self.variable_types.insert(p.name.clone(), p.ty());
                 }
             },
-            M::Statement(Statement::LetAssign(assign)) => match assign.lhs.as_ref() {
-                E::Variable(Variable::SingleVariable(v)) => {
-                    self.variable_types.insert(v.name.clone(), v.ty());
-                },
-                E::Tuple(t) => {
-                    for elem in &t.expressions {
-                        match elem {
-                            E::Variable(Variable::SingleVariable(v)) => {
-                                self.variable_types.insert(v.name.clone(), v.ty());
-                            },
-                            _ => unimplemented!(),
-                        }
-                    }
-                },
-                E::StructDestructure(sd) => {
-                    if let Type::Generic(GenericType::Struct(struct_type)) =
-                        &sd.struct_type.typ.as_ref()
-                    {
-                        let field_types = struct_type
-                            .fields
-                            .iter()
-                            .map(|(_, typ)| typ.clone())
-                            .collect::<Vec<Type>>();
-                        field_types
-                            .iter()
-                            .zip(&sd.new_vars)
-                            .for_each(|(field_typ, var)| {
-                                if let Some(v) = var {
-                                    self.variable_types
-                                        .insert(v.name.clone(), field_typ.clone());
-                                }
-                            });
-                    }
-                },
-                _ => unimplemented!(),
+            M::Statement(Statement::LetAssign(Assignment::AssignPattern(pat, _))) => {
+                let vars = get_defined_vars_from_pattern(pat);
+                for (id, ty) in vars {
+                    self.variable_types.insert(id, ty);
+                }
             },
             M::Statement(Statement::LetDeclare(vars)) => {
                 for v in vars {
@@ -511,12 +505,20 @@ impl Type {
         matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_struct())
     }
 
+    pub fn is_struct(&self) -> bool {
+        self.is_generic_struct() || self.is_concrete_struct()
+    }
+
     pub fn is_generic_enum(&self) -> bool {
         matches!(self, Type::Generic(GenericType::Enum(_)))
     }
 
     pub fn is_concrete_enum(&self) -> bool {
         matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_enum())
+    }
+
+    pub fn is_enum(&self) -> bool {
+        self.is_generic_enum() || self.is_concrete_enum()
     }
 
     pub fn is_generic_tuple(&self) -> bool {
@@ -526,6 +528,10 @@ impl Type {
     pub fn is_concrete_tuple(&self) -> bool {
         matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_tuple())
     }
+
+    pub fn is_tuple(&self) -> bool {
+        self.is_generic_tuple() || self.is_concrete_tuple()
+    }
 }
 
 impl Named for Type {
@@ -534,7 +540,7 @@ impl Named for Type {
             Type::Generic(GenericType::Struct(s)) => s.name(),
             Type::Generic(GenericType::Enum(e)) => e.name(),
             Type::Concrete(c) => c.name(),
-            _ => unimplemented!(),
+            _ => Id::new_str("TypeNamePlaceholder", IdKind::Var),
         }
     }
 }
@@ -552,6 +558,11 @@ impl Named for ConcreteType {
 }
 
 impl ConcreteType {
+    /// TODO: actually concretize types once type param is implemented
+    pub fn get_concretized_type(&self) -> Type {
+        self.typ.as_ref().clone()
+    }
+
     pub fn new_with_empty_mapping(typ: &Type) -> Self {
         Self {
             mapping: BTreeMap::new(),
@@ -667,10 +678,15 @@ impl EnumType {
 
 impl Named for EnumType {
     fn name(&self) -> Id {
-        self.name.clone()
+        if self.variant_pos.is_some() {
+            let variant = self.variants[self.variant_pos.unwrap()].0.clone();
+            let name = format!("{}::{}", self.name, variant);
+            Id::new(name, IdKind::Var)
+        } else {
+            self.name.clone()
+        }
     }
 }
-
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct EnumVariantType {
     pub name: Id,

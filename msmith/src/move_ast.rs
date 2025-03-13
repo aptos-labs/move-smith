@@ -33,6 +33,7 @@ pub enum MoveAST {
     Enum(Enum),
     EnumVariant(EnumVariant),
     EnumInstantiation(EnumInstantiation),
+    Pattern(Pattern),
 }
 
 impl ASTNode for MoveAST {}
@@ -305,15 +306,72 @@ impl Typed for Tuple {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Assignment {
-    pub lhs: Box<Expression>,
-    pub rhs: Box<Expression>,
+pub enum Assignment {
+    // Handles:
+    //     - x = ...
+    //     - x.y = ...
+    //     - S1 { ... } = ...
+    //     - (...) = ...
+    AssignPattern(Pattern, Box<Expression>),
+    // Handles:
+    //     - *(...) = ...
+    AssignDeref(Box<Expression>, Box<Expression>),
 }
 
 impl Typed for Assignment {
     fn ty(&self) -> Type {
         Type::Unit
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Pattern {
+    pub typ: Type,
+    pub body: PatternKind,
+}
+
+impl Typed for Pattern {
+    fn ty(&self) -> Type {
+        self.typ.clone()
+    }
+}
+
+impl Pattern {
+    pub fn new_single_var(name: &Id, typ: &Type) -> Self {
+        Pattern {
+            typ: typ.clone(),
+            body: PatternKind::Variable(Variable::SingleVariable(SingleVariable::new(name, typ))),
+        }
+    }
+
+    pub fn new_positional(typ: &Type, patterns: Vec<Pattern>) -> Self {
+        Pattern {
+            typ: typ.clone(),
+            body: PatternKind::Positional(patterns),
+        }
+    }
+
+    pub fn new_named(typ: &Type, fields: Vec<(Id, Pattern)>) -> Self {
+        Pattern {
+            typ: typ.clone(),
+            body: PatternKind::Named(fields),
+        }
+    }
+
+    pub fn new_wildcard(typ: &Type) -> Self {
+        Pattern {
+            typ: typ.clone(),
+            body: PatternKind::Wildcard,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PatternKind {
+    Variable(Variable),
+    Positional(Vec<Pattern>),
+    Named(Vec<(Id, Pattern)>),
+    Wildcard,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumInto)]
