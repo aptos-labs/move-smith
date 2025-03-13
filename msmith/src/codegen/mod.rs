@@ -149,28 +149,49 @@ impl CodeGenerator for Struct {
                     .join(", ")
             )
         };
-        let mut code = vec![format!("struct {}{}{{", self.name, abilities)];
-        let fields = self
-            .fields
-            .iter()
-            .map(|f| format!("{},", f.emit_code()))
-            .collect::<Vec<String>>();
-        append_code_lines_with_indentation(&mut code, fields, INDENTATION_SIZE);
-        code.push("}".to_string());
-        code
+        if self.positional {
+            let types = self
+                .fields
+                .iter()
+                .map(|f| f.typ.inline())
+                .collect::<Vec<String>>()
+                .join(", ");
+            vec![format!("struct {}({}){};", self.name, types, abilities)]
+        } else {
+            let mut code = vec![format!("struct {}{}{{", self.name, abilities)];
+            let fields = self
+                .fields
+                .iter()
+                .map(|f| format!("{},", f.emit_code()))
+                .collect::<Vec<String>>();
+            append_code_lines_with_indentation(&mut code, fields, INDENTATION_SIZE);
+            code.push("}".to_string());
+            code
+        }
     }
 }
 
 impl CodeGenerator for StructInstantiation {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = vec![format!("{} {{", self.struct_type.name())];
+        let ty = self.ty();
+        let struct_type = ty.as_struct().unwrap();
+
+        let mut code = if struct_type.positional {
+            vec![format!("{} (", self.struct_type.name())]
+        } else {
+            vec![format!("{} {{", self.struct_type.name())]
+        };
         let mut fields = vec![];
         for (var, expr) in &self.fields {
-            fields.push(format!("{}:", var.name()));
+            if !struct_type.positional {
+                fields.push(format!("{}: ", var.name()));
+            }
+            if fields.is_empty() {
+                fields.push("".to_string());
+            }
 
             let expr_liens = expr.emit_code_lines();
             if expr_liens.len() == 1 {
-                fields.last_mut().unwrap().push(' ');
                 fields.last_mut().unwrap().push_str(&expr_liens[0]);
             } else {
                 append_block(&mut fields, expr_liens, INDENTATION_SIZE);
@@ -178,7 +199,11 @@ impl CodeGenerator for StructInstantiation {
             fields.last_mut().unwrap().push(',');
         }
         append_code_lines_with_indentation(&mut code, fields, INDENTATION_SIZE);
-        code.push("}".to_string());
+        if struct_type.positional {
+            code.push(')'.to_string());
+        } else {
+            code.push('}'.to_string());
+        }
         code
     }
 }

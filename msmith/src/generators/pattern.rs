@@ -52,7 +52,20 @@ fn get_patterns_for_type(
                 body: PatternKind::Positional(field_patterns),
             });
         },
-        Type::Generic(GenericType::Struct(s)) => {
+        Type::Generic(GenericType::Struct(s)) if s.positional => {
+            let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
+            patterns.push(Pattern::new_single_var(&name, typ));
+            let field_patterns = s
+                .fields
+                .iter()
+                .map(|(_, t)| {
+                    let pats = get_patterns_for_type(u, env, t);
+                    u.choose(&pats).unwrap().clone()
+                })
+                .collect::<Vec<Pattern>>();
+            patterns.push(Pattern::new_positional(typ, field_patterns));
+        },
+        Type::Generic(GenericType::Struct(s)) if !s.positional => {
             let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
             patterns.push(Pattern::new_single_var(&name, typ));
             let field_patterns = s

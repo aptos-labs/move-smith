@@ -243,9 +243,9 @@ impl TypePool {
 
     pub fn number_type_selection_weights(&self) -> Vec<(Type, u32)> {
         vec![
-            (Type::Primitive(Primitive::Number(NumberType::U8)), 10),
-            (Type::Primitive(Primitive::Number(NumberType::U16)), 10),
-            (Type::Primitive(Primitive::Number(NumberType::U32)), 10),
+            (Type::Primitive(Primitive::Number(NumberType::U8)), 30),
+            (Type::Primitive(Primitive::Number(NumberType::U16)), 30),
+            (Type::Primitive(Primitive::Number(NumberType::U32)), 30),
             (Type::Primitive(Primitive::Number(NumberType::U64)), 10),
             (Type::Primitive(Primitive::Number(NumberType::U128)), 1),
             (Type::Primitive(Primitive::Number(NumberType::U256)), 1),
@@ -507,6 +507,14 @@ impl Type {
 
     pub fn is_struct(&self) -> bool {
         self.is_generic_struct() || self.is_concrete_struct()
+    }
+
+    pub fn as_struct(&self) -> Option<&StructType> {
+        match self {
+            Type::Generic(GenericType::Struct(s)) => Some(s),
+            Type::Concrete(ConcreteType { typ, .. }) => typ.as_struct(),
+            _ => None,
+        }
     }
 
     pub fn is_generic_enum(&self) -> bool {

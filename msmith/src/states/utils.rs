@@ -88,7 +88,7 @@ pub fn new_id_from_curr_scope(env: &mut StatePool<MoveAST>, id_kind: IdKind) -> 
 pub fn get_all_dot_vars_from_rec(curr: DotVariable) -> Vec<DotVariable> {
     let curr_type = curr.ty();
     let fields = match &curr_type {
-        Type::Generic(GenericType::Struct(s)) => &s.fields,
+        Type::Generic(GenericType::Struct(s)) if !s.positional => &s.fields,
         Type::Generic(GenericType::Enum(e)) => &e.get_possible_named_fields(),
         _ => return vec![],
     };
