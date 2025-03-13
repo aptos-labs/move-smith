@@ -29,7 +29,6 @@ pub enum MoveAST {
     FunctionCall(FunctionCall),
     Struct(Struct),
     StructInstantiation(StructInstantiation),
-    StructDestructure(StructDestructure),
     Enum(Enum),
     EnumVariant(EnumVariant),
     EnumInstantiation(EnumInstantiation),
@@ -237,7 +236,6 @@ pub enum Statement {
 #[derive(Debug, Clone, PartialEq, Eq, EnumInto)]
 pub enum Expression {
     StructInstantiation(StructInstantiation),
-    StructDestructure(StructDestructure),
     EnumInstantiation(EnumInstantiation),
     Tuple(Tuple),
     Assignment(Assignment),
@@ -250,7 +248,6 @@ impl Typed for Expression {
     fn ty(&self) -> Type {
         match self {
             Expression::StructInstantiation(s) => s.ty(),
-            Expression::StructDestructure(s) => s.ty(),
             Expression::EnumInstantiation(e) => e.ty(),
             Expression::Tuple(t) => t.ty(),
             Expression::Assignment(a) => a.ty(),
@@ -258,18 +255,6 @@ impl Typed for Expression {
             Expression::NumberLiteral(n) => n.ty(),
             Expression::FunctionCall(f) => f.ty(),
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructDestructure {
-    pub struct_type: ConcreteType,
-    pub new_vars: Vec<Option<SingleVariable>>,
-}
-
-impl Typed for StructDestructure {
-    fn ty(&self) -> Type {
-        Type::Concrete(self.struct_type.clone())
     }
 }
 

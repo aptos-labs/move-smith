@@ -183,37 +183,6 @@ impl CodeGenerator for StructInstantiation {
     }
 }
 
-impl CodeGenerator for StructDestructure {
-    fn emit_code_lines(&self) -> Vec<String> {
-        let fields = if let Type::Generic(GenericType::Struct(struct_type)) =
-            self.struct_type.typ.as_ref()
-        {
-            struct_type
-                .fields
-                .iter()
-                .map(|(id, _)| id.emit_code())
-                .collect::<Vec<String>>()
-        } else {
-            panic!(
-                "StructDestructure: {:?} is not a struct",
-                self.struct_type.typ
-            );
-        };
-        let mut pairs = vec![];
-        for (new_var, field) in self.new_vars.iter().zip(fields) {
-            // TODO: 2.0 three dots style
-            if let Some(new_var) = new_var {
-                pairs.push(format!("{}: {}", field, new_var.name));
-            }
-        }
-        vec![format!(
-            "{} {{ {} }}",
-            self.struct_type.name(),
-            pairs.join(", ")
-        )]
-    }
-}
-
 impl CodeGenerator for Enum {
     fn emit_code_lines(&self) -> Vec<String> {
         let abilities = if self.abilities.is_empty() {
@@ -422,7 +391,6 @@ impl CodeGenerator for Expression {
         use Expression as E;
         match self {
             E::StructInstantiation(s) => s.emit_code_lines(),
-            E::StructDestructure(s) => s.emit_code_lines(),
             E::EnumInstantiation(e) => e.emit_code_lines(),
             E::Assignment(a) => a.emit_code_lines(),
             E::Variable(v) => v.emit_code_lines(),
