@@ -22,6 +22,7 @@ The fuzz targets lives in `fuzz/fuzz_targets`:
 
 |Target|Oracle|Fuzzing Engine|
 |------|------|--------------|
+|[`v2_only.rs`](./fuzz/fuzz_targets/v2_only.rs)|Crash|libFuzzer|
 |[`v1v2.rs`](./fuzz/fuzz_targets/v1v2.rs)|Compiler V1 vs. V2|libFuzzer|
 |[`opt_noopt.rs`](./fuzz/fuzz_targets/opt_noopt.rs)|Optimization On vs. Off|libFuzzer|
 |[`hfuzz_v1v2.rs`](./fuzz/fuzz_targets/hfuzz_v1v2.rs)|Compiler V1 vs. V2|honggfuzz|
