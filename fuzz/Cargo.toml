@@ -56,3 +56,10 @@ path = "fuzz_targets/v2_only.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "hfuzz-v2-only"
+path = "fuzz_targets/hfuzz_v2_only.rs"
+test = false
+doc = false
+bench = false

@@ -231,7 +231,7 @@ fi
 
 fuzz_target=${1}
 total_hour=${2:-24} # Default to 24 hours
-JOBS=${3:-32}       # Default to 32 jobs
+JOBS=${3:-12}       # Default to 12 jobs
 input_len=${4:-8}   # Default to 8 KB
 timeout=${5:-5}     # Default to 5 seconds
 
