@@ -3,8 +3,8 @@
 use crate::{
     move_ast::{DotVariable, MoveAST, Pattern, PatternKind, SingleVariable, Variable},
     states::{
-        CurrScope, EnumType, EnumVariantType, ExpressionDepth, GenerationConfig, GenericType, Id,
-        IdKind, IdPool, InitMap, Scope, Type, TypePool, Typed,
+        CurrScope, CurrentInfo, Depth, EnumType, EnumVariantType, GenerationConfig, GenericType,
+        Id, IdKind, IdPool, InitMap, Scope, Type, TypePool, Typed,
     },
 };
 use arbitrary::Unstructured;
@@ -37,6 +37,11 @@ pub fn get_curr_scope(env: &StatePool<MoveAST>) -> Scope {
 }
 
 #[inline]
+pub fn get_current_info(env: &StatePool<MoveAST>) -> &CurrentInfo {
+    env.get::<CurrentInfo>().unwrap()
+}
+
+#[inline]
 pub fn push_scope(env: &mut StatePool<MoveAST>, scope: Scope) {
     env.get_mut::<CurrScope>().unwrap().push(scope);
 }
@@ -48,14 +53,15 @@ pub fn pop_scope(env: &mut StatePool<MoveAST>) {
 
 #[inline]
 pub fn reached_max_expr_depth(env: &StatePool<MoveAST>) -> bool {
-    env.get::<ExpressionDepth>().unwrap().reached_max_depth()
+    env.get::<Depth>().unwrap().expr_depth.reached_depth_limit()
 }
 
 #[inline]
-pub fn almost_reached_max_expr_depth(env: &StatePool<MoveAST>, threshold: usize) -> bool {
-    env.get::<ExpressionDepth>()
+pub fn almost_reached_max_expr_depth(env: &StatePool<MoveAST>, increment: usize) -> bool {
+    env.get::<Depth>()
         .unwrap()
-        .almost_reached_max_expr_depth(threshold)
+        .expr_depth
+        .will_reached_depth_limit(increment)
 }
 
 /// Create a new id from the current scope and use the new scope as current scope

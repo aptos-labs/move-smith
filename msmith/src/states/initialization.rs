@@ -78,6 +78,16 @@ impl State<MoveAST> for InitMap {
                     self.init_map.insert(var, true);
                 }
             },
+            MoveAST::EnumMatch(em) => {
+                for arm in &em.arms {
+                    for pat in &arm.patterns {
+                        let vars = get_initialized_vars_from_pattern(pat);
+                        for var in vars {
+                            self.init_map.insert(var, true);
+                        }
+                    }
+                }
+            },
             _ => panic!("Unexpected Assignment, but got: {:?}", new_ast),
         }
     }

@@ -199,6 +199,12 @@ pub struct TypePool {
 
     /// The mapping from variable to type
     variable_types: BTreeMap<Id, Type>,
+
+    /// Some enum type has been defined
+    pub has_enum: bool,
+
+    /// Some struct type has been defined
+    pub has_struct: bool,
 }
 
 impl TypePool {
@@ -447,9 +453,11 @@ impl State<MoveAST> for TypePool {
         match &new_ast {
             M::Struct(s) => {
                 self.defined_types.insert(s.name.clone(), s.ty());
+                self.has_struct = true;
             },
             M::Enum(e) => {
                 self.defined_types.insert(e.name.clone(), e.ty());
+                self.has_enum = true;
             },
             M::Signature(s) => {
                 self.defined_funcs.insert(s.name.clone(), s.ty());
