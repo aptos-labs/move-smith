@@ -8,7 +8,7 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
-use log::error;
+use log::{error, trace};
 
 #[derive(Default)]
 pub struct PatternGenerator;
@@ -88,6 +88,7 @@ fn get_patterns_for_type(
 /// Return ONE random partial patterns for the given position or named pattern.
 /// TODO: maybe return all possible and choose later
 fn get_partial_patterns(u: &mut Unstructured, pat: &Pattern) -> Option<Pattern> {
+    trace!("Generating partial pattern for {:?}", pat);
     match &pat.body {
         PatternKind::Positional(pats) => {
             let mut new_fields = pats.clone();
@@ -105,6 +106,9 @@ fn get_partial_patterns(u: &mut Unstructured, pat: &Pattern) -> Option<Pattern> 
         PatternKind::Named(pairs) => {
             let mut new_paris = pairs.clone();
             let total = pairs.len();
+            if total == 0 {
+                return None;
+            }
             let num_remove = if total == 1 {
                 1
             } else {

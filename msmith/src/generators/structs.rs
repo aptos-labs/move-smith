@@ -58,7 +58,11 @@ impl Generator<MoveAST, AnyConstraint> for StructGenerator {
             });
         }
 
-        let positional = bool::arbitrary(u)?;
+        let mut positional = bool::arbitrary(u)?;
+        if num_fields == 0 {
+            // Avoid empty structs being positional
+            positional = false;
+        }
 
         let subtree = Subtree::new_single_candidate(
             Struct {
