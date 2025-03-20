@@ -25,6 +25,9 @@ export_all!(
     eot_call,
     eot_struct,
     eot_enum,
+    eot_match,
     enums,
-    pattern
+    pattern,
+    enum_match,
+    match_arm
 );

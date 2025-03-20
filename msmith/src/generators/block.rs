@@ -31,12 +31,11 @@ impl Register<GeneratorEntry> for BlockGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
-        constraint.check_not_exist_or_has_type::<bool>("has_return")
+        constraint.check_not_exist_or_has_type::<Type>("type")
+            && constraint.check_not_exist_or_has_type::<usize>("num_sequences")
             && constraint.check_exist_and_type::<bool>("is_function_body")
         // TODO
-        // 1. add a `return_type` that specify the return type if `has_return` is true
-        // 2. `has_return` and `is_function_body` should be mutually exclusive
-        // 3. when `is_function_body` is true, the PartialInfo's PARTIAL_SIGNATURE should not be empty
+        // when `is_function_body` is true, the PartialInfo's PARTIAL_SIGNATURE should not be empty
     }
 
     fn subtrees(
@@ -46,35 +45,53 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let is_function_body = constraint.get::<bool>("is_function_body").unwrap();
-        let has_return = constraint.get_or("has_return", bool::arbitrary(u)?);
 
         let return_type = if *is_function_body {
             let partial_info = env.get_mut::<PartialInfo>().unwrap();
             let signatures = partial_info.store.get_mut(PARTIAL_SIGNATURE).unwrap();
             let signature = signatures.pop().unwrap().into_signature().unwrap();
+            trace!(
+                "Block type: using function signature return type {:?}",
+                signature.return_type
+            );
             signature.return_type.clone()
-        } else if has_return {
-            let selector = TypeSelectorBuilder::all_no(get_config(env))
-                .number(1)
-                .build();
-            get_type_pool(env).random_type(u, vec![selector]).unwrap()
         } else {
-            Type::Unit
+            match constraint.get::<Type>("type") {
+                Some(typ) => {
+                    trace!("Block type: using provided type {:?}", typ);
+                    typ.clone()
+                },
+                None => {
+                    if bool::arbitrary(u)? {
+                        trace!("Block type: randomly generating");
+                        let selector = TypeSelectorBuilder::all_no(get_config(env))
+                            .number(1)
+                            .build();
+                        get_type_pool(env).random_type(u, vec![selector]).unwrap()
+                    } else {
+                        Type::Unit
+                    }
+                },
+            }
         };
 
-        let (name, scope, curr_scope) = new_id_from_curr_scope_and_push_scope(env, IdKind::Block);
+        let (name, block_scope, parent_scope) =
+            new_id_from_curr_scope_and_push_scope(env, IdKind::Block);
         trace!(
-            "Generating block -- {}, {:?}, last curr_scope: {:?}",
+            "Generating block -- {}, {:?}, parent scope: {:?}",
             name,
-            scope,
-            curr_scope
+            block_scope,
+            parent_scope
         );
 
         let mut compose_constraint = AnyConstraint::new();
 
         compose_constraint.insert("name", name.clone());
 
-        let num_sequences = get_config(env).num_sequences_in_block.select(u)?;
+        let num_sequences = match constraint.get::<usize>("num_sequences") {
+            Some(num) => *num,
+            None => get_config(env).num_sequences_in_block.select(u)?,
+        };
         compose_constraint.insert("num_sequences", num_sequences);
         trace!("Block {} will generate {} sequences", name, num_sequences);
 

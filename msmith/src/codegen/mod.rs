@@ -78,6 +78,8 @@ impl CodeGenerator for MoveAST {
     fn emit_code_lines(&self) -> Vec<String> {
         match self {
             MoveAST::Program(p) => p.emit_code_lines(),
+            MoveAST::Block(b) => b.emit_code_lines(),
+            MoveAST::Expression(e) => e.emit_code_lines(),
             _ => unimplemented!(),
         }
     }
@@ -306,6 +308,48 @@ impl CodeGenerator for EnumInstantiation {
     }
 }
 
+impl CodeGenerator for EnumMatch {
+    fn emit_code_lines(&self) -> Vec<String> {
+        // TODO: change to adaptive inline
+        let mut code = vec![format!("match ({}) {{", self.expr.inline())];
+        let name = format!("{}::", self.enum_type.name().inline());
+        for arm in &self.arms {
+            let mut arm_lines = arm.emit_code_lines();
+            if !arm_lines.is_empty() {
+                arm_lines.first_mut().unwrap().insert_str(0, &name);
+                arm_lines.last_mut().unwrap().push(',');
+                append_code_lines_with_indentation(&mut code, arm_lines, INDENTATION_SIZE);
+            }
+        }
+        code.push("}".to_string());
+        code
+    }
+}
+
+impl CodeGenerator for MatchArm {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec![];
+        code.push(self.variant_type.name().inline());
+        if self.variant_type.positional {
+            code.last_mut().unwrap().push('(');
+            for pat in &self.patterns {
+                code.push(format!("{},", pat.inline()))
+            }
+            code.push(')'.to_string());
+        } else {
+            code.last_mut().unwrap().push('{');
+            for ((id, _), pat) in self.variant_type.fields.iter().zip(&self.patterns) {
+                code.push(format!("{}: {},", id.inline(), pat.inline()));
+            }
+            code.push('}'.to_string());
+        }
+        code.last_mut().unwrap().push_str(" => ");
+        let body = self.body.emit_code_lines();
+        append_code_lines_with_indentation(&mut code, body, INDENTATION_SIZE);
+        code
+    }
+}
+
 impl CodeGenerator for Ability {
     fn emit_code_lines(&self) -> Vec<String> {
         use Ability as A;
@@ -422,6 +466,7 @@ impl CodeGenerator for Expression {
             E::NumberLiteral(n) => n.emit_code_lines(),
             E::Tuple(t) => t.emit_code_lines(),
             E::FunctionCall(f) => f.emit_code_lines(),
+            E::EnumMatch(m) => m.emit_code_lines(),
         }
     }
 }

@@ -1,14 +1,15 @@
 //! Helper functions for accessing and operating on common states
 
-use super::ExpressionDepth;
 use crate::{
-    move_ast::{DotVariable, MoveAST, SingleVariable, Variable},
+    move_ast::{DotVariable, MoveAST, Pattern, PatternKind, SingleVariable, Variable},
     states::{
-        CurrScope, GenerationConfig, GenericType, Id, IdKind, IdPool, InitMap, Scope, Type,
-        TypePool, Typed,
+        CurrScope, EnumType, EnumVariantType, ExpressionDepth, GenerationConfig, GenericType, Id,
+        IdKind, IdPool, InitMap, Scope, Type, TypePool, Typed,
     },
 };
+use arbitrary::Unstructured;
 use framework::StatePool;
+use log::trace;
 
 #[inline]
 pub fn get_config(env: &StatePool<MoveAST>) -> &GenerationConfig {
@@ -33,6 +34,11 @@ pub fn get_id_pool(env: &StatePool<MoveAST>) -> &IdPool {
 #[inline]
 pub fn get_curr_scope(env: &StatePool<MoveAST>) -> Scope {
     env.get::<CurrScope>().unwrap().get()
+}
+
+#[inline]
+pub fn push_scope(env: &mut StatePool<MoveAST>, scope: Scope) {
+    env.get_mut::<CurrScope>().unwrap().push(scope);
 }
 
 #[inline]
@@ -143,4 +149,128 @@ pub fn get_initialized_vars_in_curr_scope_of_type(
         }
     }
     all_vars
+}
+
+pub fn get_patterns_for_type(
+    u: &mut Unstructured,
+    env: &mut StatePool<MoveAST>,
+    typ: &Type,
+    scope: &Scope,
+) -> Vec<Pattern> {
+    let mut patterns = vec![];
+    match typ {
+        Type::Concrete(ct) => {
+            patterns = get_patterns_for_type(u, env, &ct.get_concretized_type(), scope)
+        },
+        Type::Primitive(_) => {
+            let (name, _) = new_id(env, IdKind::Var, scope);
+            patterns.push(Pattern::new_single_var(&name, typ));
+        },
+        Type::Generic(GenericType::Tuple(t)) => {
+            let field_patterns = t
+                .types
+                .iter()
+                .map(|t| {
+                    let pats = get_patterns_for_type(u, env, t, scope);
+                    u.choose(&pats).unwrap().clone()
+                })
+                .collect();
+            patterns.push(Pattern::new_full_positional(typ, field_patterns));
+        },
+        Type::Generic(GenericType::Struct(s)) if s.positional => {
+            let (name, _) = new_id(env, IdKind::Var, scope);
+            patterns.push(Pattern::new_single_var(&name, typ));
+            let field_patterns = s
+                .fields
+                .iter()
+                .map(|(_, t)| {
+                    let pats = get_patterns_for_type(u, env, t, scope);
+                    u.choose(&pats).unwrap().clone()
+                })
+                .collect::<Vec<Pattern>>();
+            patterns.push(Pattern::new_full_positional(typ, field_patterns));
+        },
+        Type::Generic(GenericType::Struct(s)) if !s.positional => {
+            let (name, _) = new_id(env, IdKind::Var, scope);
+            patterns.push(Pattern::new_single_var(&name, typ));
+            let field_patterns = s
+                .fields
+                .iter()
+                .map(|(name, t)| {
+                    let pats = get_patterns_for_type(u, env, t, scope);
+                    (name.clone(), u.choose(&pats).unwrap().clone())
+                })
+                .collect::<Vec<(Id, Pattern)>>();
+            patterns.push(Pattern::new_named(typ, field_patterns));
+        },
+        Type::Generic(GenericType::Enum(_)) => {
+            let (name, _) = new_id(env, IdKind::Var, scope);
+            patterns.push(Pattern::new_single_var(&name, typ));
+        },
+        Type::Generic(_) => {},
+        _ => {},
+    }
+    patterns
+}
+
+/// Return ONE random partial patterns for the given position or named pattern.
+/// TODO: maybe return all possible and choose later
+pub fn get_partial_patterns(u: &mut Unstructured, pat: &Pattern) -> Option<Pattern> {
+    trace!("Generating partial pattern for {:?}", pat);
+    match &pat.body {
+        PatternKind::Positional(pats) => {
+            let mut new_fields = pats.clone();
+            let start_index = u.int_in_range(0..=new_fields.len() - 1).unwrap();
+            let num_elems_left = new_fields.len() - start_index;
+            let len = u.int_in_range(1..=num_elems_left).unwrap();
+            for i in 0..len {
+                let idx = start_index + i;
+                if idx < new_fields.len() {
+                    new_fields[idx] = None;
+                }
+            }
+            Some(Pattern::new_partial_positional(&pat.typ, new_fields))
+        },
+        PatternKind::Named(pairs) => {
+            let mut new_paris = pairs.clone();
+            let total = pairs.len();
+            if total == 0 {
+                return None;
+            }
+            let num_remove = if total == 1 {
+                1
+            } else {
+                u.int_in_range(1..=total - 1).unwrap()
+            };
+            for _ in 0..num_remove {
+                let idx = u.choose_index(new_paris.len()).unwrap();
+                new_paris.remove(idx);
+            }
+            Some(Pattern::new_named(&pat.typ, new_paris))
+        },
+        _ => None,
+    }
+}
+
+pub fn get_complete_patterns_for_enum(
+    u: &mut Unstructured,
+    env: &mut StatePool<MoveAST>,
+    enum_type: EnumType,
+    scope: &Scope,
+) -> Vec<(Vec<Pattern>, EnumVariantType, Scope)> {
+    let mut output = vec![];
+    for (_, variant) in &enum_type.variants {
+        // Create a dummy block scope for each variant arm
+        let (_, arm_scope) = new_id_and_push_scope(env, IdKind::Block, scope);
+
+        let mut patterns = vec![];
+        for (_, field_type) in &variant.fields {
+            let pats = get_patterns_for_type(u, env, field_type, &arm_scope);
+            patterns.push(u.choose(&pats).unwrap().clone());
+        }
+        pop_scope(env);
+
+        output.push((patterns, variant.clone(), arm_scope));
+    }
+    output
 }

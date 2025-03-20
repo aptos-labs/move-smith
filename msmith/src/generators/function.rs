@@ -27,8 +27,7 @@ impl Register<GeneratorEntry> for FunctionGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
-        constraint.check_not_exist_or_has_type::<bool>("has_return")
-            && constraint.check_not_exist_or_has_type::<Type>("return_type")
+        constraint.check_not_exist_or_has_type::<Type>("type")
     }
 
     fn subtrees(

@@ -2,7 +2,7 @@ use crate::{
     generators::{
         EnumGenerator, LetAssignGenerator, LetDeclGenerator, SignatureGenerator, StructGenerator,
     },
-    move_ast::{Assignment, MoveAST, Pattern, PatternKind, Statement, Variable},
+    move_ast::{Assignment, MatchArm, MoveAST, Pattern, PatternKind, Statement, Variable},
     states::{
         ids::{Id, Named},
         GenerationConfig, IdKind,
@@ -466,6 +466,14 @@ impl State<MoveAST> for TypePool {
             M::Statement(Statement::LetDeclare(vars)) => {
                 for v in vars {
                     self.variable_types.insert(v.name.clone(), v.ty());
+                }
+            },
+            M::MatchArm(MatchArm { patterns, .. }) => {
+                for pat in patterns {
+                    let vars = get_defined_vars_from_pattern(pat);
+                    for (id, ty) in vars {
+                        self.variable_types.insert(id, ty);
+                    }
                 }
             },
             _ => {},

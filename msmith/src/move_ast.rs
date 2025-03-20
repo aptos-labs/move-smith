@@ -33,6 +33,8 @@ pub enum MoveAST {
     EnumVariant(EnumVariant),
     EnumInstantiation(EnumInstantiation),
     Pattern(Pattern),
+    EnumMatch(EnumMatch),
+    MatchArm(MatchArm),
 }
 
 impl ASTNode for MoveAST {}
@@ -171,6 +173,35 @@ impl Typed for EnumInstantiation {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumMatch {
+    pub enum_type: EnumType,
+    pub expr: Box<Expression>,
+    pub arms: Vec<MatchArm>,
+    pub typ: Type,
+}
+
+impl Typed for EnumMatch {
+    fn ty(&self) -> Type {
+        self.typ.clone()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MatchArm {
+    pub variant_type: EnumVariantType,
+    pub patterns: Vec<Pattern>,
+    pub condition: Option<Expression>,
+    pub body: Box<MoveAST>,
+    pub typ: Type,
+}
+
+impl Typed for MatchArm {
+    fn ty(&self) -> Type {
+        self.typ.clone()
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct TypeParameters {
     pub types: Vec<TypeParameter>,
@@ -242,6 +273,7 @@ pub enum Expression {
     Variable(Variable),
     NumberLiteral(NumberLiteral),
     FunctionCall(FunctionCall),
+    EnumMatch(EnumMatch),
 }
 
 impl Typed for Expression {
@@ -254,6 +286,7 @@ impl Typed for Expression {
             Expression::Variable(v) => v.ty(),
             Expression::NumberLiteral(n) => n.ty(),
             Expression::FunctionCall(f) => f.ty(),
+            Expression::EnumMatch(m) => m.ty(),
         }
     }
 }
