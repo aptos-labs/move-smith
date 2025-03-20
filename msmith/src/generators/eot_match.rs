@@ -47,13 +47,12 @@ impl Generator<MoveAST, AnyConstraint> for EOTMatchGenerator {
             .enums(1)
             .build();
         let enum_type = get_type_pool(env).random_type(u, vec![selector]).unwrap();
-        let mut subtrees = vec![];
-        subtrees.push(Subtree::new_generator_subtree(
+        let subtrees = vec![Subtree::new_generator_subtree(
             EnumMatchGenerator::label(),
             AnyConstraint::new()
                 .with("type", ret_type.clone())
                 .with("enum", enum_type.clone()),
-        ));
+        )];
         Ok((subtrees, AnyConstraint::new()))
     }
 

@@ -47,14 +47,14 @@ impl Generator<MoveAST, AnyConstraint> for PatternGenerator {
             .collect::<Vec<Pattern>>();
         let all_patterns = patterns
             .into_iter()
-            .chain(partials.into_iter())
+            .chain(partials)
             .map(|p| p.into())
             .collect::<Vec<MoveAST>>();
         if all_patterns.is_empty() {
             error!("No patterns found for type {:?}", typ);
         }
         let subtree = Subtree::new_candidates_subtree(all_patterns);
-        return Ok((vec![subtree], AnyConstraint::new()));
+        Ok((vec![subtree], AnyConstraint::new()))
     }
 
     fn compose(
