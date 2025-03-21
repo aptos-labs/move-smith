@@ -16,7 +16,9 @@ static PROLOGUE: &str = include_str!("prologue.move");
 static EPILOGUE: &str = include_str!("epilogue.move");
 
 /// The number of spaces to use for indentation.
+const NO_INDENTATION: usize = 0;
 const INDENTATION_SIZE: usize = 4;
+const LINE_WRAP_LIMIT: usize = 120;
 
 /// Generates Move source code from an AST.
 /// `emit_code_lines` should be implemented for each AST node.
@@ -66,12 +68,78 @@ fn append_block(program: &mut Vec<String>, mut block: Vec<String>, indentation: 
     program.push(last_line);
 }
 
+/// For the given lines, if concatenating them will not exceed the wrap limit, they will be inlined into one line.
+/// Otherwise, they are treated as separate lines.
+///
+/// If `concat_first_line` is true, the function will behave the same as `append_block`, else the same as `append_code_lines_with_indentation`.
+///
+/// If lines are inlined and concatenated, the indentation will be ignored. One space wil be used.
+fn adaptive_append_inline(
+    program: &mut Vec<String>,
+    lines: Vec<String>,
+    indentation: usize,
+    wrap_limit: usize,
+    concat_first_line: bool,
+) {
+    let lines_length = lines.iter().map(|line| line.len()).sum::<usize>();
+    let existing_length = match concat_first_line {
+        true => program.last().map_or(0, |line| line.trim().len()),
+        false => 0,
+    } + 1;
+    let total_length = existing_length + lines_length;
+
+    let lines = match total_length <= wrap_limit {
+        true => {
+            vec![lines_to_inline(lines)]
+        },
+        false => lines,
+    };
+    if concat_first_line {
+        append_block(program, lines, indentation);
+    } else {
+        append_code_lines_with_indentation(program, lines, indentation);
+    }
+}
+
 fn lines_to_inline(lines: Vec<String>) -> String {
-    lines
-        .iter()
-        .map(|line| line.trim())
-        .collect::<Vec<&str>>()
-        .join(" ")
+    if lines.is_empty() {
+        return String::new();
+    }
+    if lines.len() == 1 {
+        return lines.into_iter().next().unwrap();
+    }
+    let mut oneliner = String::new();
+    for i in 0..lines.len() {
+        let trimmed = lines.get(i).unwrap().trim();
+        oneliner.push_str(trimmed);
+
+        if trimmed.ends_with('{') || trimmed.ends_with('(') {
+            continue;
+        }
+        if trimmed.starts_with('}') || trimmed.starts_with(')') || trimmed.ends_with(',') {
+            while oneliner.ends_with(' ') {
+                oneliner.pop(); // Remove the trailing space before closing brace or comma
+            }
+        }
+        if i != lines.len() - 1 {
+            oneliner.push(' ');
+        }
+    }
+    oneliner
+}
+
+fn put_inside_curly_braces(lines: Vec<String>, indentation: usize) -> Vec<String> {
+    let mut wrapped = vec!["{".to_string()];
+    append_code_lines_with_indentation(&mut wrapped, lines, indentation);
+    wrapped.push("}".to_string());
+    wrapped
+}
+
+fn put_inside_parentheses(lines: Vec<String>, indentation: usize) -> Vec<String> {
+    let mut wrapped = vec!["(".to_string()];
+    append_code_lines_with_indentation(&mut wrapped, lines, indentation);
+    wrapped.push(")".to_string());
+    wrapped
 }
 
 impl CodeGenerator for MoveAST {
@@ -331,21 +399,24 @@ impl CodeGenerator for MatchArm {
         let mut code = vec![];
         code.push(self.variant_type.name().inline());
         if self.variant_type.positional {
-            code.last_mut().unwrap().push('(');
-            for pat in &self.patterns {
-                code.push(format!("{},", pat.inline()))
-            }
-            code.push(')'.to_string());
+            let pat_lines = self
+                .patterns
+                .iter()
+                .map(|p| format!("{},", p.inline()))
+                .collect::<Vec<String>>();
+            let pat_lines = put_inside_parentheses(pat_lines, INDENTATION_SIZE);
+            adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         } else {
-            code.last_mut().unwrap().push('{');
+            let mut pat_lines = vec![];
             for ((id, _), pat) in self.variant_type.fields.iter().zip(&self.patterns) {
-                code.push(format!("{}: {},", id.inline(), pat.inline()));
+                pat_lines.push(format!("{}: {},", id.inline(), pat.inline()));
             }
-            code.push('}'.to_string());
+            let pat_lines = put_inside_curly_braces(pat_lines, INDENTATION_SIZE);
+            adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         }
         code.last_mut().unwrap().push_str(" => ");
         let body = self.body.emit_code_lines();
-        append_code_lines_with_indentation(&mut code, body, INDENTATION_SIZE);
+        adaptive_append_inline(&mut code, body, INDENTATION_SIZE, LINE_WRAP_LIMIT, true);
         code
     }
 }
@@ -475,28 +546,13 @@ impl CodeGenerator for Tuple {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut elem_lines = vec![];
         for expr in &self.expressions {
-            elem_lines.push(expr.emit_code_lines());
+            elem_lines.extend(expr.emit_code_lines());
+            elem_lines.last_mut().unwrap().push(',');
         }
 
-        let mut code = vec!['('.to_string()];
-
-        let total_lines = elem_lines.iter().map(|l| l.len()).sum::<usize>();
-        if total_lines <= self.expressions.len() + 2 {
-            // Inline generation
-            let elems_inline = elem_lines
-                .into_iter()
-                .map(lines_to_inline)
-                .collect::<Vec<String>>();
-            code.last_mut().unwrap().push_str(&elems_inline.join(", "));
-            code.last_mut().unwrap().push(')');
-        } else {
-            for lines in elem_lines {
-                append_code_lines_with_indentation(&mut code, lines, INDENTATION_SIZE);
-                code.last_mut().unwrap().push(',');
-            }
-            code.push(')'.to_string());
-        }
-
+        let elems = put_inside_parentheses(elem_lines, INDENTATION_SIZE);
+        let mut code = vec![];
+        adaptive_append_inline(&mut code, elems, NO_INDENTATION, LINE_WRAP_LIMIT, false);
         if self.show_type {
             code.last_mut()
                 .unwrap()
@@ -639,8 +695,8 @@ impl CodeGenerator for Type {
     fn emit_code_lines(&self) -> Vec<String> {
         use Type as T;
         vec![match self {
-            T::Generic(g) => g.emit_code(),
-            T::Primitive(p) => p.emit_code(),
+            T::Generic(g) => g.inline(),
+            T::Primitive(p) => p.inline(),
             _ => unimplemented!(),
         }]
     }
@@ -654,7 +710,7 @@ impl CodeGenerator for GenericType {
             G::Tuple(t) => {
                 let mut code = vec![];
                 for ty in &t.types {
-                    code.push(ty.emit_code());
+                    code.push(ty.inline());
                 }
                 format!("({})", code.join(", "))
             },
