@@ -10,22 +10,22 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 14] = [
-    "EXTRANEOUS_ACQUIRES_ANNOTATION",
+const TO_IGNORE: [&str; 7] = [
+    // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     "infer",
     "MAX_",
     "TOO_MANY",
     "exceeded maximal",
-    "EQUALITY_OP_TYPE_MISMATCH_ERROR",
+    // "EQUALITY_OP_TYPE_MISMATCH_ERROR",
     "unbound",
     "dangling",
     "OUT_OF_GAS",
     // V1 vector bugs
-    "READREF_EXISTS_MUTABLE_BORROW_ERROR",
-    "CALL_BORROWED_MUTABLE_REFERENCE_ERRO",
-    "VEC_UPDATE_EXISTS_MUTABLE_BORROW_ERROR",
-    "BORROWLOC_EXISTS_BORROW_ERROR",
-    "VEC_BORROW_ELEMENT_EXISTS_MUTABLE_BORROW_ERROR",
+    // "READREF_EXISTS_MUTABLE_BORROW_ERROR",
+    // "CALL_BORROWED_MUTABLE_REFERENCE_ERRO",
+    // "VEC_UPDATE_EXISTS_MUTABLE_BORROW_ERROR",
+    // "BORROWLOC_EXISTS_BORROW_ERROR",
+    // "VEC_BORROW_ELEMENT_EXISTS_MUTABLE_BORROW_ERROR",
     // end V1 vector bugs
 ];
 
@@ -231,11 +231,11 @@ impl TransactionalResult {
             return ResultStatus::Failure;
         }
 
-        if runs
-            .iter()
-            .flatten()
-            .any(|e| e.kind == ResultChunkKind::Bug)
-        {
+        if runs.iter().flatten().any(|e| {
+            e.kind == ResultChunkKind::Bug
+                || e.kind == ResultChunkKind::Panic
+                || e.kind == ResultChunkKind::VMError
+        }) {
             debug!("has chunk of kind bug");
             return ResultStatus::Failure;
         }
