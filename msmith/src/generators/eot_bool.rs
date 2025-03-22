@@ -1,7 +1,9 @@
 use super::ExprOfTypeGenerator;
 use crate::{
     move_ast::{BinOp, BinOperator, Bool, Expression, MoveAST, UnOp, UnOperator},
-    states::{get_config, get_random_type, Primitive, Type, TypeSelectorBuilder},
+    states::{
+        get_config, get_random_type, reached_max_expr_depth, Primitive, Type, TypeSelectorBuilder,
+    },
 };
 use anyhow::Result;
 use arbitrary::{Arbitrary, Unstructured};
@@ -81,7 +83,10 @@ impl Generator<MoveAST, AnyConstraint> for EOTBoolGenerator {
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let mut subtrees = vec![];
-        let kind = choose_item_weighted(u, &EOTBoolKind::weights())?;
+        let kind = match reached_max_expr_depth(env) {
+            true => EOTBoolKind::Literal,
+            false => choose_item_weighted(u, &EOTBoolKind::weights())?,
+        };
         let op = kind.random_op(u);
         let mut comp_constraint = AnyConstraint::new()
             .with("kind", kind.clone())
