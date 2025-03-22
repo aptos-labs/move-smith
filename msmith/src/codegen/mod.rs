@@ -54,7 +54,12 @@ fn append_code_lines_with_indentation(
 /// Append a block: concatenate the first line in block with the last line of the existing code
 /// For the rest of block, append them with the given indentation.
 fn append_block(program: &mut Vec<String>, mut block: Vec<String>, indentation: usize) {
-    if program.is_empty() || block.is_empty() {
+    if block.is_empty() {
+        return;
+    }
+
+    if program.is_empty() {
+        program.extend(block);
         return;
     }
 
@@ -535,9 +540,12 @@ impl CodeGenerator for Expression {
             E::Assignment(a) => a.emit_code_lines(),
             E::Variable(v) => v.emit_code_lines(),
             E::NumberLiteral(n) => n.emit_code_lines(),
+            E::Bool(b) => b.emit_code_lines(),
             E::Tuple(t) => t.emit_code_lines(),
             E::FunctionCall(f) => f.emit_code_lines(),
             E::EnumMatch(m) => m.emit_code_lines(),
+            E::BinOp(b) => b.emit_code_lines(),
+            E::UnOp(u) => u.emit_code_lines(),
         }
     }
 }
@@ -660,6 +668,75 @@ impl CodeGenerator for DotVariable {
 impl CodeGenerator for NumberLiteral {
     fn emit_code_lines(&self) -> Vec<String> {
         vec![format!("{}{}", self.value, self.typ.emit_code())]
+    }
+}
+
+impl CodeGenerator for Bool {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![
+            if self.value {
+                "true".to_string()
+            } else {
+                "false".to_string()
+            },
+        ]
+    }
+}
+
+impl CodeGenerator for BinOp {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec![];
+        let lhs = self.left.as_ref().emit_code_lines();
+        adaptive_append_inline(&mut code, lhs, NO_INDENTATION, LINE_WRAP_LIMIT, true);
+        let mut rest = vec![self.op.emit_code()];
+        let rhs = self.right.as_ref().emit_code_lines();
+        rest.extend(rhs);
+        adaptive_append_inline(&mut code, rest, NO_INDENTATION, LINE_WRAP_LIMIT, true);
+        code
+    }
+}
+
+impl CodeGenerator for UnOp {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec![self.op.emit_code()];
+        let expr = self.expr.as_ref().emit_code_lines();
+        let expr = put_inside_parentheses(expr, NO_INDENTATION);
+        adaptive_append_inline(&mut code, expr, NO_INDENTATION, LINE_WRAP_LIMIT, true);
+        code
+    }
+}
+
+impl CodeGenerator for BinOperator {
+    fn emit_code_lines(&self) -> Vec<String> {
+        use BinOperator as BOP;
+        vec![match self {
+            BOP::Add => "+".to_string(),
+            BOP::Sub => "-".to_string(),
+            BOP::Mul => "*".to_string(),
+            BOP::Mod => "%".to_string(),
+            BOP::Div => "/".to_string(),
+            BOP::BitAnd => "&".to_string(),
+            BOP::BitOr => "|".to_string(),
+            BOP::BitXor => "^".to_string(),
+            BOP::Shl => "<<".to_string(),
+            BOP::Shr => ">>".to_string(),
+            BOP::Lt => "<".to_string(),
+            BOP::Gt => ">".to_string(),
+            BOP::Leq => "<=".to_string(),
+            BOP::Geq => ">=".to_string(),
+            BOP::And => "&&".to_string(),
+            BOP::Or => "||".to_string(),
+            BOP::Eq => "==".to_string(),
+            BOP::Neq => "!=".to_string(),
+        }]
+    }
+}
+
+impl CodeGenerator for UnOperator {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![match self {
+            UnOperator::Not => "!".to_string(),
+        }]
     }
 }
 

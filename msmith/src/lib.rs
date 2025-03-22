@@ -71,6 +71,7 @@ impl MoveSmith {
             .add_generator::<EOTStructGenerator>()
             .add_generator::<EOTEnumGenerator>()
             .add_generator::<EOTMatchGenerator>()
+            .add_generator::<EOTBoolGenerator>()
             .add_state::<states::config::GenerationConfig>()
             .add_state::<states::TypePool>()
             .add_state::<states::IdPool>()

@@ -43,9 +43,11 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
                 // Select a simple type if we are almost at the max depth
                 TypeSelectorBuilder::all_no(get_config(env))
                     .number(1)
+                    .bool(1)
                     .build()
             } else {
                 TypeSelectorBuilder::all_no(get_config(env))
+                    .bool(1)
                     .number(1)
                     .structs(1)
                     .enums(1)

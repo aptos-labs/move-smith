@@ -26,6 +26,7 @@ export_all!(
     eot_struct,
     eot_enum,
     eot_match,
+    eot_bool,
     enums,
     pattern,
     enum_match,

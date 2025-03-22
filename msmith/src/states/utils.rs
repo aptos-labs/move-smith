@@ -4,7 +4,7 @@ use crate::{
     move_ast::{DotVariable, MoveAST, Pattern, PatternKind, SingleVariable, Variable},
     states::{
         CurrScope, CurrentInfo, Depth, EnumType, EnumVariantType, GenerationConfig, GenericType,
-        Id, IdKind, IdPool, InitMap, Scope, Type, TypePool, Typed,
+        Id, IdKind, IdPool, InitMap, Scope, Type, TypePool, TypeSelector, Typed,
     },
 };
 use arbitrary::Unstructured;
@@ -39,6 +39,17 @@ pub fn get_curr_scope(env: &StatePool<MoveAST>) -> Scope {
 #[inline]
 pub fn get_current_info(env: &StatePool<MoveAST>) -> &CurrentInfo {
     env.get::<CurrentInfo>().unwrap()
+}
+
+#[inline]
+pub fn get_random_type(
+    u: &mut Unstructured,
+    env: &StatePool<MoveAST>,
+    selector: &TypeSelector,
+) -> Type {
+    get_type_pool(env)
+        .random_type(u, vec![selector.clone()])
+        .unwrap()
 }
 
 #[inline]

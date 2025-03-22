@@ -49,6 +49,7 @@ impl Generator<MoveAST, AnyConstraint> for EnumGenerator {
             let (variant_name, _scope) = new_id_from_curr_scope(env, IdKind::EnumVariant);
             let selector = TypeSelectorBuilder::all_no(get_config(env))
                 .number(1)
+                .bool(1)
                 .build();
             let num_fields = get_config(env).num_fields_in_enum_variant.select(u)?;
 

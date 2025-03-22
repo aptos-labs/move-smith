@@ -66,6 +66,9 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
                         trace!("Block type: randomly generating");
                         let selector = TypeSelectorBuilder::all_no(get_config(env))
                             .number(1)
+                            .bool(1)
+                            .enums(1)
+                            .structs(1)
                             .build();
                         get_type_pool(env).random_type(u, vec![selector]).unwrap()
                     } else {

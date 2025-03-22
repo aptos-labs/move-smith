@@ -52,6 +52,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         // TODO: allow more types when ready
         let type_selector = TypeSelectorBuilder::all_no(config)
             .number(1)
+            .bool(1)
             .structs(1)
             .enums(1)
             .build();
@@ -71,6 +72,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             // TODO: allow more types when ready
             let type_selector = TypeSelectorBuilder::all_no(config)
                 .number(1)
+                .bool(1)
                 .structs(1)
                 .enums(1)
                 .tuple(1)

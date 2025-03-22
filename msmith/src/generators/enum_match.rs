@@ -66,9 +66,9 @@ impl Generator<MoveAST, AnyConstraint> for EnumMatchGenerator {
             None => {
                 let selector = TypeSelectorBuilder::all_no(get_config(env))
                     .bool(1)
+                    .number(1)
                     .enums(1)
                     .func_return(1)
-                    .number(1)
                     .structs(1)
                     .unit(1)
                     .build();

@@ -41,6 +41,7 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
             None => {
                 let type_selector = TypeSelectorBuilder::all_no(get_config(env))
                     .number(1)
+                    .bool(1)
                     .func_return(5)
                     .structs(1)
                     .enums(1)

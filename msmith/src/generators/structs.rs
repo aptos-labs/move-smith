@@ -44,7 +44,10 @@ impl Generator<MoveAST, AnyConstraint> for StructGenerator {
 
         let config = get_config(env);
         let num_fields = config.num_fields_in_struct.select(u)?;
-        let selector = TypeSelectorBuilder::all_no(config).number(1).build();
+        let selector = TypeSelectorBuilder::all_no(config)
+            .bool(1)
+            .number(1)
+            .build();
 
         let mut fields = vec![];
         for _ in 0..num_fields {

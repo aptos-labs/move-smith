@@ -43,6 +43,7 @@ impl Generator<MoveAST, AnyConstraint> for LetDeclGenerator {
             None => {
                 let num_new_vars = u.int_in_range(1..=4)?;
                 let selector = TypeSelectorBuilder::all_no(get_config(env))
+                    .bool(1)
                     .number(1)
                     .structs(1)
                     .enums(1)

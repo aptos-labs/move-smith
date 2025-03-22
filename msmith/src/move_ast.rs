@@ -1,6 +1,8 @@
 use crate::states::{
     ids::{Id, IdKind},
-    types::{Ability, EnumVariantType, GenericType, StructType, Type, TypeParameter, Typed},
+    types::{
+        Ability, EnumVariantType, GenericType, Primitive, StructType, Type, TypeParameter, Typed,
+    },
     ConcreteType, EnumType, FunctionType, Named, TupleType,
 };
 use enuminto::EnumInto;
@@ -25,6 +27,9 @@ pub enum MoveAST {
     Variable(Variable),
     Assignment(Assignment),
     NumberLiteral(NumberLiteral),
+    Bool(Bool),
+    BinOp(BinOp),
+    UnOp(UnOp),
     Tuple(Tuple),
     FunctionCall(FunctionCall),
     Struct(Struct),
@@ -74,6 +79,17 @@ impl Default for Address {
         Address {
             name: Some("0xCAFE".to_string()),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Bool {
+    pub value: bool,
+}
+
+impl Typed for Bool {
+    fn ty(&self) -> Type {
+        Type::Primitive(Primitive::Bool)
     }
 }
 
@@ -272,8 +288,11 @@ pub enum Expression {
     Assignment(Assignment),
     Variable(Variable),
     NumberLiteral(NumberLiteral),
+    Bool(Bool),
     FunctionCall(FunctionCall),
     EnumMatch(EnumMatch),
+    BinOp(BinOp),
+    UnOp(UnOp),
 }
 
 impl Typed for Expression {
@@ -285,10 +304,68 @@ impl Typed for Expression {
             Expression::Assignment(a) => a.ty(),
             Expression::Variable(v) => v.ty(),
             Expression::NumberLiteral(n) => n.ty(),
+            Expression::Bool(b) => b.ty(),
             Expression::FunctionCall(f) => f.ty(),
             Expression::EnumMatch(m) => m.ty(),
+            Expression::BinOp(b) => b.ty(),
+            Expression::UnOp(u) => u.ty(),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BinOp {
+    pub op: BinOperator,
+    pub typ: Primitive,
+    pub left: Box<Expression>,
+    pub right: Box<Expression>,
+}
+
+impl Typed for BinOp {
+    fn ty(&self) -> Type {
+        Type::Primitive(self.typ.clone())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BinOperator {
+    // Numerical
+    Add,
+    Sub,
+    Mul,
+    Mod,
+    Div,
+    BitAnd,
+    BitOr,
+    BitXor,
+    Shl,
+    Shr,
+    Lt,
+    Gt,
+    Leq,
+    Geq,
+    // Logical
+    And,
+    Or,
+    Eq,
+    Neq,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnOp {
+    pub op: UnOperator,
+    pub expr: Box<Expression>,
+}
+
+impl Typed for UnOp {
+    fn ty(&self) -> Type {
+        Type::Primitive(Primitive::Bool)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnOperator {
+    Not,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
