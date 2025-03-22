@@ -116,15 +116,15 @@ fn lines_to_inline(lines: Vec<String>) -> String {
     let mut oneliner = String::new();
     for i in 0..lines.len() {
         let trimmed = lines.get(i).unwrap().trim();
-        oneliner.push_str(trimmed);
-
-        if trimmed.ends_with('{') || trimmed.ends_with('(') {
-            continue;
-        }
-        if trimmed.starts_with('}') || trimmed.starts_with(')') || trimmed.ends_with(',') {
+        if trimmed.starts_with('}') || trimmed.starts_with(')') || trimmed == "," {
             while oneliner.ends_with(' ') {
                 oneliner.pop(); // Remove the trailing space before closing brace or comma
             }
+        }
+
+        oneliner.push_str(trimmed);
+        if trimmed.ends_with('{') || trimmed.ends_with('(') {
+            continue;
         }
         if i != lines.len() - 1 {
             oneliner.push(' ');
@@ -145,6 +145,32 @@ fn put_inside_parentheses(lines: Vec<String>, indentation: usize) -> Vec<String>
     append_code_lines_with_indentation(&mut wrapped, lines, indentation);
     wrapped.push(")".to_string());
     wrapped
+}
+
+fn add_comma_for_lines(lines: &mut [String], ignore_last_line: bool) {
+    let len = lines.len();
+    lines.iter_mut().enumerate().for_each(|(i, line)| {
+        if line.trim().is_empty() {
+            return;
+        }
+        if i == len - 1 && ignore_last_line {
+            return;
+        }
+        line.push(',');
+    });
+}
+
+fn add_comma_for_blocks(blocks: &mut [Vec<String>], ignore_last_block: bool) {
+    let len = blocks.len();
+    for (i, block) in blocks.iter_mut().enumerate() {
+        if block.is_empty() {
+            continue;
+        }
+        if i == len - 1 && ignore_last_block {
+            continue;
+        }
+        block.last_mut().unwrap().push(',');
+    }
 }
 
 impl CodeGenerator for MoveAST {
@@ -346,54 +372,72 @@ impl CodeGenerator for EnumVariant {
 impl CodeGenerator for EnumInstantiation {
     fn emit_code_lines(&self) -> Vec<String> {
         let variant_type = self.get_variant_type();
-        let open_brace = if variant_type.positional { '(' } else { '{' };
-        let close_brace = if variant_type.positional { ')' } else { '}' };
         let mut code = vec![format!(
-            "{}::{} {}",
+            "{}::{}",
             self.enum_type.name(),
             variant_type.name(),
-            open_brace
         )];
 
-        let mut field_lines = vec![];
+        let mut field_blocks = vec![];
         for (var, expr) in &self.fields {
             let expr_lines = expr.emit_code_lines();
             if variant_type.positional {
-                field_lines.extend(expr_lines);
+                field_blocks.push(expr_lines);
             } else {
-                field_lines.push(format!("{}:", var.name()));
-                append_block(&mut field_lines, expr_lines, INDENTATION_SIZE);
+                let mut block = vec![format!("{}:", var.name())];
+                append_block(&mut block, expr_lines, INDENTATION_SIZE);
+                field_blocks.push(block);
             }
-            field_lines.last_mut().unwrap().push(',');
         }
-
-        if field_lines.len() < variant_type.fields.len() {
-            // Inline generation
-            code.last_mut()
-                .unwrap()
-                .push_str(&lines_to_inline(field_lines));
-            code.last_mut().unwrap().push(close_brace);
+        add_comma_for_blocks(&mut field_blocks, true);
+        let field_lines = field_blocks.into_iter().flatten().collect();
+        let field_lines = if variant_type.positional {
+            put_inside_parentheses(field_lines, INDENTATION_SIZE)
         } else {
-            append_code_lines_with_indentation(&mut code, field_lines, INDENTATION_SIZE);
-            code.push(close_brace.to_string());
-        }
+            put_inside_curly_braces(field_lines, INDENTATION_SIZE)
+        };
+        adaptive_append_inline(
+            &mut code,
+            field_lines,
+            NO_INDENTATION,
+            LINE_WRAP_LIMIT,
+            true,
+        );
         code
     }
 }
 
 impl CodeGenerator for EnumMatch {
     fn emit_code_lines(&self) -> Vec<String> {
-        // TODO: change to adaptive inline
-        let mut code = vec![format!("match ({}) {{", self.expr.inline())];
+        let mut code = vec!["match".to_string()];
+        let expr_lines = self.expr.emit_code_lines();
+        let expr_lines = put_inside_parentheses(expr_lines, NO_INDENTATION);
+        adaptive_append_inline(
+            &mut code,
+            expr_lines,
+            INDENTATION_SIZE,
+            LINE_WRAP_LIMIT,
+            true,
+        );
+        adaptive_append_inline(
+            &mut code,
+            vec!['{'.to_string()],
+            NO_INDENTATION,
+            LINE_WRAP_LIMIT,
+            true,
+        );
         let name = format!("{}::", self.enum_type.name().inline());
+        let mut arm_blocks = vec![];
         for arm in &self.arms {
             let mut arm_lines = arm.emit_code_lines();
             if !arm_lines.is_empty() {
                 arm_lines.first_mut().unwrap().insert_str(0, &name);
-                arm_lines.last_mut().unwrap().push(',');
-                append_code_lines_with_indentation(&mut code, arm_lines, INDENTATION_SIZE);
+                arm_blocks.push(arm_lines);
             }
         }
+        add_comma_for_blocks(&mut arm_blocks, true);
+        let arm_lines = arm_blocks.into_iter().flatten().collect();
+        append_code_lines_with_indentation(&mut code, arm_lines, INDENTATION_SIZE);
         code.push("}".to_string());
         code
     }
@@ -404,22 +448,25 @@ impl CodeGenerator for MatchArm {
         let mut code = vec![];
         code.push(self.variant_type.name().inline());
         if self.variant_type.positional {
-            let pat_lines = self
+            let mut pat_blocks = self
                 .patterns
                 .iter()
-                .map(|p| format!("{},", p.inline()))
-                .collect::<Vec<String>>();
+                .map(|p| p.emit_code_lines())
+                .collect::<Vec<Vec<String>>>();
+            add_comma_for_blocks(&mut pat_blocks, true);
+            let pat_lines = pat_blocks.into_iter().flatten().collect();
             let pat_lines = put_inside_parentheses(pat_lines, INDENTATION_SIZE);
             adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         } else {
             let mut pat_lines = vec![];
             for ((id, _), pat) in self.variant_type.fields.iter().zip(&self.patterns) {
-                pat_lines.push(format!("{}: {},", id.inline(), pat.inline()));
+                pat_lines.push(format!("{}: {}", id.inline(), pat.inline()));
             }
+            add_comma_for_lines(&mut pat_lines, true);
             let pat_lines = put_inside_curly_braces(pat_lines, INDENTATION_SIZE);
             adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         }
-        code.last_mut().unwrap().push_str(" => ");
+        code.last_mut().unwrap().push_str(" =>");
         let body = self.body.emit_code_lines();
         adaptive_append_inline(&mut code, body, INDENTATION_SIZE, LINE_WRAP_LIMIT, true);
         code
