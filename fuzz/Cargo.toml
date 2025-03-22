@@ -58,8 +58,8 @@ doc = false
 bench = false
 
 [[bin]]
-name = "hfuzz-v2-only"
-path = "fuzz_targets/hfuzz_v2_only.rs"
+name = "hfuzz-v2-opt-levels"
+path = "fuzz_targets/hfuzz_v2_opt_levels.rs"
 test = false
 doc = false
 bench = false

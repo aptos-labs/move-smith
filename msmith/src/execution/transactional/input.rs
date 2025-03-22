@@ -27,6 +27,7 @@ pub enum V2Setting {
     #[default]
     Optimization,
     NoOptimization,
+    ExtraOptimization,
     OptNoSimp,
 }
 
@@ -37,6 +38,10 @@ impl V2Setting {
             Self::NoOptimization => vec![
                 ("optimize".to_string(), false),
                 ("acquires-check".to_string(), false),
+            ],
+            Self::ExtraOptimization => vec![
+                ("optimize".to_string(), true),
+                ("optimize-extra".to_string(), true),
             ],
             Self::OptNoSimp => vec![
                 ("optimize".to_string(), true),
@@ -77,7 +82,7 @@ pub enum CommonRunConfig {
     #[default]
     V2Only,
     V1V2Comparison,
-    V2OptNoOpt,
+    V2OptLevels,
     All,
 }
 
@@ -93,14 +98,18 @@ impl CommonRunConfig {
                 mode: ExecutionMode::V1V2Comparison,
                 v2_setting: Some(V2Setting::Optimization),
             }],
-            V2OptNoOpt => vec![
+            V2OptLevels => vec![
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::NoOptimization),
+                },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::Optimization),
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::NoOptimization),
+                    v2_setting: Some(V2Setting::ExtraOptimization),
                 },
             ],
             All => vec![

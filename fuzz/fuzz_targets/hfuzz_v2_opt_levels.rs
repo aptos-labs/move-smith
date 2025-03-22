@@ -28,7 +28,7 @@ fn main() {
             let mut input_builder = TransactionalInputBuilder::new();
             let input = input_builder
                 .set_code(&code)
-                .with_common_runs(&CommonRunConfig::V2Only)
+                .with_common_runs(&CommonRunConfig::V2OptLevels)
                 .build();
 
             let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);
