@@ -11,21 +11,21 @@ total_num_composite_type_in_struct = { min = 1, target = 5, max = 255 }
 num_type_params_in_struct = { min = 0, target = 2, max = 32 }
 
 ######## Enum Related ########
-num_variants_in_enum = { min = 1, target = 4, max = 255 }
-num_fields_in_enum_variant = { min = 0, target = 4, max = 255 }
+num_variants_in_enum = { min = 1, target = 3, max = 255 }
+num_fields_in_enum_variant = { min = 0, target = 2, max = 255 }
 total_num_composite_type_in_enum = { min = 1, target = 5, max = 255 }
 num_type_params_in_enum = { min = 0, target = 2, max = 32 }
 
 ######## Function Related ######## 
 num_stmts_in_sequence = { min = 0, target = 8, max = 30 }
 num_sequences_in_block = { min = 0, target = 1, max = 3 }
-num_params_in_func = { min = 0, target = 4, max = 255 }
+num_params_in_func = { min = 0, target = 4, max = 10 }
 num_type_params_in_func = { min = 0, target = 2, max = 32 }
 num_inline_funcs = { min = 0, target = 0, max = 0 }
 allow_recursive_calls = false
 
 ######## Expression Related ######## 
-expr_depth = { min = 1, target = 3, max = 10 }
+expr_depth = { min = 1, target = 3, max = 8 }
 hex_byte_str_size = { min = 1, target = 32, max = 512 }
 
 ######## Type Related ######## 

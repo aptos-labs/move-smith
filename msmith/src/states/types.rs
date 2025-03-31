@@ -729,6 +729,14 @@ impl EnumVariantType {
             false => self.fields.clone(),
         }
     }
+
+    pub fn wildcard_variant() -> Self {
+        Self {
+            name: Id::new_str("_", IdKind::Var),
+            fields: vec![],
+            positional: false,
+        }
+    }
 }
 
 impl Named for EnumVariantType {

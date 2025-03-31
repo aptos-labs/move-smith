@@ -149,6 +149,29 @@ where
     Ok(None)
 }
 
+/// Given a list of items, randomly select a subset of indices from the list.
+/// The number of indices to select can be specified by `num_to_select`.
+/// The returned indices are shuffled.
+pub fn choose_indices_subset_shuffled<T>(
+    u: &mut Unstructured,
+    items: &[T],
+    num_to_select: Option<usize>,
+) -> Result<Vec<usize>> {
+    let mut indices = (0..items.len()).collect::<Vec<usize>>();
+    let mut chosen_indices = Vec::new();
+    let num_to_select = match num_to_select {
+        Some(num) => num,
+        None => u.int_in_range(1..=items.len())?,
+    };
+    for _ in 0..num_to_select {
+        let chosen = u.int_in_range(0..=indices.len() - 1)?;
+        let idx = indices[chosen];
+        chosen_indices.push(idx);
+        indices.remove(chosen);
+    }
+    Ok(chosen_indices)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

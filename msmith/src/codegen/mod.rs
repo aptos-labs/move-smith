@@ -431,7 +431,9 @@ impl CodeGenerator for EnumMatch {
         for arm in &self.arms {
             let mut arm_lines = arm.emit_code_lines();
             if !arm_lines.is_empty() {
-                arm_lines.first_mut().unwrap().insert_str(0, &name);
+                if !arm_lines.first().unwrap().starts_with('_') {
+                    arm_lines.first_mut().unwrap().insert_str(0, &name);
+                }
                 arm_blocks.push(arm_lines);
             }
         }
@@ -463,7 +465,9 @@ impl CodeGenerator for MatchArm {
                 pat_lines.push(format!("{}: {}", id.inline(), pat.inline()));
             }
             add_comma_for_lines(&mut pat_lines, true);
-            let pat_lines = put_inside_curly_braces(pat_lines, INDENTATION_SIZE);
+            if !pat_lines.is_empty() {
+                pat_lines = put_inside_curly_braces(pat_lines, INDENTATION_SIZE);
+            }
             adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         }
         code.last_mut().unwrap().push_str(" =>");

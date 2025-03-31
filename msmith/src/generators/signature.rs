@@ -11,6 +11,7 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
+use log::trace;
 
 #[derive(Default)]
 pub struct SignatureGenerator;
@@ -49,6 +50,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
 
         let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
+        trace!("Generating {} parameters for function {}", num_params, name);
         // TODO: allow more types when ready
         let type_selector = TypeSelectorBuilder::all_no(config)
             .number(1)
