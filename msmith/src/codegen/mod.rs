@@ -743,7 +743,7 @@ impl CodeGenerator for BinOp {
         let rhs = self.right.as_ref().emit_code_lines();
         rest.extend(rhs);
         adaptive_append_inline(&mut code, rest, NO_INDENTATION, LINE_WRAP_LIMIT, true);
-        code
+        put_inside_parentheses(code, INDENTATION_SIZE)
     }
 }
 
