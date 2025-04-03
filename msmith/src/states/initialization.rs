@@ -53,7 +53,7 @@ fn get_initialized_vars_from_pattern(pattern: &Pattern) -> Vec<Id> {
                 }
             })
             .collect(),
-        PatternKind::Named(s) => s
+        PatternKind::Named(s, _) => s
             .iter()
             .flat_map(|(_, p)| get_initialized_vars_from_pattern(p))
             .collect(),
@@ -80,11 +80,9 @@ impl State<MoveAST> for InitMap {
             },
             MoveAST::EnumMatch(em) => {
                 for arm in &em.arms {
-                    for pat in &arm.patterns {
-                        let vars = get_initialized_vars_from_pattern(pat);
-                        for var in vars {
-                            self.init_map.insert(var, true);
-                        }
+                    let vars = get_initialized_vars_from_pattern(&arm.pattern);
+                    for var in vars {
+                        self.init_map.insert(var, true);
                     }
                 }
             },

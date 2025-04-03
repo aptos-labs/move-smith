@@ -86,16 +86,16 @@ impl Generator<MoveAST, AnyConstraint> for EnumMatchGenerator {
             _ => panic!("Expected enum type, found: {:?}", ct),
         };
 
-        let pats_scopes = get_complete_patterns_for_enum(u, env, et.clone(), &curr_scope);
-        let chosen_indices = choose_indices_subset_shuffled(u, &pats_scopes, None)?;
+        let pat_scopes = get_complete_patterns_for_enum(u, env, et.clone(), &curr_scope);
+        let chosen_indices = choose_indices_subset_shuffled(u, &pat_scopes, None)?;
 
         for i in &chosen_indices {
-            let (patterns, variant, scope) = pats_scopes[*i].clone();
+            let (pattern, variant, scope) = pat_scopes[*i].clone();
             let subtree = Subtree::new_generator_subtree(
                 MatchArmGenerator::label(),
                 AnyConstraint::new()
                     .with("variant_type", variant)
-                    .with("patterns", patterns)
+                    .with("pattern", pattern)
                     .with("scope", scope)
                     .with("type", arm_type.clone()),
             );
@@ -103,16 +103,16 @@ impl Generator<MoveAST, AnyConstraint> for EnumMatchGenerator {
         }
 
         // Some patterns are ignored
-        if chosen_indices.len() != pats_scopes.len() {
+        if chosen_indices.len() != pat_scopes.len() {
             let (_, arm_scope) = new_id_from_curr_scope(env, IdKind::Block);
             let subtree = Subtree::new_generator_subtree(
                 MatchArmGenerator::label(),
                 AnyConstraint::new()
                     .with("variant_type", EnumVariantType::wildcard_variant())
-                    .with("patterns", vec![Pattern {
+                    .with("pattern", Pattern {
                         typ: enum_type.clone(),
                         body: PatternKind::Wildcard,
-                    }])
+                    })
                     .with("scope", arm_scope)
                     .with("type", arm_type.clone()),
             );

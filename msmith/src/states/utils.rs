@@ -7,7 +7,7 @@ use crate::{
         Id, IdKind, IdPool, InitMap, Scope, Type, TypePool, TypeSelector, Typed,
     },
 };
-use arbitrary::Unstructured;
+use arbitrary::{Arbitrary, Unstructured};
 use framework::StatePool;
 use log::trace;
 
@@ -202,7 +202,12 @@ pub fn get_patterns_for_type(
                 .iter()
                 .map(|(_, t)| {
                     let pats = get_patterns_for_type(u, env, t, scope);
-                    u.choose(&pats).unwrap().clone()
+                    let partials = pats
+                        .iter()
+                        .filter_map(|pat| get_partial_patterns(u, pat))
+                        .collect::<Vec<Pattern>>();
+                    let all = pats.into_iter().chain(partials).collect::<Vec<Pattern>>();
+                    u.choose(&all).unwrap().clone()
                 })
                 .collect::<Vec<Pattern>>();
             patterns.push(Pattern::new_full_positional(typ, field_patterns));
@@ -215,10 +220,15 @@ pub fn get_patterns_for_type(
                 .iter()
                 .map(|(name, t)| {
                     let pats = get_patterns_for_type(u, env, t, scope);
-                    (name.clone(), u.choose(&pats).unwrap().clone())
+                    let partials = pats
+                        .iter()
+                        .filter_map(|pat| get_partial_patterns(u, pat))
+                        .collect::<Vec<Pattern>>();
+                    let all = pats.into_iter().chain(partials).collect::<Vec<Pattern>>();
+                    (name.clone(), u.choose(&all).unwrap().clone())
                 })
                 .collect::<Vec<(Id, Pattern)>>();
-            patterns.push(Pattern::new_named(typ, field_patterns));
+            patterns.push(Pattern::new_named(typ, field_patterns, s.fields.len()));
         },
         Type::Generic(GenericType::Enum(_)) => {
             let (name, _) = new_id(env, IdKind::Var, scope);
@@ -236,6 +246,9 @@ pub fn get_partial_patterns(u: &mut Unstructured, pat: &Pattern) -> Option<Patte
     trace!("Generating partial pattern for {:?}", pat);
     match &pat.body {
         PatternKind::Positional(pats) => {
+            if pats.is_empty() {
+                return None;
+            }
             let mut new_fields = pats.clone();
             let start_index = u.int_in_range(0..=new_fields.len() - 1).unwrap();
             let num_elems_left = new_fields.len() - start_index;
@@ -248,7 +261,7 @@ pub fn get_partial_patterns(u: &mut Unstructured, pat: &Pattern) -> Option<Patte
             }
             Some(Pattern::new_partial_positional(&pat.typ, new_fields))
         },
-        PatternKind::Named(pairs) => {
+        PatternKind::Named(pairs, num_total_fields) => {
             let mut new_paris = pairs.clone();
             let total = pairs.len();
             if total == 0 {
@@ -263,7 +276,7 @@ pub fn get_partial_patterns(u: &mut Unstructured, pat: &Pattern) -> Option<Patte
                 let idx = u.choose_index(new_paris.len()).unwrap();
                 new_paris.remove(idx);
             }
-            Some(Pattern::new_named(&pat.typ, new_paris))
+            Some(Pattern::new_named(&pat.typ, new_paris, *num_total_fields))
         },
         _ => None,
     }
@@ -274,7 +287,7 @@ pub fn get_complete_patterns_for_enum(
     env: &mut StatePool<MoveAST>,
     enum_type: EnumType,
     scope: &Scope,
-) -> Vec<(Vec<Pattern>, EnumVariantType, Scope)> {
+) -> Vec<(Pattern, EnumVariantType, Scope)> {
     let mut output = vec![];
     for (_, variant) in &enum_type.variants {
         // Create a dummy block scope for each variant arm
@@ -291,7 +304,26 @@ pub fn get_complete_patterns_for_enum(
         }
         pop_scope(env);
 
-        output.push((patterns, variant.clone(), arm_scope));
+        let variant_type = Type::Generic(GenericType::EnumVariant(variant.clone()));
+        let arm_pattern = match &variant.positional {
+            true => Pattern::new_full_positional(&variant_type, patterns),
+            false => {
+                let names_pats: Vec<(Id, Pattern)> = variant
+                    .fields
+                    .iter()
+                    .zip(patterns.iter())
+                    .map(|((name, _), pat)| (name.clone(), pat.clone()))
+                    .collect();
+                Pattern::new_named(&variant_type, names_pats, variant.fields.len())
+            },
+        };
+        let partial_arm_pattern = get_partial_patterns(u, &arm_pattern);
+        let chosen = match (partial_arm_pattern, bool::arbitrary(u).unwrap()) {
+            (None, _) => arm_pattern,
+            (Some(partial), true) => partial,
+            (Some(_), false) => arm_pattern,
+        };
+        output.push((chosen, variant.clone(), arm_scope));
     }
     output
 }

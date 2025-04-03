@@ -448,28 +448,11 @@ impl CodeGenerator for EnumMatch {
 impl CodeGenerator for MatchArm {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code = vec![];
-        code.push(self.variant_type.name().inline());
-        if self.variant_type.positional {
-            let mut pat_blocks = self
-                .patterns
-                .iter()
-                .map(|p| p.emit_code_lines())
-                .collect::<Vec<Vec<String>>>();
-            add_comma_for_blocks(&mut pat_blocks, true);
-            let pat_lines = pat_blocks.into_iter().flatten().collect();
-            let pat_lines = put_inside_parentheses(pat_lines, INDENTATION_SIZE);
-            adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
-        } else {
-            let mut pat_lines = vec![];
-            for ((id, _), pat) in self.variant_type.fields.iter().zip(&self.patterns) {
-                pat_lines.push(format!("{}: {}", id.inline(), pat.inline()));
-            }
-            add_comma_for_lines(&mut pat_lines, true);
-            if !pat_lines.is_empty() {
-                pat_lines = put_inside_curly_braces(pat_lines, INDENTATION_SIZE);
-            }
-            adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
+        if !self.pattern.is_wildcard() {
+            code.push(self.variant_type.name().inline());
         }
+        let pat_lines = self.pattern.emit_code_lines();
+        adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         code.last_mut().unwrap().push_str(" =>");
         let body = self.body.emit_code_lines();
         adaptive_append_inline(&mut code, body, INDENTATION_SIZE, LINE_WRAP_LIMIT, true);
@@ -644,7 +627,7 @@ impl CodeGenerator for Pattern {
                 let mut code = if self.typ.is_tuple() || self.typ.is_struct() {
                     format!("{}(", typ_name)
                 } else {
-                    '{'.to_string()
+                    '('.to_string()
                 };
                 let mut elems = vec![];
                 let mut adding_dot = false;
@@ -664,7 +647,7 @@ impl CodeGenerator for Pattern {
                 code.push(')');
                 vec![code]
             },
-            PatternKind::Named(pats) => {
+            PatternKind::Named(pats, num_total_fields) => {
                 let mut code = if self.typ.is_tuple() || self.typ.is_struct() {
                     vec![format!("{}{{", typ_name)]
                 } else {
@@ -673,8 +656,7 @@ impl CodeGenerator for Pattern {
                 for (id, pat) in pats {
                     code.push(format!("{}: {},", id.inline(), pat.inline()));
                 }
-                let struct_typ = self.typ.as_struct().unwrap();
-                if pats.len() != struct_typ.fields.len() {
+                if pats.len() != *num_total_fields {
                     code.push("..".to_string());
                 }
                 code.push('}'.to_string());

@@ -428,7 +428,7 @@ fn get_defined_vars_from_pattern(pattern: &Pattern) -> Vec<(Id, Type)> {
                 }
             })
             .collect(),
-        PatternKind::Named(pairs) => {
+        PatternKind::Named(pairs, _) => {
             let top_level = pairs
                 .iter()
                 .map(|(id, pat)| (id.clone(), pat.ty()))
@@ -474,12 +474,10 @@ impl State<MoveAST> for TypePool {
                     self.variable_types.insert(v.name.clone(), v.ty());
                 }
             },
-            M::MatchArm(MatchArm { patterns, .. }) => {
-                for pat in patterns {
-                    let vars = get_defined_vars_from_pattern(pat);
-                    for (id, ty) in vars {
-                        self.variable_types.insert(id, ty);
-                    }
+            M::MatchArm(MatchArm { pattern, .. }) => {
+                let vars = get_defined_vars_from_pattern(pattern);
+                for (id, ty) in vars {
+                    self.variable_types.insert(id, ty);
                 }
             },
             _ => {},
@@ -603,6 +601,7 @@ impl ConcreteType {
 pub enum GenericType {
     Struct(StructType),
     Enum(EnumType),
+    EnumVariant(EnumVariantType),
     Vector(VectorType),
     Tuple(TupleType),
     Function(FunctionType),

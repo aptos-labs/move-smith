@@ -28,7 +28,7 @@ impl Register<GeneratorEntry> for MatchArmGenerator {
 impl Generator<MoveAST, AnyConstraint> for MatchArmGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         constraint.check_exist_and_type::<EnumVariantType>("variant_type")
-            && constraint.check_exist_and_type::<Vec<Pattern>>("patterns")
+            && constraint.check_exist_and_type::<Pattern>("pattern")
             && constraint.check_exist_and_type::<Type>("type")
             && constraint.check_exist_and_type::<Scope>("scope")
     }
@@ -81,12 +81,12 @@ impl Generator<MoveAST, AnyConstraint> for MatchArmGenerator {
             .get::<EnumVariantType>("variant_type")
             .unwrap()
             .clone();
-        let patterns = constraint.get::<Vec<Pattern>>("patterns").unwrap().clone();
+        let pattern = constraint.get::<Pattern>("pattern").unwrap().clone();
         let typ = constraint.get::<Type>("type").unwrap().clone();
         let body = asts.into_iter().next().unwrap();
         Ok(MatchArm {
             variant_type,
-            patterns,
+            pattern,
             condition: None,
             body: Box::new(body),
             typ,

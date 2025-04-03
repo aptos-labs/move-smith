@@ -206,7 +206,7 @@ impl Typed for EnumMatch {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MatchArm {
     pub variant_type: EnumVariantType,
-    pub patterns: Vec<Pattern>,
+    pub pattern: Pattern,
     pub condition: Option<Expression>,
     pub body: Box<MoveAST>,
     pub typ: Type,
@@ -453,10 +453,10 @@ impl Pattern {
         }
     }
 
-    pub fn new_named(typ: &Type, fields: Vec<(Id, Pattern)>) -> Self {
+    pub fn new_named(typ: &Type, fields: Vec<(Id, Pattern)>, num_total_fields: usize) -> Self {
         Pattern {
             typ: typ.clone(),
-            body: PatternKind::Named(fields),
+            body: PatternKind::Named(fields, num_total_fields),
         }
     }
 
@@ -466,13 +466,19 @@ impl Pattern {
             body: PatternKind::Wildcard,
         }
     }
+
+    pub fn is_wildcard(&self) -> bool {
+        matches!(self.body, PatternKind::Wildcard)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatternKind {
     Variable(Variable),
     Positional(Vec<Option<Pattern>>),
-    Named(Vec<(Id, Pattern)>),
+    /// Named fields should appear in the pattern and total number of fields
+    /// If number of fields is less than the number of fields, dot dot will be added
+    Named(Vec<(Id, Pattern)>, usize),
     Wildcard,
 }
 
