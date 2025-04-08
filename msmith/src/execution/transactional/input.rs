@@ -3,12 +3,17 @@ use crate::{
     utils::create_tmp_move_file,
 };
 use clap::ValueEnum;
+use log::error;
 #[cfg(feature = "git_deps")]
 use move_model::metadata::LanguageVersion;
+#[cfg(feature = "legacy_deps")]
+use move_model_legacy::metadata::LanguageVersion;
 #[cfg(feature = "local_deps")]
 use move_model_local::metadata::LanguageVersion;
 #[cfg(feature = "git_deps")]
 use move_transactional_test_runner::vm_test_harness::TestRunConfig;
+#[cfg(feature = "legacy_deps")]
+use move_transactional_test_runner_legacy::vm_test_harness::TestRunConfig;
 #[cfg(feature = "local_deps")]
 use move_transactional_test_runner_local::vm_test_harness::TestRunConfig;
 use std::path::PathBuf;
@@ -59,20 +64,38 @@ pub struct RunConfig {
 
 impl RunConfig {
     pub fn to_test_framework_config(&self) -> TestRunConfig {
-        let v2_experiments = match &self.v2_setting {
+        let experiments = match &self.v2_setting {
             Some(setting) => setting.to_experiments(),
             None => vec![],
         };
-        match &self.mode {
-            ExecutionMode::V1Only => TestRunConfig::CompilerV1,
-            ExecutionMode::V2Only => TestRunConfig::CompilerV2 {
-                language_version: LanguageVersion::V2_1,
-                v2_experiments,
-            },
-            ExecutionMode::V1V2Comparison => TestRunConfig::ComparisonV1V2 {
-                language_version: LanguageVersion::V2_1,
-                v2_experiments,
-            },
+        #[cfg(feature = "legacy_deps")]
+        {
+            match &self.mode {
+                ExecutionMode::V1Only => TestRunConfig::CompilerV1,
+                ExecutionMode::V2Only => TestRunConfig::CompilerV2 {
+                    language_version: LanguageVersion::V2_2,
+                    v2_experiments: experiments,
+                },
+                ExecutionMode::V1V2Comparison => TestRunConfig::ComparisonV1V2 {
+                    language_version: LanguageVersion::V2_1,
+                    v2_experiments: experiments,
+                },
+            }
+        }
+
+        #[cfg(not(feature = "legacy_deps"))]
+        {
+            if matches!(
+                self.mode,
+                ExecutionMode::V1Only | ExecutionMode::V1V2Comparison
+            ) {
+                error!("V1 is not supported in the new test framework");
+                panic!();
+            }
+            TestRunConfig::CompilerV2 {
+                language_version: LanguageVersion::V2_2,
+                experiments,
+            }
         }
     }
 }

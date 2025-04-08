@@ -3,20 +3,23 @@
 
 //! Utility functions for MoveSmith.
 
-use log::{error, info};
 #[cfg(feature = "git_deps")]
 use move_model::metadata::{CompilerVersion, LanguageVersion};
+#[cfg(feature = "legacy_deps")]
+use move_model_legacy::metadata::{CompilerVersion, LanguageVersion};
 #[cfg(feature = "local_deps")]
 use move_model_local::metadata::{CompilerVersion, LanguageVersion};
 #[cfg(feature = "git_deps")]
 use move_package::BuildConfig;
+#[cfg(feature = "legacy_deps")]
+use move_package_legacy::BuildConfig;
 #[cfg(feature = "local_deps")]
 use move_package_local::BuildConfig;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::{
     fs,
     fs::File,
-    io::{stderr, Write},
+    io::Write,
     path::{Path, PathBuf},
 };
 use tempfile::{tempdir, TempDir};
@@ -91,124 +94,10 @@ pub fn create_compiler_config_v2() -> BuildConfig {
     config
 }
 
-/// Compile the Move package at the given path using the given compiler config.
-pub fn compile_with_config<W: Write>(
-    package_path: &Path,
-    config: BuildConfig,
-    name: &str,
-    writer: Option<&mut W>,
-) -> bool {
-    let result = match writer {
-        Some(writer) => config.compile_package_no_exit(package_path, vec![], writer),
-        None => config.compile_package_no_exit(package_path, vec![], &mut stderr()),
-    };
-    match result {
-        Ok(_) => {
-            info!("Successfully compiled the package with compiler {}", name);
-            true
-        },
-        Err(err) => {
-            error!(
-                "Failed to compile the package with compiler {}: {:?}",
-                name, err
-            );
-            false
-        },
-    }
-}
-
 /// Create a temporary Move package with the given code.
 pub fn create_tmp_move_package(code: String) -> (PathBuf, TempDir) {
     let dir: TempDir = tempdir().unwrap();
     let output_dir = dir.path().to_path_buf();
     create_move_package(code, &output_dir);
     (output_dir, dir)
-}
-
-/// Create a temporary package and compiler the given Move code.
-/// V1 and V2 can be enabled/disabled separately.
-pub fn compile_move_code<W: Write>(
-    code: String,
-    v1: bool,
-    v2: bool,
-    writer: Option<&mut W>,
-) -> bool {
-    if v1 == v2 {
-        panic!("V1 and V2 cannot be enabled/disabled at the same time");
-    }
-
-    let (package_path, dir) = create_tmp_move_package(code.clone());
-    info!("created temp move package at {:?}", package_path);
-
-    let result = if v1 {
-        let config = create_compiler_config_v1();
-        let result = compile_with_config(&package_path, config, "v1", writer);
-        info!("Done compiling with V1");
-        result
-    } else {
-        let config = create_compiler_config_v2();
-        let result = compile_with_config(&package_path, config, "v2", writer);
-        info!("Done compiling with V2");
-        result
-    };
-    dir.close().unwrap();
-    result
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::panic;
-
-    const MOVE_CODE: &str = r#" //# publish
-module 0xCAFE::Module1 {
-    struct Struct3 has drop, copy {
-        var32: u16,
-        var33: u32,
-        var34: u8,
-        var35: u32,
-        var36: u32,
-    }
-
-    public fun function6(): Struct3 {
-        let var44: u16 =  21859u16;
-        let var45: u32 =  1399722001u32;
-        Struct3 {
-            var32: var44,
-            var33: var45,
-            var34: 154u8,
-            var35: var45,
-            var36: var45,
-        }
-    }
-}"#;
-
-    const MOVE_CODE_V1_ERR: &str = r#" //# publish
-module 0xCAFE::Module0 {
-    public fun function0<T0: drop, T1: drop + store, T2: copy + drop + store> (var0: T2): T2 {
-        if ((var0 == if (true)  { var0 } else { var0 }))  {
-        } else {
-            var0 = var0;
-        };
-        var0
-    }
-}"#;
-
-    #[test]
-    fn test_compile() {
-        let code = MOVE_CODE.to_string();
-        let result = compile_move_code(code, true, true, Some(&mut stderr()));
-        assert!(result);
-    }
-
-    #[test]
-    fn test_compile_err() {
-        let code = MOVE_CODE_V1_ERR.to_string();
-
-        // Should not compile with V1
-        let result = panic::catch_unwind(|| {
-            compile_move_code(code.clone(), true, true, Some(&mut stderr()))
-        });
-        assert!(result.is_err());
-    }
 }

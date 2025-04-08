@@ -16,6 +16,12 @@ local_deps = [
     "move-package-local",
     "move-transactional-test-runner-local",
 ]
+legacy_deps = [
+    "move-compiler-v2-legacy",
+    "move-model-legacy",
+    "move-package-legacy",
+    "move-transactional-test-runner-legacy",
+]
 
 [dependencies]
 anyhow = { workspace = true }
@@ -27,14 +33,18 @@ framework = { workspace = true }
 indicatif = { workspace = true }
 log = { workspace = true }
 num-bigint = { workspace = true }
-move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-compiler-v2", optional = true }
+move-compiler-v2 = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-compiler-v2", optional = true, branch = "main" }
 move-compiler-v2-local = { path = "../../aptos-core/third_party/move/move-compiler-v2", package = "move-compiler-v2", optional = true }
-move-model = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-model", optional = true }
+move-compiler-v2-legacy = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-compiler-v2", optional = true, rev = "2389654a796b329b74323acafcd1fc600c170cfa" }
+move-model = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-model", optional = true, branch = "main" }
 move-model-local = { path = "../../aptos-core/third_party/move/move-model", package = "move-model", optional = true }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-package", optional = true }
+move-model-legacy = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-model", optional = true, rev = "2389654a796b329b74323acafcd1fc600c170cfa" }
+move-package = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-package", optional = true, branch = "main" }
 move-package-local = { path = "../../aptos-core/third_party/move/tools/move-package", package = "move-package", optional = true }
-move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true }
+move-package-legacy = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-package", optional = true, rev = "2389654a796b329b74323acafcd1fc600c170cfa" }
+move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true, branch = "main" }
 move-transactional-test-runner-local = { path = "../../aptos-core/third_party/move/testing-infra/transactional-test-runner", package = "move-transactional-test-runner", optional = true }
+move-transactional-test-runner-legacy = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true, rev = "2389654a796b329b74323acafcd1fc600c170cfa" }
 num_cpus = { workspace = true }
 once_cell = { workspace = true }
 rand = { workspace = true }
@@ -57,6 +67,11 @@ path = "src/cli/main.rs"
 name = "msmith-local"
 path = "src/cli/main.rs"
 required-features = ["local_deps"]
+
+[[bin]]
+name = "msmith-legacy"
+path = "src/cli/main.rs"
+required-features = ["legacy_deps"]
 
 [lib]
 name = "msmith"

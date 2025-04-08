@@ -6,6 +6,9 @@ msmith:
 msmith-local:
 	cargo build --bin msmith-local --no-default-features --features local_deps
 
+msmith-legacy:
+	cargo build --bin msmith-legacy --no-default-features --features legacy_deps
+
 all: release fuzz-targets
 
 release:

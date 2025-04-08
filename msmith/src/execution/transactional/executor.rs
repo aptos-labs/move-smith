@@ -8,6 +8,8 @@ use crate::execution::{
 };
 #[cfg(feature = "git_deps")]
 use move_transactional_test_runner::vm_test_harness;
+#[cfg(feature = "legacy_deps")]
+use move_transactional_test_runner_legacy::vm_test_harness;
 #[cfg(feature = "local_deps")]
 use move_transactional_test_runner_local::vm_test_harness;
 use std::time::Instant;
