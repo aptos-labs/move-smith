@@ -296,9 +296,10 @@ pub fn get_complete_patterns_for_enum(
         let mut patterns = vec![];
         for (_, field_type) in &variant.fields {
             let pats = get_patterns_for_type(u, env, field_type, &arm_scope);
-            let partials = patterns
+            let partials = pats
                 .iter()
-                .filter_map(|pat| get_partial_patterns(u, pat));
+                .filter_map(|pat| get_partial_patterns(u, pat))
+                .collect::<Vec<Pattern>>();
             let all_patterns = pats.into_iter().chain(partials).collect::<Vec<Pattern>>();
             patterns.push(u.choose(&all_patterns).unwrap().clone());
         }

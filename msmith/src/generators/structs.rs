@@ -1,8 +1,8 @@
 use crate::{
     move_ast::{MoveAST, SingleVariable, Struct, TypeParameters},
     states::{
-        get_config, get_type_pool, new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope,
-        pop_scope, Ability, IdKind, TypeSelectorBuilder,
+        get_config_mut, get_type_pool, new_id_from_curr_scope,
+        new_id_from_curr_scope_and_push_scope, pop_scope, Ability, IdKind, TypeSelectorBuilder,
     },
 };
 use anyhow::{Ok, Result};
@@ -42,12 +42,22 @@ impl Generator<MoveAST, AnyConstraint> for StructGenerator {
         let type_params = TypeParameters::default();
         let abilities = vec![Ability::Copy, Ability::Drop, Ability::Store, Ability::Key];
 
-        let config = get_config(env);
+        let config = get_config_mut(env);
         let num_fields = config.num_fields_in_struct.select(u)?;
-        let selector = TypeSelectorBuilder::all_no(config)
-            .bool(1)
-            .number(1)
-            .build();
+
+        let selector = if config.total_num_composite_type_in_struct.incr(u) {
+            TypeSelectorBuilder::all_no(config)
+                .bool(1)
+                .number(1)
+                .structs(1)
+                .enums(1)
+                .build()
+        } else {
+            TypeSelectorBuilder::all_no(config)
+                .bool(1)
+                .number(1)
+                .build()
+        };
 
         let mut fields = vec![];
         for _ in 0..num_fields {

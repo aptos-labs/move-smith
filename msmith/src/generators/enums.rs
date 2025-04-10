@@ -1,8 +1,8 @@
 use crate::{
     move_ast::{Enum, EnumVariant, MoveAST, SingleVariable, TypeParameters},
     states::{
-        get_config, get_type_pool, new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope,
-        pop_scope, Ability, IdKind, TypeSelectorBuilder,
+        get_config, get_config_mut, get_type_pool, new_id_from_curr_scope,
+        new_id_from_curr_scope_and_push_scope, pop_scope, Ability, IdKind, TypeSelectorBuilder,
     },
 };
 use anyhow::{Ok, Result};
@@ -47,10 +47,19 @@ impl Generator<MoveAST, AnyConstraint> for EnumGenerator {
         let mut variants = vec![];
         for _ in 0..num_variants {
             let (variant_name, _scope) = new_id_from_curr_scope(env, IdKind::EnumVariant);
-            let selector = TypeSelectorBuilder::all_no(get_config(env))
-                .number(1)
-                .bool(1)
-                .build();
+            let selector = if get_config_mut(env).total_num_composite_type_in_enum.incr(u) {
+                TypeSelectorBuilder::all_no(get_config(env))
+                    .number(1)
+                    .bool(1)
+                    .structs(1)
+                    .enums(1)
+                    .build()
+            } else {
+                TypeSelectorBuilder::all_no(get_config(env))
+                    .number(1)
+                    .bool(1)
+                    .build()
+            };
             let num_fields = get_config(env).num_fields_in_enum_variant.select(u)?;
 
             let mut fields = vec![];

@@ -24,6 +24,57 @@ pub struct RandomNumber {
     once_value: Option<usize>,
 }
 
+/// A counter that will
+/// * Upon first invocation to `incr`, select a random number in range like `RandomNumber` as the limit
+/// * When `incr` is called:
+///   * If the counter has reached the limit, it will return false
+///   * If the counter has not reached the limit, it will randomly decide whether to increase the counter
+///   * If the counter is increased, it will return true. Otherwise, it will return false
+#[derive(Default, Debug, Clone, Deserialize)]
+pub struct RandomCounter {
+    /// Same as `min` in `RandomNumber`
+    pub min: usize,
+    /// Same as `target` in `RandomNumber`
+    pub target: usize,
+    /// Same as `max` in `RandomNumber`
+    pub max: usize,
+
+    #[serde(skip)]
+    once_value: Option<usize>,
+
+    #[serde(skip)]
+    curr_value: Option<usize>,
+}
+
+impl RandomCounter {
+    pub fn incr(&mut self, u: &mut Unstructured) -> bool {
+        // First invocation
+        if self.once_value.is_none() {
+            let rand_num = RandomNumber::new(self.min, self.target, self.max);
+            let v = rand_num
+                .select(u)
+                .expect("Failed to select a random number");
+            self.once_value = Some(v);
+        }
+        if self.curr_value.is_none() {
+            self.curr_value = Some(0);
+        }
+
+        let do_incr = bool::arbitrary(u).unwrap();
+        if !do_incr {
+            return false;
+        }
+
+        let limit = self.once_value.unwrap();
+        let curr = self.curr_value.unwrap();
+        if curr >= limit {
+            return false;
+        }
+        self.curr_value = Some(curr + 1);
+        true
+    }
+}
+
 /// How often we select sane values vs large values
 /// Divisor of 10000
 const DEFAULT_THRESHOLD: usize = 9950;

@@ -7,7 +7,8 @@ use crate::move_ast::MoveAST;
 use arbitrary::Unstructured;
 use core::fmt;
 use framework::{
-    selection::RandomNumber, GenLabel, LabelledState, Register, State, StateEntry, StateLabel,
+    selection::{RandomCounter, RandomNumber},
+    GenLabel, LabelledState, Register, State, StateEntry, StateLabel,
 };
 use serde::Deserialize;
 use std::path::Path;
@@ -30,7 +31,7 @@ pub struct GenerationConfig {
     /******** Struct Related ********/
     pub num_fields_in_struct: RandomNumber,
     /// The maximum total number of fields in all structs that can be composite
-    pub total_num_composite_type_in_struct: RandomNumber,
+    pub total_num_composite_type_in_struct: RandomCounter,
     /// Maximum number of type parameters in a struct definition
     pub num_type_params_in_struct: RandomNumber,
 
@@ -38,7 +39,7 @@ pub struct GenerationConfig {
     pub num_variants_in_enum: RandomNumber,
     pub num_fields_in_enum_variant: RandomNumber,
     /// The maximum total number of fields in all enums that can be composite
-    pub total_num_composite_type_in_enum: RandomNumber,
+    pub total_num_composite_type_in_enum: RandomCounter,
     /// Maximum number of type parameters in an enum definition
     pub num_type_params_in_enum: RandomNumber,
 
