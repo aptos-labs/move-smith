@@ -1,7 +1,7 @@
 use crate::{
     generators::{ExprOfTypeGenerator, PatternGenerator},
     move_ast::{Assignment, MoveAST},
-    states::{get_config, get_type_pool, Type, TypeSelectorBuilder},
+    states::{get_config, random_type_from_curr_scope, Type, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -45,8 +45,9 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
                     .func_return(5)
                     .structs(1)
                     .enums(1)
+                    .func_value(1)
                     .build();
-                get_type_pool(env).random_type(u, vec![type_selector])?
+                random_type_from_curr_scope(u, env, vec![type_selector])?
             },
         };
 

@@ -9,7 +9,7 @@ pub mod codegen;
 pub mod execution;
 pub mod generators;
 pub mod move_ast;
-pub mod special;
+// pub mod special;
 pub mod states;
 pub mod utils;
 
@@ -72,6 +72,7 @@ impl MoveSmith {
             .add_generator::<EOTEnumGenerator>()
             .add_generator::<EOTMatchGenerator>()
             .add_generator::<EOTBoolGenerator>()
+            .add_generator::<EOTFuncValGenerator>()
             .add_state::<states::config::GenerationConfig>()
             .add_state::<states::TypePool>()
             .add_state::<states::IdPool>()
@@ -84,9 +85,10 @@ impl MoveSmith {
         use Variant as V;
         let framework = match variant {
             V::Default => builder,
-            V::FlushWrites => builder
-                .add_generator::<special::flush_writes::ConsumerSignatureGenerator>()
-                .add_generator::<special::flush_writes::TupleSignatureGenerator>(),
+            V::FlushWrites => builder,
+            // V::FlushWrites => builder
+            //     .add_generator::<special::flush_writes::ConsumerSignatureGenerator>()
+            //     .add_generator::<special::flush_writes::TupleSignatureGenerator>(),
         }
         .build();
         Self::from_framework(framework)

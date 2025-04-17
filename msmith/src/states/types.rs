@@ -11,10 +11,8 @@ use crate::{
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    selection::choose_item_weighted, GenLabel, LabelledGenerator, LabelledState, Register, State,
-    StateEntry, StateLabel,
+    GenLabel, LabelledGenerator, LabelledState, Register, State, StateEntry, StateLabel,
 };
-use log::{trace, warn};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub trait Typed {
@@ -23,18 +21,19 @@ pub trait Typed {
 
 #[derive(Debug, Clone)]
 pub struct TypeSelector {
-    config: GenerationConfig,
-    unit_weight: u32,
-    bool_weight: u32,
-    number_weight: u32,
-    address_weight: u32,
-    struct_weight: u32,
-    enum_weight: u32,
-    vector_weight: u32,
-    tuple_weight: u32,
-    reference_weight: u32,
-    mut_reference_weight: u32,
-    func_return: u32,
+    pub config: GenerationConfig,
+    pub unit_weight: u32,
+    pub bool_weight: u32,
+    pub number_weight: u32,
+    pub address_weight: u32,
+    pub struct_weight: u32,
+    pub enum_weight: u32,
+    pub vector_weight: u32,
+    pub tuple_weight: u32,
+    pub reference_weight: u32,
+    pub mut_reference_weight: u32,
+    pub func_return: u32,
+    pub func_value: u32,
 }
 
 impl TypeSelector {
@@ -50,6 +49,7 @@ impl TypeSelector {
             && self.reference_weight == 0
             && self.mut_reference_weight == 0
             && self.func_return == 0
+            && self.func_value == 0
     }
 
     pub fn is_all_yes(&self) -> bool {
@@ -64,6 +64,7 @@ impl TypeSelector {
             && self.reference_weight > 0
             && self.mut_reference_weight > 0
             && self.func_return > 0
+            && self.func_value > 0
     }
 }
 
@@ -87,6 +88,7 @@ impl TypeSelectorBuilder {
                 reference_weight: 1,
                 mut_reference_weight: 1,
                 func_return: 1,
+                func_value: 1,
             },
         }
     }
@@ -106,27 +108,13 @@ impl TypeSelectorBuilder {
                 reference_weight: 0,
                 mut_reference_weight: 0,
                 func_return: 0,
+                func_value: 0,
             },
         }
     }
 
     pub fn primitive_only(config: &GenerationConfig) -> Self {
-        Self {
-            selector: TypeSelector {
-                config: config.clone(),
-                unit_weight: 0,
-                bool_weight: 1,
-                number_weight: 1,
-                address_weight: 0,
-                struct_weight: 0,
-                enum_weight: 0,
-                vector_weight: 0,
-                tuple_weight: 0,
-                reference_weight: 0,
-                mut_reference_weight: 0,
-                func_return: 0,
-            },
-        }
+        TypeSelectorBuilder::all_no(config).bool(1).number(1)
     }
 
     pub fn unit(mut self, weight: u32) -> Self {
@@ -184,6 +172,11 @@ impl TypeSelectorBuilder {
         self
     }
 
+    pub fn func_value(mut self, weight: u32) -> Self {
+        self.selector.func_value = weight;
+        self
+    }
+
     pub fn build(self) -> TypeSelector {
         self.selector
     }
@@ -198,7 +191,8 @@ pub struct TypePool {
     defined_funcs: BTreeMap<Id, Type>,
 
     /// The mapping from variable to type
-    variable_types: BTreeMap<Id, Type>,
+    // TODO: remove pub after func value done
+    pub variable_types: BTreeMap<Id, Type>,
 
     /// Some enum type has been defined
     pub has_enum: bool,
@@ -258,138 +252,34 @@ impl TypePool {
         ]
     }
 
-    pub fn random_type(
-        &self,
-        u: &mut Unstructured,
-        mut selectors: Vec<TypeSelector>,
-    ) -> Result<Type> {
-        let selector = match selectors.len() {
-            1 => selectors[0].clone(),
-            _ => selectors.pop().unwrap(),
-        };
-
-        // Outer vector element: (type candidates in a category, weight of the category)
-        // Inner vector element: (type candidate, weight of the candidate)
-        let mut candidates: Vec<(Vec<(Type, u32)>, u32)> = vec![];
-
-        if selector.unit_weight > 0 {
-            candidates.push((vec![(Type::Unit, 1)], selector.unit_weight));
-        }
-
-        if selector.bool_weight > 0 {
-            candidates.push((
-                vec![(Type::Primitive(Primitive::Bool), 1)],
-                selector.bool_weight,
-            ));
-        }
-
-        if selector.number_weight > 0 {
-            let types = self.number_type_selection_weights();
-            candidates.push((types, selector.number_weight));
-        }
-
-        if selector.address_weight > 0 {
-            candidates.push((
-                vec![(Type::Primitive(Primitive::Address), 1)],
-                selector.address_weight,
-            ));
-        }
-
-        if selector.struct_weight > 0 {
-            let struct_types = self
-                .defined_types
-                .iter()
-                .filter(|(_, typ)| typ.is_generic_struct())
-                .map(|(_, typ)| (typ.clone(), 1))
-                .collect::<Vec<(Type, u32)>>();
-            if struct_types.is_empty() {
-                warn!("No struct types defined");
-            } else {
-                candidates.push((struct_types, selector.struct_weight));
-            }
-        }
-
-        if selector.enum_weight > 0 {
-            let enum_types = self
-                .defined_types
-                .iter()
-                .filter(|(_, typ)| typ.is_generic_enum())
-                .map(|(_, typ)| (typ.clone(), 1))
-                .collect::<Vec<(Type, u32)>>();
-            if enum_types.is_empty() {
-                warn!("No enum types defined");
-            } else {
-                candidates.push((enum_types, selector.enum_weight));
-            }
-        }
-
-        if selector.vector_weight > 0 {
-            warn!("random Vector type not implemented");
-            unimplemented!();
-        }
-
-        if selector.tuple_weight > 0 {
-            let num_elem = selector.config.num_elem_in_tuple.select(u)?;
-
-            // Cannot have a tuple of tuples
-            selectors.iter_mut().for_each(|s| {
-                s.tuple_weight = 0;
-                s.unit_weight = 0;
-                // Avoid having nothing to choose
-                if s.is_all_no() {
-                    s.number_weight = 1;
+    pub fn get_all_defined_structs(&self) -> Vec<Type> {
+        self.defined_types
+            .iter()
+            .filter_map(|(_, typ)| {
+                if typ.is_generic_struct() {
+                    Some(typ.clone())
+                } else {
+                    None
                 }
-            });
-            let elems = (0..num_elem)
-                .map(|_| self.random_type(u, selectors.clone()))
-                .collect::<Result<Vec<Type>>>()?;
-            let typ = Type::Generic(GenericType::Tuple(TupleType { types: elems }));
-            candidates.push((vec![(typ, 1)], selector.tuple_weight));
-        }
+            })
+            .collect::<Vec<Type>>()
+    }
 
-        if selector.reference_weight > 0 {
-            warn!("random Reference type not implemented");
-            unimplemented!();
-        }
+    pub fn get_all_defined_enums(&self) -> Vec<Type> {
+        self.defined_types
+            .iter()
+            .filter_map(|(_, typ)| {
+                if typ.is_generic_enum() {
+                    Some(typ.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<Type>>()
+    }
 
-        if selector.mut_reference_weight > 0 {
-            warn!("random Mutable Reference type not implemented");
-            unimplemented!();
-        }
-
-        if selector.func_return > 0 {
-            let mut ret_types = self
-                .defined_funcs
-                .values()
-                .filter_map(|typ| {
-                    if let Type::Generic(GenericType::Function(f)) = typ {
-                        if f.has_return() {
-                            Some((f.return_type.as_ref().clone(), 1))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<(Type, u32)>>();
-            if selector.tuple_weight == 0 {
-                // Filter out tuple types
-                ret_types.retain(|(typ, _)| !typ.is_generic_tuple());
-            }
-            if ret_types.is_empty() {
-                warn!("No function defined so far");
-            } else {
-                candidates.push((ret_types, selector.func_return));
-            }
-        }
-
-        trace!("Candidates: {:?}", candidates);
-        trace!("Selector: {:?}", selector);
-        let chosen_category = choose_item_weighted(u, &candidates)?;
-        let chosen = choose_item_weighted(u, &chosen_category)?;
-        trace!("Chosen type: {:?}", chosen);
-        Ok(chosen)
+    pub fn get_all_defined_func_types(&self) -> Vec<Type> {
+        self.defined_funcs.values().cloned().collect::<Vec<Type>>()
     }
 }
 
@@ -750,6 +640,8 @@ pub struct FunctionType {
     pub type_params: Vec<TypeParameter>,
     pub params: Vec<Type>,
     pub return_type: Box<Type>,
+    pub abilities: Option<Vec<Ability>>,
+    pub is_func_value: bool,
 }
 
 impl Named for FunctionType {
@@ -786,4 +678,14 @@ pub enum Ability {
     Drop,
     Store,
     Key,
+}
+
+impl Ability {
+    pub fn all() -> Vec<Ability> {
+        vec![Ability::Copy, Ability::Drop, Ability::Store, Ability::Key]
+    }
+
+    pub fn copy_drop() -> Vec<Ability> {
+        vec![Ability::Copy, Ability::Drop]
+    }
 }

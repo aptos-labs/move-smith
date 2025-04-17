@@ -38,7 +38,6 @@ impl Generator<MoveAST, AnyConstraint> for LetAssignGenerator {
         _env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        // TODO: add declaration only
         let subtree =
             Subtree::new_generator_subtree(AssignmentGenerator::label(), AnyConstraint::new());
         Ok((vec![subtree], AnyConstraint::new()))

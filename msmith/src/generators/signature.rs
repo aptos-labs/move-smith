@@ -1,8 +1,8 @@
 use crate::{
     move_ast::{MoveAST, Signature, SingleVariable, TypeParameters},
     states::{
-        get_config, get_curr_scope, get_type_pool, new_id_from_curr_scope, Id, IdKind, Scope, Type,
-        TypeSelectorBuilder,
+        get_config, get_curr_scope, new_id_from_curr_scope, random_type_from_curr_scope, Id,
+        IdKind, Scope, Type, TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -51,7 +51,6 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
         trace!("Generating {} parameters for function {}", num_params, name);
-        // TODO: allow more types when ready
         let type_selector = TypeSelectorBuilder::all_no(config)
             .number(1)
             .bool(1)
@@ -63,7 +62,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
         for _ in 0..num_params {
             // Create a new var name under the function scope
             let (name, _) = new_id_from_curr_scope(env, IdKind::Var);
-            let typ = get_type_pool(env).random_type(u, vec![type_selector.clone()])?;
+            let typ = random_type_from_curr_scope(u, env, vec![type_selector.clone()])?;
             parameters.push(SingleVariable::new_declare(&name, &typ));
         }
 
@@ -79,7 +78,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
                 .enums(1)
                 .tuple(1)
                 .build();
-            get_type_pool(env).random_type(u, vec![type_selector])?
+            random_type_from_curr_scope(u, env, vec![type_selector])?
         } else {
             Type::Unit
         };
@@ -90,6 +89,8 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
                 type_params: TypeParameters::default(),
                 parameters,
                 return_type,
+                abilities: None,
+                is_func_value: false,
             }
             .into(),
         );

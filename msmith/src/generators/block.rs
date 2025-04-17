@@ -2,8 +2,8 @@ use crate::{
     generators::{ExpressionGenerator, SequenceGenerator},
     move_ast::{Block, Expression, MoveAST},
     states::{
-        get_config, get_type_pool, new_id_from_curr_scope_and_push_scope, pop_scope, Id, IdKind,
-        PartialInfo, Type, TypeSelectorBuilder, PARTIAL_SIGNATURE,
+        get_config, new_id_from_curr_scope_and_push_scope, pop_scope, random_type_from_curr_scope,
+        Id, IdKind, PartialInfo, Type, TypeSelectorBuilder, PARTIAL_SIGNATURE,
     },
 };
 use anyhow::Result;
@@ -70,7 +70,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
                             .enums(1)
                             .structs(1)
                             .build();
-                        get_type_pool(env).random_type(u, vec![selector]).unwrap()
+                        random_type_from_curr_scope(u, env, vec![selector])?
                     } else {
                         Type::Unit
                     }

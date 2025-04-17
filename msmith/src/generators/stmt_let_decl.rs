@@ -2,7 +2,8 @@ use crate::{
     generators::StatementGenerator,
     move_ast::{MoveAST, SingleVariable, Statement},
     states::{
-        get_config, get_type_pool, new_id_from_curr_scope, IdKind, Type, TypeSelectorBuilder,
+        get_config, new_id_from_curr_scope, random_type_from_curr_scope, IdKind, Type,
+        TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -49,9 +50,8 @@ impl Generator<MoveAST, AnyConstraint> for LetDeclGenerator {
                     .enums(1)
                     .build();
                 let mut types = vec![];
-                let type_pool = get_type_pool(env);
                 for _ in 0..num_new_vars {
-                    types.push(type_pool.random_type(u, vec![selector.clone()])?);
+                    types.push(random_type_from_curr_scope(u, env, vec![selector.clone()])?);
                 }
                 types
             },

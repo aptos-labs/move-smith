@@ -2,8 +2,8 @@ use crate::{
     generators::{ExprOfTypeGenerator, MatchArmGenerator},
     move_ast::{EnumMatch, MoveAST, Pattern, PatternKind},
     states::{
-        get_complete_patterns_for_enum, get_config, get_curr_scope, get_type_pool,
-        new_id_from_curr_scope, EnumType, EnumVariantType, GenericType, IdKind, Type,
+        get_complete_patterns_for_enum, get_config, get_curr_scope, new_id_from_curr_scope,
+        random_type_from_curr_scope, EnumType, EnumVariantType, GenericType, IdKind, Type,
         TypeSelectorBuilder,
     },
 };
@@ -53,7 +53,7 @@ impl Generator<MoveAST, AnyConstraint> for EnumMatchGenerator {
                 let selector = TypeSelectorBuilder::all_no(get_config(env))
                     .enums(1)
                     .build();
-                get_type_pool(env).random_type(u, vec![selector]).unwrap()
+                random_type_from_curr_scope(u, env, vec![selector])?
             },
         };
         subtrees.push(Subtree::new_generator_subtree(
@@ -72,7 +72,7 @@ impl Generator<MoveAST, AnyConstraint> for EnumMatchGenerator {
                     .structs(1)
                     .unit(1)
                     .build();
-                get_type_pool(env).random_type(u, vec![selector]).unwrap()
+                random_type_from_curr_scope(u, env, vec![selector])?
             },
         };
 

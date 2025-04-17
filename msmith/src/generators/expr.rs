@@ -1,7 +1,10 @@
 use super::ExprOfTypeGenerator;
 use crate::{
     move_ast::MoveAST,
-    states::{almost_reached_max_expr_depth, get_config, get_type_pool, Type, TypeSelectorBuilder},
+    states::{
+        almost_reached_max_expr_depth, get_config, random_type_from_curr_scope, Type,
+        TypeSelectorBuilder,
+    },
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -55,7 +58,7 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
                     .func_return(10)
                     .build()
             };
-            let random_type = get_type_pool(env).random_type(u, vec![selector])?;
+            let random_type = random_type_from_curr_scope(u, env, vec![selector])?;
             gen_constraint.insert("type", random_type);
         }
 

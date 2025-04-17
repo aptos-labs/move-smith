@@ -6,7 +6,7 @@ use crate::{
     states::{
         ids::{Id, Named},
         types::{Type, Typed},
-        Ability, GenericType, NumberType, Primitive,
+        Ability, FunctionType, GenericType, NumberType, Primitive,
     },
 };
 
@@ -133,17 +133,15 @@ fn lines_to_inline(lines: Vec<String>) -> String {
     oneliner
 }
 
-fn put_inside_curly_braces(lines: Vec<String>, indentation: usize) -> Vec<String> {
-    let mut wrapped = vec!["{".to_string()];
+fn put_inside_pair_of(
+    left: &str,
+    right: &str,
+    lines: Vec<String>,
+    indentation: usize,
+) -> Vec<String> {
+    let mut wrapped = vec![left.to_string()];
     append_code_lines_with_indentation(&mut wrapped, lines, indentation);
-    wrapped.push("}".to_string());
-    wrapped
-}
-
-fn put_inside_parentheses(lines: Vec<String>, indentation: usize) -> Vec<String> {
-    let mut wrapped = vec!["(".to_string()];
-    append_code_lines_with_indentation(&mut wrapped, lines, indentation);
-    wrapped.push(")".to_string());
+    wrapped.push(right.to_string());
     wrapped
 }
 
@@ -392,9 +390,9 @@ impl CodeGenerator for EnumInstantiation {
         add_comma_for_blocks(&mut field_blocks, true);
         let field_lines = field_blocks.into_iter().flatten().collect();
         let field_lines = if variant_type.positional {
-            put_inside_parentheses(field_lines, INDENTATION_SIZE)
+            put_inside_pair_of("(", ")", field_lines, INDENTATION_SIZE)
         } else {
-            put_inside_curly_braces(field_lines, INDENTATION_SIZE)
+            put_inside_pair_of("{", "}", field_lines, INDENTATION_SIZE)
         };
         adaptive_append_inline(
             &mut code,
@@ -411,7 +409,7 @@ impl CodeGenerator for EnumMatch {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code = vec!["match".to_string()];
         let expr_lines = self.expr.emit_code_lines();
-        let expr_lines = put_inside_parentheses(expr_lines, NO_INDENTATION);
+        let expr_lines = put_inside_pair_of("(", ")", expr_lines, NO_INDENTATION);
         adaptive_append_inline(
             &mut code,
             expr_lines,
@@ -482,16 +480,25 @@ impl CodeGenerator for Function {
 
 impl CodeGenerator for Signature {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = format!("fun {}", self.name);
+        let mut code = match self.is_func_value {
+            true => "".to_string(),
+            false => format!("fun {}", self.name),
+        };
 
-        let params = self
+        let mut params = self
             .parameters
             .iter()
             .map(|p| p.emit_code())
             .collect::<Vec<String>>();
-        code.push_str(&format!("({})", params.join(", ")));
+        add_comma_for_lines(&mut params, true);
 
-        if self.has_return() {
+        let lines = match self.is_func_value {
+            true => put_inside_pair_of("|", "|", params, NO_INDENTATION),
+            false => put_inside_pair_of("(", ")", params, NO_INDENTATION),
+        };
+        code.push_str(&lines_to_inline(lines));
+
+        if self.has_return() && !self.is_func_value {
             code.push_str(": ");
             code.push_str(&self.return_type.emit_code());
         }
@@ -580,6 +587,7 @@ impl CodeGenerator for Expression {
             E::EnumMatch(m) => m.emit_code_lines(),
             E::BinOp(b) => b.emit_code_lines(),
             E::UnOp(u) => u.emit_code_lines(),
+            E::FunctionValue(f) => f.emit_code_lines(),
         }
     }
 }
@@ -592,7 +600,7 @@ impl CodeGenerator for Tuple {
             elem_lines.last_mut().unwrap().push(',');
         }
 
-        let elems = put_inside_parentheses(elem_lines, INDENTATION_SIZE);
+        let elems = put_inside_pair_of("(", ")", elem_lines, INDENTATION_SIZE);
         let mut code = vec![];
         adaptive_append_inline(&mut code, elems, NO_INDENTATION, LINE_WRAP_LIMIT, false);
         if self.show_type {
@@ -609,7 +617,12 @@ impl CodeGenerator for Assignment {
         match self {
             Assignment::AssignPattern(pat, expr) => {
                 let lhs = pat.inline();
-                let mut code = vec![format!("{} =", lhs)];
+                let type_hint = if matches!(pat.typ, Type::Generic(GenericType::Function(_))) {
+                    format!(": {}", pat.typ.emit_code())
+                } else {
+                    "".to_string()
+                };
+                let mut code = vec![format!("{}{} =", lhs, type_hint)];
                 append_block(&mut code, expr.emit_code_lines(), 0);
                 code
             },
@@ -725,7 +738,7 @@ impl CodeGenerator for BinOp {
         let rhs = self.right.as_ref().emit_code_lines();
         rest.extend(rhs);
         adaptive_append_inline(&mut code, rest, NO_INDENTATION, LINE_WRAP_LIMIT, true);
-        put_inside_parentheses(code, INDENTATION_SIZE)
+        put_inside_pair_of("(", ")", code, INDENTATION_SIZE)
     }
 }
 
@@ -733,7 +746,7 @@ impl CodeGenerator for UnOp {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code = vec![self.op.emit_code()];
         let expr = self.expr.as_ref().emit_code_lines();
-        let expr = put_inside_parentheses(expr, NO_INDENTATION);
+        let expr = put_inside_pair_of("(", ")", expr, NO_INDENTATION);
         adaptive_append_inline(&mut code, expr, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         code
     }
@@ -801,6 +814,15 @@ impl CodeGenerator for FunctionCall {
     }
 }
 
+impl CodeGenerator for FunctionValue {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec![self.signature.inline()];
+        let body = self.body.emit_code_lines();
+        adaptive_append_inline(&mut code, body, INDENTATION_SIZE, LINE_WRAP_LIMIT, true);
+        code
+    }
+}
+
 impl CodeGenerator for Type {
     fn emit_code_lines(&self) -> Vec<String> {
         use Type as T;
@@ -825,6 +847,7 @@ impl CodeGenerator for GenericType {
                 format!("({})", code.join(", "))
             },
             G::Enum(e) => e.name.name.clone(),
+            G::Function(f) => f.emit_code(),
             _ => unimplemented!(),
         }]
     }
@@ -855,6 +878,42 @@ impl CodeGenerator for NumberType {
     }
 }
 
+impl CodeGenerator for FunctionType {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut params = self
+            .params
+            .iter()
+            .map(|p| p.inline())
+            .collect::<Vec<String>>();
+        add_comma_for_lines(&mut params, true);
+        params = match self.is_func_value {
+            true => put_inside_pair_of("|", "|", params, NO_INDENTATION),
+            false => put_inside_pair_of("(", ")", params, NO_INDENTATION),
+        };
+        let mut code = lines_to_inline(params);
+
+        // TODO: do not hardcode
+        if self.has_return() {
+            code.push_str(" (");
+            code.push_str(&self.return_type.emit_code());
+            code.push_str(" )");
+        }
+
+        match &self.abilities {
+            Some(abilities) => {
+                let abilities = abilities
+                    .iter()
+                    .map(|a| a.emit_code())
+                    .collect::<Vec<String>>()
+                    .join("+");
+                code.push_str(&format!(" has {}", abilities));
+            },
+            None => {},
+        }
+
+        vec![code]
+    }
+}
 #[cfg(test)]
 mod ast_tests {
     use super::*;

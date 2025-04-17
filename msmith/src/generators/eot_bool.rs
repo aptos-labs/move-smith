@@ -2,7 +2,8 @@ use super::ExprOfTypeGenerator;
 use crate::{
     move_ast::{BinOp, BinOperator, Bool, Expression, MoveAST, UnOp, UnOperator},
     states::{
-        get_config, get_random_type, reached_max_expr_depth, Primitive, Type, TypeSelectorBuilder,
+        get_config, random_type_from_curr_scope, reached_max_expr_depth, Primitive, Type,
+        TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -122,7 +123,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTBoolGenerator {
                 let selector = TypeSelectorBuilder::all_no(get_config(env))
                     .number(1)
                     .build();
-                let operand_type = get_random_type(u, env, &selector);
+                let operand_type = random_type_from_curr_scope(u, env, vec![selector])?;
                 comp_constraint.insert("type", operand_type.clone());
                 for _ in 0..2 {
                     let subtree = Subtree::new_generator_subtree(
@@ -139,7 +140,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTBoolGenerator {
                     .structs(1)
                     .enums(1)
                     .build();
-                let operand_type = get_random_type(u, env, &selector);
+                let operand_type = random_type_from_curr_scope(u, env, vec![selector])?;
                 for _ in 0..2 {
                     let subtree = Subtree::new_generator_subtree(
                         ExprOfTypeGenerator::label(),

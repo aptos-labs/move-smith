@@ -1,6 +1,8 @@
 use crate::{
     move_ast::{MoveAST, NumberLiteral},
-    states::{get_config, get_type_pool, NumberType, Primitive, Type, TypeSelectorBuilder},
+    states::{
+        get_config, random_type_from_curr_scope, NumberType, Primitive, Type, TypeSelectorBuilder,
+    },
 };
 use anyhow::Result;
 use arbitrary::{Arbitrary, Unstructured};
@@ -44,7 +46,7 @@ impl Generator<MoveAST, AnyConstraint> for NumberGenerator {
                 let selector = TypeSelectorBuilder::all_no(get_config(env))
                     .number(1)
                     .build();
-                let random_typ = get_type_pool(env).random_type(u, vec![selector]).unwrap();
+                let random_typ = random_type_from_curr_scope(u, env, vec![selector])?;
                 match random_typ {
                     Type::Primitive(Primitive::Number(typ)) => typ,
                     _ => panic!("NumberGenerator::subtrees: random type is not a number"),

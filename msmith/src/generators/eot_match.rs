@@ -3,8 +3,8 @@ use crate::{
     generators::ExprOfTypeGenerator,
     move_ast::{Expression, MoveAST},
     states::{
-        almost_reached_max_expr_depth, get_config, get_current_info, get_type_pool, Type,
-        TypeSelectorBuilder,
+        almost_reached_max_expr_depth, get_config, get_current_info, get_type_pool,
+        random_type_from_curr_scope, Type, TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -46,7 +46,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTMatchGenerator {
         let selector = TypeSelectorBuilder::all_no(get_config(env))
             .enums(1)
             .build();
-        let enum_type = get_type_pool(env).random_type(u, vec![selector]).unwrap();
+        let enum_type = random_type_from_curr_scope(u, env, vec![selector])?;
         let subtrees = vec![Subtree::new_generator_subtree(
             EnumMatchGenerator::label(),
             AnyConstraint::new()

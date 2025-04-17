@@ -40,6 +40,7 @@ pub enum MoveAST {
     Pattern(Pattern),
     EnumMatch(EnumMatch),
     MatchArm(MatchArm),
+    FunctionValue(FunctionValue),
 }
 
 impl ASTNode for MoveAST {}
@@ -242,6 +243,8 @@ pub struct Signature {
     pub type_params: TypeParameters,
     pub parameters: Vec<SingleVariable>,
     pub return_type: Type,
+    pub abilities: Option<Vec<Ability>>,
+    pub is_func_value: bool,
 }
 
 impl Signature {
@@ -257,6 +260,8 @@ impl Typed for Signature {
             type_params: self.type_params.types.clone(),
             params: self.parameters.iter().map(|p| p.ty()).collect(),
             return_type: Box::new(self.return_type.clone()),
+            abilities: self.abilities.clone(),
+            is_func_value: self.is_func_value,
         }))
     }
 }
@@ -293,6 +298,7 @@ pub enum Expression {
     EnumMatch(EnumMatch),
     BinOp(BinOp),
     UnOp(UnOp),
+    FunctionValue(FunctionValue),
 }
 
 impl Typed for Expression {
@@ -309,6 +315,7 @@ impl Typed for Expression {
             Expression::EnumMatch(m) => m.ty(),
             Expression::BinOp(b) => b.ty(),
             Expression::UnOp(u) => u.ty(),
+            Expression::FunctionValue(f) => f.ty(),
         }
     }
 }
@@ -587,6 +594,18 @@ impl Named for FunctionCall {
 impl Typed for FunctionCall {
     fn ty(&self) -> Type {
         self.func_type.return_type.as_ref().clone()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionValue {
+    pub signature: Signature,
+    pub body: Box<Block>,
+}
+
+impl Typed for FunctionValue {
+    fn ty(&self) -> Type {
+        self.signature.ty()
     }
 }
 

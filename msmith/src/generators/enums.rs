@@ -1,8 +1,8 @@
 use crate::{
     move_ast::{Enum, EnumVariant, MoveAST, SingleVariable, TypeParameters},
     states::{
-        get_config, get_config_mut, get_type_pool, new_id_from_curr_scope,
-        new_id_from_curr_scope_and_push_scope, pop_scope, Ability, IdKind, TypeSelectorBuilder,
+        get_config, get_config_mut, new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope,
+        pop_scope, random_type_from_curr_scope, Ability, IdKind, TypeSelectorBuilder,
     },
 };
 use anyhow::{Ok, Result};
@@ -65,7 +65,7 @@ impl Generator<MoveAST, AnyConstraint> for EnumGenerator {
             let mut fields = vec![];
             for _ in 0..num_fields {
                 let (field_name, _scope) = new_id_from_curr_scope(env, IdKind::Field);
-                let field_type = get_type_pool(env).random_type(u, vec![selector.clone()])?;
+                let field_type = random_type_from_curr_scope(u, env, vec![selector.clone()])?;
                 fields.push(SingleVariable {
                     name: field_name,
                     typ: field_type,
