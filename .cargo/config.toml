@@ -12,3 +12,6 @@ xclippy = [
   "-Aclippy::mutable-key-type",
   "-Aclippy::map_identity",        # We temporarily ignore this due to: https://github.com/rust-lang/rust-clippy/issues/11764
 ]
+
+[build]
+rustflags = ["--cfg", "tokio_unstable"]
