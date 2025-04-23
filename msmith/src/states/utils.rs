@@ -1,14 +1,14 @@
 //! Helper functions for accessing and operating on common states
 
+use super::NamedInfoPool;
 use crate::{
-    move_ast::{DotVariable, MoveAST, Pattern, PatternKind, SingleVariable, Variable},
+    move_ast::{MoveAST, Pattern, PatternKind},
     states::{
         types::{
             EnumType, EnumVariantType, GenericType, Primitive, TupleType, Type, TypePool,
-            TypeSelector, Typed,
+            TypeSelector,
         },
-        Ability, CurrScope, CurrentInfo, Depth, GenerationConfig, Id, IdKind, IdPool, InitMap,
-        Scope,
+        Ability, CurrScope, CurrentInfo, Depth, GenerationConfig, Id, IdKind, IdPool, Scope,
     },
 };
 use anyhow::Result;
@@ -24,6 +24,16 @@ pub fn get_config(env: &StatePool<MoveAST>) -> &GenerationConfig {
 #[inline]
 pub fn get_config_mut(env: &mut StatePool<MoveAST>) -> &mut GenerationConfig {
     env.get_mut::<GenerationConfig>().unwrap()
+}
+
+#[inline]
+pub fn get_named_infos(env: &StatePool<MoveAST>) -> &NamedInfoPool {
+    env.get::<NamedInfoPool>().unwrap()
+}
+
+#[inline]
+pub fn get_named_infos_mut(env: &mut StatePool<MoveAST>) -> &mut NamedInfoPool {
+    env.get_mut::<NamedInfoPool>().unwrap()
 }
 
 #[inline]
@@ -100,66 +110,6 @@ pub fn new_id(env: &mut StatePool<MoveAST>, id_kind: IdKind, parent_scope: &Scop
 pub fn new_id_from_curr_scope(env: &mut StatePool<MoveAST>, id_kind: IdKind) -> (Id, Scope) {
     let curr_scope = env.get::<CurrScope>().unwrap().get();
     new_id(env, id_kind, &curr_scope)
-}
-
-pub fn get_all_dot_vars_from_rec(curr: DotVariable) -> Vec<DotVariable> {
-    let curr_type = curr.ty();
-    let fields = match &curr_type {
-        Type::Generic(GenericType::Struct(s)) if !s.positional => &s.fields,
-        Type::Generic(GenericType::Enum(e)) => &e.get_possible_named_fields(),
-        _ => return vec![],
-    };
-    let mut dot_vars = vec![];
-    for (field_name, field_type) in fields {
-        let new_dot_var =
-            DotVariable::new_with_prefix(&curr, (field_name.clone(), field_type.clone()));
-        dot_vars.push(new_dot_var.clone());
-        dot_vars.extend(get_all_dot_vars_from_rec(new_dot_var));
-    }
-    dot_vars
-}
-
-pub fn get_all_dot_vars_from(id: &Id, env: &StatePool<MoveAST>) -> Vec<DotVariable> {
-    let id_typ = get_type_pool(env).get_var_type(id).unwrap();
-    let id_dot = DotVariable::new(vec![(id.clone(), id_typ.clone())]);
-    get_all_dot_vars_from_rec(id_dot)
-}
-
-pub fn get_initialized_vars_in_curr_scope_of_type(
-    env: &StatePool<MoveAST>,
-    wanted: Option<&Type>,
-) -> Vec<Variable> {
-    let curr_scope = env.get::<CurrScope>().unwrap().get();
-    let id_pool = env.get::<IdPool>().unwrap();
-    let all_ids = id_pool.get_ids_of_ident_kind(IdKind::Var);
-    let ids = id_pool.filter_id_in_scope(&all_ids, &curr_scope);
-    let ids = ids
-        .into_iter()
-        .filter(|id| env.get::<InitMap>().unwrap().is_var_initialized(id))
-        .collect::<Vec<Id>>();
-
-    let type_pool = env.get::<TypePool>().unwrap();
-
-    let mut all_vars = vec![];
-    for id in ids {
-        let id_typ = type_pool.get_var_type(&id).unwrap();
-        if Some(&id_typ) == wanted {
-            all_vars.push(SingleVariable::new(&id, &id_typ).into());
-        }
-
-        match &id_typ {
-            Type::Generic(GenericType::Enum(_)) | Type::Generic(GenericType::Struct(_)) => {
-                let dot_vars = get_all_dot_vars_from(&id, env);
-                for dot_var in dot_vars {
-                    if Some(&dot_var.ty()) == wanted {
-                        all_vars.push(dot_var.into());
-                    }
-                }
-            },
-            _ => {},
-        }
-    }
-    all_vars
 }
 
 pub fn get_patterns_for_type(

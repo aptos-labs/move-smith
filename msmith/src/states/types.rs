@@ -216,7 +216,13 @@ impl TypePool {
             .defined_funcs
             .iter()
             .position(|(id, _)| id == curr_func)
-            .ok_or_else(|| anyhow::anyhow!("curr_func not found in defined_funcs: {:?}", curr_func))
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "{:?} not found in defined_funcs: {:?}",
+                    curr_func,
+                    self.defined_funcs
+                )
+            })
             .unwrap();
 
         // Return the first curr_idx functions
@@ -304,7 +310,7 @@ impl Register<StateEntry> for TypePool {
     }
 }
 
-fn get_defined_vars_from_pattern(pattern: &Pattern) -> Vec<(Id, Type)> {
+pub fn get_defined_vars_from_pattern(pattern: &Pattern) -> Vec<(Id, Type)> {
     match &pattern.body {
         PatternKind::Variable(Variable::SingleVariable(sv)) => vec![(sv.name.clone(), sv.ty())],
         PatternKind::Variable(Variable::DotVariable(_)) => vec![], // Dot variable cannot be defined
@@ -456,7 +462,7 @@ impl Named for Type {
             Type::Generic(GenericType::Struct(s)) => s.name(),
             Type::Generic(GenericType::Enum(e)) => e.name(),
             Type::Concrete(c) => c.name(),
-            _ => Id::new_str("TypeNamePlaceholder", IdKind::Var),
+            _ => Id::new_without_scopes("TypeNamePlaceholder", IdKind::Var),
         }
     }
 }
@@ -598,7 +604,7 @@ impl Named for EnumType {
         if self.variant_pos.is_some() {
             let variant = self.variants[self.variant_pos.unwrap()].0.clone();
             let name = format!("{}::{}", self.name, variant);
-            Id::new(name, IdKind::Var)
+            Id::new_without_scopes(&name, IdKind::Var)
         } else {
             self.name.clone()
         }
@@ -621,7 +627,7 @@ impl EnumVariantType {
 
     pub fn wildcard_variant() -> Self {
         Self {
-            name: Id::new_str("_", IdKind::Var),
+            name: Id::new_without_scopes("_", IdKind::Var),
             fields: vec![],
             positional: false,
         }

@@ -60,6 +60,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tempfile = { workspace = true }
 toml = { workspace = true }
+id-arena = { workspace = true }
 
 [[bin]]
 name = "msmith-debug"

@@ -6051,6 +6051,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "id-arena"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
+dependencies = [
+ "rayon",
+]
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8819,6 +8828,7 @@ dependencies = [
  "enuminto",
  "env_logger",
  "framework",
+ "id-arena",
  "indicatif",
  "log",
  "move-compiler-v2 0.1.0",

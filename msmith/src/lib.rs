@@ -59,7 +59,7 @@ impl MoveSmith {
             .add_generator::<ExprStmtGenerator>()
             .add_generator::<NumberGenerator>()
             .add_generator::<TupleGenerator>()
-            .add_generator::<FuncCallGenerator>()
+            // .add_generator::<FuncCallGenerator>()
             .add_generator::<AssignmentGenerator>()
             .add_generator::<EnumMatchGenerator>()
             .add_generator::<MatchArmGenerator>()
@@ -67,7 +67,7 @@ impl MoveSmith {
             .add_generator::<EOTNumberGenerator>()
             .add_generator::<EOTTupleGenerator>()
             .add_generator::<EOTVariableGenerator>()
-            .add_generator::<EOTFuncCallGenerator>()
+            // .add_generator::<EOTFuncCallGenerator>()
             .add_generator::<EOTStructGenerator>()
             .add_generator::<EOTEnumGenerator>()
             .add_generator::<EOTMatchGenerator>()
@@ -79,8 +79,8 @@ impl MoveSmith {
             .add_state::<states::CurrScope>()
             .add_state::<states::PartialInfo>()
             .add_state::<states::Depth>()
-            .add_state::<states::InitMap>()
-            .add_state::<states::CurrentInfo>();
+            .add_state::<states::CurrentInfo>()
+            .add_state::<states::NamedInfoPool>();
 
         use Variant as V;
         let framework = match variant {

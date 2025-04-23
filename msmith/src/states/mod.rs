@@ -7,6 +7,6 @@ export_all!(
     partial,
     utils,
     depth,
-    initialization,
-    current_info
+    current_info,
+    named_info
 );

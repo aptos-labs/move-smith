@@ -12,6 +12,14 @@ use std::{collections::HashMap, fmt};
 
 pub trait Named {
     fn name(&self) -> Id;
+
+    fn parent_scope(&self) -> Scope {
+        self.name().get_parent_scope()
+    }
+
+    fn self_scope(&self) -> Scope {
+        self.name().get_self_scope()
+    }
 }
 
 /// Represents a Move Id.
@@ -21,18 +29,52 @@ pub trait Named {
 pub struct Id {
     pub name: String,
     pub kind: IdKind,
+    /// The scope that this Id is created in
+    pub parent_scope: Scope,
+    /// The scope that this Id owns
+    pub self_scope: Scope,
 }
 
 impl Id {
-    pub fn new(name: String, kind: IdKind) -> Self {
-        Self { name, kind }
-    }
-
-    pub fn new_str(name: &str, kind: IdKind) -> Self {
+    pub fn new_without_scopes(name: &str, kind: IdKind) -> Self {
         Self {
             name: name.to_string(),
             kind,
+            parent_scope: Scope::default(),
+            self_scope: Scope::default(),
         }
+    }
+
+    pub fn new(name: String, kind: IdKind, parent_scope: Scope, self_scope: Scope) -> Self {
+        Self {
+            name,
+            kind,
+            parent_scope,
+            self_scope,
+        }
+    }
+
+    pub fn new_str(name: &str, kind: IdKind, parent_scope: Scope, self_scope: Scope) -> Self {
+        Self {
+            name: name.to_string(),
+            kind,
+            parent_scope,
+            self_scope,
+        }
+    }
+
+    pub fn get_parent_scope(&self) -> Scope {
+        self.parent_scope.clone()
+    }
+
+    pub fn get_self_scope(&self) -> Scope {
+        self.self_scope.clone()
+    }
+
+    /// Check if an Id is accessible in the given scope.
+    pub fn is_in_scope(&self, scope: &Scope) -> bool {
+        let parent = self.get_parent_scope();
+        scope.is_in_scope(&parent)
     }
 
     /// Convert the Id to a scope.
@@ -46,6 +88,14 @@ impl Id {
 
     pub fn is_func(&self) -> bool {
         self.kind == IdKind::Function
+    }
+
+    pub fn is_struct(&self) -> bool {
+        self.kind == IdKind::Struct
+    }
+
+    pub fn is_enum(&self) -> bool {
+        self.kind == IdKind::Enum
     }
 }
 
@@ -120,7 +170,7 @@ impl IdKind {
 /// None: represents the root scope.
 /// Some(scope): the scope must have the format "parent::child".
 /// e.g. "Module1::function1"
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Scope(pub Option<String>);
 
 impl Scope {
@@ -129,27 +179,35 @@ impl Scope {
         self.0.is_none()
     }
 
+    /// Returns true if `self` is the same as or within `scope`.
+    /// e.g. (M1::F1::B1::B2).is_in_scope(M1::F1) ==> true
+    ///
+    /// To check whether you can access something defined in a given scope while you are at another scope,
+    /// use `current_scope.is_in_scope(target_item.parent_scope())`
+    ///
+    /// e.g. You want to check whether you can access `M1::F1::B1::V1` in `M1::F1::B1::B2`
+    ///     `(M1::F1::B1::B2).is_in_scope(M1::F1::B1)` ==> true ==> accessible
+    /// e.g. You want to check whether you can access `M1::F1::B1::V1` in `M1::F2`
+    ///     `(M1::F2).is_in_scope(M1::F1::B1)` ==> false ==> not accessible
+    pub fn is_in_scope(&self, scope: &Scope) -> bool {
+        match (&self.0, &scope.0) {
+            (Some(c), Some(p)) => c == p || c.starts_with(&format!("{}::", p)),
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (None, None) => true,
+        }
+    }
+
     pub fn get_name(&self) -> String {
         self.0.clone().unwrap_or("".to_string())
     }
 
-    /// Convert the scope to an Id.
-    pub fn to_id(&self) -> Option<Id> {
-        self.0.as_ref()?;
-        let name = self.get_name();
-        let pieces = self.to_pieces();
-        let kind = IdKind::from_name(pieces.last().unwrap());
-        Some(Id { name, kind })
-    }
-
+    // TODO: Remove
     pub fn get_last_scope_id(&self) -> Id {
         let pieces = self.to_pieces();
         let last = pieces.last().unwrap();
         let kind = IdKind::from_name(last);
-        Id {
-            name: last.clone(),
-            kind,
-        }
+        Id::new(last.clone(), kind, Scope::default(), Scope::default())
     }
 
     /// Remove all hidden scopes whose name starts with an underscore
@@ -163,7 +221,6 @@ impl Scope {
         let new_scope = pieces
             .into_iter()
             .filter(|s| !s.starts_with('_'))
-            .map(String::from)
             .collect::<Vec<String>>()
             .join("::");
         Scope(Some(new_scope))
@@ -223,19 +280,15 @@ impl IdPool {
     pub fn next_id(&mut self, typ: IdKind, scope: &Scope) -> (Id, Scope) {
         let cnt = self.id_count(&typ);
         let name = self.construct_name(&typ, cnt);
-        let new_id = Id {
-            name: name.clone(),
-            kind: typ.clone(),
-        };
-
-        self.insert_new_id(&typ, new_id.clone());
-
-        self.scopes.insert(new_id.clone(), scope.clone());
-        trace!("Inserted new id: {:?} under scope: {:?}", new_id, scope);
 
         let child_scope = Scope(Some(name.clone()));
         let new_scope: Scope = self.merge_scopes(scope, &child_scope);
 
+        let new_id = Id::new(name.clone(), typ.clone(), scope.clone(), new_scope.clone());
+        self.insert_new_id(&typ, new_id.clone());
+
+        self.scopes.insert(new_id.clone(), scope.clone());
+        trace!("Inserted new id: {:?} under scope: {:?}", new_id, scope);
         (new_id, new_scope)
     }
 
@@ -266,21 +319,11 @@ impl IdPool {
         }
     }
 
-    /// Get the flattened access for an Id used for script generation.
-    // TODO: this currently contains _block scopes, which might cause trouble.
-    pub fn flatten_access(&self, id: &Id) -> Id {
-        match self.scopes.get(id) {
-            Some(scope) => self.merge_scopes(scope, &id.to_scope()).to_id().unwrap(),
-            None => id.clone(),
-        }
-    }
-
     /// Check if an Id is accessible in the given scope.
     pub fn is_id_in_scope(&self, id: &Id, scope: &Scope) -> bool {
-        // let flat_id = self.flatten_access(id);
         let parent_of_id = self.get_parent_scope_of(id);
         match parent_of_id {
-            Some(parent) => self.is_in_scope(scope, &parent),
+            Some(parent) => scope.is_in_scope(&parent),
             None => true,
         }
     }
@@ -290,17 +333,6 @@ impl IdPool {
     pub fn is_id_in_id(&self, child: &Id, parent: &Id) -> bool {
         let parent_scope = self.get_parent_scope_of(parent).unwrap();
         self.is_id_in_scope(child, &parent_scope)
-    }
-
-    /// Returns whether child is the same as or within parent
-    /// e.g. (M1::F1::B1::B2, M1::F1) ==> true
-    fn is_in_scope(&self, child: &Scope, parent: &Scope) -> bool {
-        match (&child.0, &parent.0) {
-            (Some(c), Some(p)) => c == p || c.starts_with(&format!("{}::", p)),
-            (Some(_), None) => true,
-            (None, Some(_)) => false,
-            (None, None) => true,
-        }
     }
 
     /// Helper function to filter IDs that are in the given scope.

@@ -899,16 +899,13 @@ impl CodeGenerator for FunctionType {
             code.push_str(" )");
         }
 
-        match &self.abilities {
-            Some(abilities) => {
-                let abilities = abilities
-                    .iter()
-                    .map(|a| a.emit_code())
-                    .collect::<Vec<String>>()
-                    .join("+");
-                code.push_str(&format!(" has {}", abilities));
-            },
-            None => {},
+        if let Some(abilities) = &self.abilities {
+            let abilities = abilities
+                .iter()
+                .map(|a| a.emit_code())
+                .collect::<Vec<String>>()
+                .join("+");
+            code.push_str(&format!(" has {}", abilities));
         }
 
         vec![code]

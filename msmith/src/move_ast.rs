@@ -3,7 +3,7 @@ use crate::states::{
     types::{
         Ability, EnumVariantType, GenericType, Primitive, StructType, Type, TypeParameter, Typed,
     },
-    ConcreteType, EnumType, FunctionType, Named, TupleType,
+    ConcreteType, EnumType, FunctionType, Named, Scope, TupleType,
 };
 use enuminto::EnumInto;
 use framework::ASTNode;
@@ -614,7 +614,12 @@ impl Default for Program {
         Program {
             modules: vec![MoveModule {
                 address: Address::default(),
-                name: Id::new_str("Module1", IdKind::Module),
+                name: Id::new_str(
+                    "Module1",
+                    IdKind::Module,
+                    Scope::default(),
+                    Scope::default(),
+                ),
                 structs: vec![],
                 enums: vec![],
                 functions: vec![],
