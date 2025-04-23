@@ -14,6 +14,7 @@ use framework::{
     GenLabel, LabelledGenerator, LabelledState, Register, State, StateEntry, StateLabel,
 };
 use id_arena::Arena;
+use log::error;
 use std::collections::BTreeMap;
 
 type NamedInfoIdx = id_arena::Id<NamedInfo>;
@@ -24,14 +25,18 @@ type NamedInfoIdx = id_arena::Id<NamedInfo>;
 ///     - Constant (TODO)
 ///     - Function
 /// - Variable
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NamedInfo {
     name: Id,
     typ: Type,
+    root: bool,
 
-    dot_vars: Vec<DotVariable>,
+    dot_var_indices: Vec<NamedInfoIdx>,
     initialized: bool,
     moved: bool,
+
+    /// Only for dot_vars
+    dot_var: Option<DotVariable>,
 }
 
 impl Typed for NamedInfo {
@@ -51,28 +56,36 @@ impl NamedInfo {
         Self {
             name,
             typ,
-            dot_vars: vec![],
+            root: true,
+            dot_var_indices: vec![],
             initialized: false,
             moved: false,
+            dot_var: None,
         }
     }
 
-    pub fn new_with_dot_vars(name: Id, typ: Type, dot_vars: Vec<DotVariable>) -> Self {
+    pub fn new_with_dot_vars(name: Id, typ: Type, dot_var_indices: Vec<NamedInfoIdx>) -> Self {
         Self {
             name,
             typ,
-            dot_vars,
+            root: true,
+            dot_var_indices,
             initialized: false,
             moved: false,
+            dot_var: None,
         }
     }
 
-    pub fn set_initialized(&mut self) {
-        self.initialized = true;
-    }
-
-    pub fn set_moved(&mut self) {
-        self.moved = true;
+    pub fn new_dot_var(name: Id, typ: Type, dot_var: DotVariable) -> Self {
+        Self {
+            name,
+            typ,
+            root: false,
+            dot_var_indices: vec![],
+            initialized: false,
+            moved: false,
+            dot_var: Some(dot_var),
+        }
     }
 }
 
@@ -92,12 +105,23 @@ impl NamedInfoPool {
     }
 
     pub fn add_new_variable(&mut self, name: Id, typ: Type, initialized: bool) {
-        let dot_vars = self.get_all_dot_vars_from(&name, &typ);
-        let mut info = NamedInfo::new_with_dot_vars(name.clone(), typ, dot_vars);
-        if initialized {
-            info.set_initialized();
+        let dot_vars = self.create_all_dot_vars_from(&name, &typ);
+
+        let mut dot_var_indices = vec![];
+        for dot_var in &dot_vars {
+            let dot_name = dot_var.name();
+            let dot_var_info =
+                NamedInfo::new_dot_var(dot_name.clone(), dot_var.ty(), dot_var.clone());
+            let idx = self.arena.alloc(dot_var_info);
+            dot_var_indices.push(idx.clone());
+            self.map.insert(dot_name.clone(), idx);
         }
+
+        let info = NamedInfo::new_with_dot_vars(name.clone(), typ, dot_var_indices);
         let idx = self.arena.alloc(info);
+        if initialized {
+            self._set_var_as_initialized(&idx);
+        }
         self.map.insert(name, idx);
     }
 
@@ -113,6 +137,31 @@ impl NamedInfoPool {
 
     pub fn get_info_mut(&mut self, name: &Id) -> Option<&mut NamedInfo> {
         self.map.get(name).and_then(|idx| self.arena.get_mut(*idx))
+    }
+
+    pub fn set_var_as_initialized(&mut self, name: &Id) {
+        if let Some(idx) = self.map.get(name).cloned() {
+            self._set_var_as_initialized(&idx);
+        } else {
+            error!(
+                "Variable {} not found in NamedInfoPool when trying to set it as initialized",
+                name
+            );
+        }
+    }
+
+    fn _set_var_as_initialized(&mut self, idx: &NamedInfoIdx) {
+        let mut todo_indices = vec![];
+        if let Some(info) = self.arena.get_mut(*idx) {
+            info.initialized = true;
+            info.moved = false;
+            for dot_var_idx in &info.dot_var_indices {
+                todo_indices.push(dot_var_idx.clone());
+            }
+        }
+        for dot_var_idx in todo_indices {
+            self._set_var_as_initialized(&dot_var_idx);
+        }
     }
 
     /// Return all defined struct types that is accessible with in `scope`
@@ -151,56 +200,82 @@ impl NamedInfoPool {
             .collect()
     }
 
+    /// Return infos for variables that are:
+    ///     - in scope
+    ///     - initialized
+    ///     - not moved
+    fn _get_usable_vars_iter(&self, scope: Scope) -> impl Iterator<Item = &NamedInfo> {
+        self.arena.iter().filter_map(move |(_, info)| {
+            if !info.name.is_var() {
+                return None;
+            }
+
+            if !info.initialized {
+                return None;
+            }
+
+            if info.moved {
+                return None;
+            }
+
+            if !scope.is_in_scope(&info.parent_scope()) {
+                return None;
+            }
+            Some(info)
+        })
+    }
+
     pub fn get_initialized_vars_of_type(&self, scope: &Scope, wanted: &Type) -> Vec<Variable> {
-        self.arena
-            .iter()
-            .filter_map(|(_, info)| {
-                if !info.name.is_var() {
-                    return None;
-                }
-
-                if !scope.is_in_scope(&info.parent_scope()) {
-                    return None;
-                }
-
-                if !info.initialized {
-                    return None;
-                }
-
-                let mut vars = vec![];
-
+        self._get_usable_vars_iter(scope.clone())
+            .filter_map(|info| {
                 if info.ty() != *wanted {
                     return None;
                 }
 
-                vars.push(SingleVariable::new(&info.name(), &info.ty()).into());
-                if matches!(
-                    info.ty(),
-                    Type::Generic(GenericType::Enum(_)) | Type::Generic(GenericType::Struct(_))
-                ) {
-                    for dot_var in &info.dot_vars {
-                        if dot_var.ty() == *wanted {
-                            vars.push(dot_var.clone().into());
-                        }
-                    }
-                }
-
-                Some(vars)
+                Some(match info.dot_var {
+                    Some(ref dot_var) => dot_var.clone().into(),
+                    None => SingleVariable::new(&info.name(), &info.ty()).into(),
+                })
             })
-            .flatten()
             .collect::<Vec<Variable>>()
     }
 
-    pub fn get_callable_info(_scope: &Scope) -> Vec<NamedInfo> {
-        unimplemented!()
+    pub fn get_callable_info(&self, scope: &Scope) -> Vec<NamedInfo> {
+        let mut callables = self
+            .arena
+            .iter()
+            .filter_map(|(_, info)| {
+                if scope.is_in_scope(&info.parent_scope()) {
+                    return None;
+                }
+                if info.name.is_func() {
+                    Some(info.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<NamedInfo>>();
+
+        callables.extend(
+            self._get_usable_vars_iter(scope.clone())
+                .into_iter()
+                .filter_map(|info| {
+                    if info.typ.is_function() {
+                        Some(info.clone())
+                    } else {
+                        None
+                    }
+                }),
+        );
+        callables
     }
 
-    fn get_all_dot_vars_from(&self, name: &Id, typ: &Type) -> Vec<DotVariable> {
+    fn create_all_dot_vars_from(&self, name: &Id, typ: &Type) -> Vec<DotVariable> {
         let root = DotVariable::new(vec![(name.clone(), typ.clone())]);
-        Self::get_all_dot_vars_from_rec(root)
+        Self::create_all_dot_vars_from_rec(root)
     }
 
-    fn get_all_dot_vars_from_rec(root: DotVariable) -> Vec<DotVariable> {
+    fn create_all_dot_vars_from_rec(root: DotVariable) -> Vec<DotVariable> {
         let curr_type = root.ty();
         let fields = match &curr_type {
             Type::Generic(GenericType::Struct(s)) if !s.positional => &s.fields,
@@ -213,12 +288,12 @@ impl NamedInfoPool {
             let new_dot_var =
                 DotVariable::new_with_prefix(&root, (field_name.clone(), field_type.clone()));
             dot_vars.push(new_dot_var.clone());
-            dot_vars.extend(Self::get_all_dot_vars_from_rec(new_dot_var));
+            dot_vars.extend(Self::create_all_dot_vars_from_rec(new_dot_var));
         }
         dot_vars
     }
 
-    pub fn save_type_info_from_ast(&mut self, new_ast: &MoveAST) {
+    pub fn save_type_info_from_ast(&mut self, new_ast: &MoveAST, generator: &GenLabel) {
         use MoveAST as M;
         match &new_ast {
             M::Struct(s) => {
@@ -235,6 +310,9 @@ impl NamedInfoPool {
                 }
             },
             M::Statement(Statement::LetAssign(Assignment::AssignPattern(pat, _))) => {
+                if generator != &LetAssignGenerator::label() {
+                    return;
+                }
                 let vars = get_defined_vars_from_pattern(pat);
                 for (id, ty) in vars {
                     self.add_new_initialized_variable(id, ty);
@@ -255,21 +333,18 @@ impl NamedInfoPool {
         }
     }
 
-    pub fn save_init_info_from_ast(&mut self, new_ast: &MoveAST) {
+    pub fn save_init_info_from_ast(&mut self, new_ast: &MoveAST, _generator: &GenLabel) {
         match new_ast {
             MoveAST::Signature(sig) => {
                 for param in &sig.parameters {
-                    let info = self
-                        .get_info_mut(&param.name)
-                        .expect("Parameter info should have been created");
-                    info.set_initialized();
+                    self.set_var_as_initialized(&param.name);
                 }
             },
             MoveAST::Assignment(Assignment::AssignPattern(pat, _)) => {
                 let init_vars = get_initialized_vars_from_pattern(pat);
                 for var in init_vars {
-                    if let Some(info) = self.get_info_mut(&var) {
-                        info.set_initialized()
+                    if self.map.contains_key(&var) {
+                        self.set_var_as_initialized(&var);
                     }
                 }
             },
@@ -277,10 +352,7 @@ impl NamedInfoPool {
                 for arm in &em.arms {
                     let vars = get_initialized_vars_from_pattern(&arm.pattern);
                     for var in vars {
-                        let info = self
-                            .get_info_mut(&var)
-                            .expect("Variable info from assignment should have been created");
-                        info.set_initialized();
+                        self.set_var_as_initialized(&var);
                     }
                 }
             },
@@ -336,8 +408,8 @@ impl Register<StateEntry> for NamedInfoPool {
 impl State<MoveAST> for NamedInfoPool {
     fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {}
 
-    fn update_post(&mut self, _u: &mut Unstructured, new_ast: &MoveAST, _generator: &GenLabel) {
-        self.save_type_info_from_ast(new_ast);
-        self.save_init_info_from_ast(new_ast);
+    fn update_post(&mut self, _u: &mut Unstructured, new_ast: &MoveAST, generator: &GenLabel) {
+        self.save_type_info_from_ast(new_ast, generator);
+        self.save_init_info_from_ast(new_ast, generator);
     }
 }

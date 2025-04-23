@@ -509,6 +509,17 @@ pub struct DotVariable {
     pub vars: Vec<(Id, Type)>,
 }
 
+impl Named for DotVariable {
+    fn name(&self) -> Id {
+        let ids = self
+            .vars
+            .iter()
+            .map(|(id, _)| id.clone())
+            .collect::<Vec<Id>>();
+        Id::merge_into_dot_name(&ids)
+    }
+}
+
 impl Typed for DotVariable {
     fn ty(&self) -> Type {
         self.vars.last().unwrap().1.clone()

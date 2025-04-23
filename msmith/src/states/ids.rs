@@ -63,6 +63,23 @@ impl Id {
         }
     }
 
+    /// Merge a list of Ids into a dot separated name.
+    /// The scopes and kind of the first Id in the list are used.
+    pub fn merge_into_dot_name(ids: &[Self]) -> Self {
+        assert!(!ids.is_empty(), "Cannot merge empty Ids");
+        let kind = ids[0].kind.clone();
+        let parent_scope = ids[0].parent_scope.clone();
+        let self_scope = ids[0].self_scope.clone();
+
+        let new_name = ids
+            .iter()
+            .map(|id| id.name.clone())
+            .collect::<Vec<String>>()
+            .join(".");
+
+        Id::new(new_name, kind, parent_scope, self_scope)
+    }
+
     pub fn get_parent_scope(&self) -> Scope {
         self.parent_scope.clone()
     }
@@ -200,14 +217,6 @@ impl Scope {
 
     pub fn get_name(&self) -> String {
         self.0.clone().unwrap_or("".to_string())
-    }
-
-    // TODO: Remove
-    pub fn get_last_scope_id(&self) -> Id {
-        let pieces = self.to_pieces();
-        let last = pieces.last().unwrap();
-        let kind = IdKind::from_name(last);
-        Id::new(last.clone(), kind, Scope::default(), Scope::default())
     }
 
     /// Remove all hidden scopes whose name starts with an underscore

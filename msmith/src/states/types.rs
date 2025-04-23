@@ -454,6 +454,41 @@ impl Type {
     pub fn is_tuple(&self) -> bool {
         self.is_generic_tuple() || self.is_concrete_tuple()
     }
+
+    pub fn is_generic_function(&self) -> bool {
+        matches!(self, Type::Generic(GenericType::Function(_)))
+    }
+
+    pub fn is_concrete_function(&self) -> bool {
+        matches!(self, Type::Concrete(ConcreteType { typ, .. }) if typ.is_generic_function())
+    }
+
+    pub fn is_function(&self) -> bool {
+        self.is_generic_function() || self.is_concrete_function()
+    }
+
+    /// Return whether the `other` type is included in `self`
+    ///     - If `other` is the same as `self`, return true
+    ///     - If `self` is a tuple or a function return type, check if `other` in the tuple
+    pub fn include(&self, other: &Self) -> bool {
+        if self == other {
+            return true;
+        }
+        match self {
+            Type::Generic(GenericType::Tuple(t)) => {
+                for ty in &t.types {
+                    if ty.include(other) {
+                        return true;
+                    }
+                }
+                false
+            },
+            Type::Generic(GenericType::Function(f)) => {
+                (&f.return_type == other) || f.return_type.include(other)
+            },
+            _ => false,
+        }
+    }
 }
 
 impl Named for Type {
