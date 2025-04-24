@@ -1,9 +1,7 @@
 use crate::{
     generators::{ExprOfTypeGenerator, PatternGenerator},
     move_ast::{Assignment, MoveAST},
-    states::{
-        get_config, random_type_from_curr_scope, Ability, GenericType, Type, TypeSelectorBuilder,
-    },
+    states::{get_config, random_type_from_curr_scope, Type, TypeSelectorBuilder},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -38,7 +36,7 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let mut wanted_type = match constraint.get::<Type>("type") {
+        let wanted_type = match constraint.get::<Type>("type") {
             Some(t) => t.clone(),
             None => {
                 let type_selector = TypeSelectorBuilder::all_no(get_config(env))
@@ -48,15 +46,11 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
                     .structs(1)
                     .enums(1)
                     .defined_func_type(1)
+                    .new_func_type(1)
                     .build();
                 random_type_from_curr_scope(u, env, vec![type_selector])?
             },
         };
-
-        if let Type::Generic(GenericType::Function(f)) = &mut wanted_type {
-            f.is_func_value = true;
-            f.abilities = Some(Ability::copy_drop());
-        }
 
         let gen_constraint = AnyConstraint::new().with("type", wanted_type.clone());
         let lhs = Subtree::new_generator_subtree(PatternGenerator::label(), gen_constraint.clone());

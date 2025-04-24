@@ -829,6 +829,7 @@ impl CodeGenerator for Type {
         vec![match self {
             T::Generic(g) => g.inline(),
             T::Primitive(p) => p.inline(),
+            T::Unit => "()".to_string(),
             _ => unimplemented!(),
         }]
     }
@@ -883,7 +884,14 @@ impl CodeGenerator for FunctionType {
         let mut params = self
             .params
             .iter()
-            .map(|p| p.inline())
+            .map(|p| {
+                let type_s = p.inline();
+                if p.is_function() {
+                    format!("({})", type_s)
+                } else {
+                    type_s
+                }
+            })
             .collect::<Vec<String>>();
         add_comma_for_lines(&mut params, true);
         params = match self.is_func_value {

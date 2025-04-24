@@ -55,7 +55,6 @@ impl Generator<MoveAST, AnyConstraint> for ExpressionGenerator {
                     .structs(1)
                     .enums(1)
                     .tuple(1)
-                    .func_return(10)
                     .build()
             };
             let random_type = random_type_from_curr_scope(u, env, vec![selector])?;

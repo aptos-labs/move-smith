@@ -10,18 +10,18 @@ use crate::{
     states::{
         get_defined_vars_from_pattern,
         types::{Primitive, TupleType, Type, Typed},
-        FunctionType, GenericType, Id, IdKind, Named, Scope, TypeSelector,
+        Ability, FunctionType, GenericType, Id, IdKind, Named, Scope, TypeSelector,
     },
 };
 use anyhow::Result;
-use arbitrary::Unstructured;
+use arbitrary::{Arbitrary, Unstructured};
 use framework::{
     selection::choose_item_weighted, GenLabel, LabelledGenerator, LabelledState, Register, State,
     StateEntry, StateLabel,
 };
 use id_arena::Arena;
 use log::{error, trace, warn};
-use std::collections::BTreeMap;
+use std::{cell::RefCell, collections::BTreeMap};
 
 type NamedInfoIdx = id_arena::Id<NamedInfo>;
 
@@ -98,6 +98,7 @@ pub struct NamedInfoPool {
 
     pub has_struct: bool,
     pub has_enum: bool,
+    type_selection_depth: RefCell<usize>,
 }
 
 impl NamedInfoPool {
@@ -304,6 +305,8 @@ impl NamedInfoPool {
         u: &mut Unstructured,
         mut selectors: Vec<TypeSelector>,
     ) -> Result<Type> {
+        *self.type_selection_depth.borrow_mut() += 1;
+
         let selector = match selectors.len() {
             1 => selectors[0].clone(),
             _ => selectors.remove(0),
@@ -374,6 +377,8 @@ impl NamedInfoPool {
             selectors.iter_mut().for_each(|s| {
                 s.tuple_weight = 0;
                 s.unit_weight = 0;
+                s.defined_func_type = 0;
+                s.new_func_type = 0;
                 // Avoid having nothing to choose
                 if s.is_all_no() {
                     s.number_weight = 1;
@@ -451,29 +456,57 @@ impl NamedInfoPool {
         // Use the rest of selectors to generate a function type
         // [parameter1, parameter2, ..]::[return type]
         if selector.new_func_type > 0 {
-            let ret_type = self.random_type(scope, u, vec![selectors.pop().unwrap()])?;
+            // TODO: put this in config
+            let func_type = if *self.type_selection_depth.borrow() >= 3 {
+                Type::Generic(GenericType::Function(FunctionType {
+                    name: Id::new_without_scopes("FunctionTypePlaceholder", IdKind::Function),
+                    type_params: vec![],
+                    params: vec![],
+                    return_type: Box::new(Type::Unit),
+                    abilities: None,
+                    is_func_value: false,
+                }))
+            } else {
+                let num_params = selector.config.num_params_in_func.select(u)?;
+                let has_ret = bool::arbitrary(u)?;
 
-            let param_types = selectors
-                .into_iter()
-                .map(|s| self.random_type(scope, u, vec![s]).unwrap())
-                .collect::<Vec<Type>>();
+                let (param_selectors, ret_selector) = TypeSelector::function_selectors(num_params);
 
-            let func_type = Type::Generic(GenericType::Function(FunctionType {
-                name: Id::new_without_scopes("FunctionTypePlaceholder", IdKind::Function),
-                type_params: vec![],
-                params: param_types,
-                return_type: Box::new(ret_type),
-                abilities: None,
-                is_func_value: false,
-            }));
+                let ret_type = if has_ret {
+                    self.random_type(scope, u, vec![ret_selector])?
+                } else {
+                    Type::Unit
+                };
+
+                let param_types = param_selectors
+                    .into_iter()
+                    .map(|s| self.random_type(scope, u, vec![s]).unwrap())
+                    .collect::<Vec<Type>>();
+
+                Type::Generic(GenericType::Function(FunctionType {
+                    name: Id::new_without_scopes("FunctionTypePlaceholder", IdKind::Function),
+                    type_params: vec![],
+                    params: param_types,
+                    return_type: Box::new(ret_type),
+                    abilities: None,
+                    is_func_value: false,
+                }))
+            };
             candidates.push((vec![(func_type, 1)], selector.new_func_type));
         }
 
         trace!("Candidates: {:?}", candidates);
         trace!("Selector: {:?}", selector);
         let chosen_category = choose_item_weighted(u, &candidates)?;
-        let chosen = choose_item_weighted(u, &chosen_category)?;
+        let mut chosen = choose_item_weighted(u, &chosen_category)?;
         trace!("Chosen type: {:?}", chosen);
+
+        if let Type::Generic(GenericType::Function(f)) = &mut chosen {
+            f.is_func_value = true;
+            f.abilities = Some(Ability::copy_drop());
+        }
+
+        *self.type_selection_depth.borrow_mut() -= 1;
         Ok(chosen)
     }
 

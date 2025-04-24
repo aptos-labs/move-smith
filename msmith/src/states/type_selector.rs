@@ -61,6 +61,34 @@ impl TypeSelector {
             (Type::Primitive(Primitive::Number(NumberType::U256)), 1),
         ]
     }
+
+    pub fn function_selectors(num_params: usize) -> (Vec<Self>, Self) {
+        let ret_selector = TypeSelectorBuilder::all_no(&GenerationConfig::default())
+            .unit(1)
+            .bool(1)
+            .number(1)
+            .structs(1)
+            .enums(1)
+            .tuple(1)
+            .func_return(1)
+            .defined_func_type(1)
+            .new_func_type(1)
+            .build();
+        let params = (0..num_params)
+            .map(|_| {
+                TypeSelectorBuilder::all_no(&GenerationConfig::default())
+                    .bool(1)
+                    .number(1)
+                    .structs(1)
+                    .enums(1)
+                    .func_return(1)
+                    .defined_func_type(1)
+                    .new_func_type(1)
+                    .build()
+            })
+            .collect();
+        (params, ret_selector)
+    }
 }
 
 pub struct TypeSelectorBuilder {

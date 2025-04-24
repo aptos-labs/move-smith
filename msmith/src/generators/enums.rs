@@ -40,7 +40,7 @@ impl Generator<MoveAST, AnyConstraint> for EnumGenerator {
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let (name, _scope, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Enum);
         let type_params = TypeParameters::default();
-        let abilities = vec![Ability::Copy, Ability::Drop, Ability::Store, Ability::Key];
+        let abilities = Ability::copy_drop();
 
         let num_variants = get_config(env).num_variants_in_enum.select(u)?;
 
@@ -53,6 +53,7 @@ impl Generator<MoveAST, AnyConstraint> for EnumGenerator {
                     .bool(1)
                     .structs(1)
                     .enums(1)
+                    .new_func_type(1)
                     .build()
             } else {
                 TypeSelectorBuilder::all_no(get_config(env))
