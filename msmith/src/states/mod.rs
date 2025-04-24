@@ -8,5 +8,6 @@ export_all!(
     utils,
     depth,
     current_info,
-    named_info
+    named_info,
+    type_selector
 );

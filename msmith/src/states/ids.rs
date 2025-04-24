@@ -301,20 +301,6 @@ impl IdPool {
         (new_id, new_scope)
     }
 
-    pub fn get_func_scope_id_of(&self, id: &Id) -> Id {
-        match self.get_parent_scope_of(id) {
-            Some(parent) => {
-                let parent_id = parent.get_last_scope_id();
-                if parent_id.is_func() {
-                    parent_id
-                } else {
-                    self.get_func_scope_id_of(&parent_id)
-                }
-            },
-            None => panic!("Id {} has no parent scope", id),
-        }
-    }
-
     /// Get the outer most scope where the given Id is accessible.
     pub fn get_parent_scope_of(&self, id: &Id) -> Option<Scope> {
         self.scopes.get(id).cloned()

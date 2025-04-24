@@ -3,8 +3,8 @@ use crate::{
     generators::ExprOfTypeGenerator,
     move_ast::{Expression, FunctionValue, MoveAST, Signature, SingleVariable, TypeParameters},
     states::{
-        new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope, pop_scope, GenericType,
-        IdKind, PartialInfo, Type, TypePool, PARTIAL_SIGNATURE,
+        get_named_infos_mut, new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope,
+        pop_scope, GenericType, IdKind, PartialInfo, Type, PARTIAL_SIGNATURE,
     },
 };
 use anyhow::Result;
@@ -54,12 +54,10 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncValGenerator {
         let mut parameters = vec![];
         for param_type in func_type.params {
             let (param_name, _) = new_id_from_curr_scope(env, IdKind::Var);
-            // TODO: adding type should be kept in TypePool implementation
+            // TODO: adding type should be kept in NamedInfo parsing implementation
             // TODO: remove this after func val all done
-            let type_pool = env.get_mut::<TypePool>().unwrap();
-            type_pool
-                .variable_types
-                .insert(param_name.clone(), param_type.clone());
+            let named_infos = get_named_infos_mut(env);
+            named_infos.add_new_variable(param_name.clone(), param_type.clone(), true);
             parameters.push(SingleVariable::new_declare(&param_name, &param_type));
         }
 

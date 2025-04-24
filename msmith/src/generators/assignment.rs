@@ -45,7 +45,7 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
                     .func_return(5)
                     .structs(1)
                     .enums(1)
-                    .func_value(1)
+                    .defined_func_type(1)
                     .build();
                 random_type_from_curr_scope(u, env, vec![type_selector])?
             },

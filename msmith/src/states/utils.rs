@@ -1,20 +1,17 @@
 //! Helper functions for accessing and operating on common states
 
-use super::NamedInfoPool;
 use crate::{
     move_ast::{MoveAST, Pattern, PatternKind},
     states::{
-        types::{
-            EnumType, EnumVariantType, GenericType, Primitive, TupleType, Type, TypePool,
-            TypeSelector,
-        },
-        Ability, CurrScope, CurrentInfo, Depth, GenerationConfig, Id, IdKind, IdPool, Scope,
+        types::{EnumType, EnumVariantType, GenericType, Type},
+        CurrScope, CurrentInfo, Depth, GenerationConfig, Id, IdKind, IdPool, NamedInfoPool, Scope,
+        TypeSelector,
     },
 };
 use anyhow::Result;
 use arbitrary::{Arbitrary, Unstructured};
-use framework::{selection::choose_item_weighted, StatePool};
-use log::{trace, warn};
+use framework::StatePool;
+use log::trace;
 
 #[inline]
 pub fn get_config(env: &StatePool<MoveAST>) -> &GenerationConfig {
@@ -34,11 +31,6 @@ pub fn get_named_infos(env: &StatePool<MoveAST>) -> &NamedInfoPool {
 #[inline]
 pub fn get_named_infos_mut(env: &mut StatePool<MoveAST>) -> &mut NamedInfoPool {
     env.get_mut::<NamedInfoPool>().unwrap()
-}
-
-#[inline]
-pub fn get_type_pool(env: &StatePool<MoveAST>) -> &TypePool {
-    env.get::<TypePool>().unwrap()
 }
 
 #[inline]
@@ -282,146 +274,7 @@ pub fn random_type_from_curr_scope(
     env: &StatePool<MoveAST>,
     mut selectors: Vec<TypeSelector>,
 ) -> Result<Type> {
-    let selector = match selectors.len() {
-        1 => selectors[0].clone(),
-        _ => selectors.pop().unwrap(),
-    };
-
-    // Outer vector element: (type candidates in a category, weight of the category)
-    // Inner vector element: (type candidate, weight of the candidate)
-    let mut candidates: Vec<(Vec<(Type, u32)>, u32)> = vec![];
-    let type_pool = get_type_pool(env);
-
-    if selector.unit_weight > 0 {
-        candidates.push((vec![(Type::Unit, 1)], selector.unit_weight));
-    }
-
-    if selector.bool_weight > 0 {
-        candidates.push((
-            vec![(Type::Primitive(Primitive::Bool), 1)],
-            selector.bool_weight,
-        ));
-    }
-
-    if selector.number_weight > 0 {
-        let types = type_pool.number_type_selection_weights();
-        candidates.push((types, selector.number_weight));
-    }
-
-    if selector.address_weight > 0 {
-        candidates.push((
-            vec![(Type::Primitive(Primitive::Address), 1)],
-            selector.address_weight,
-        ));
-    }
-
-    if selector.struct_weight > 0 {
-        let struct_types = type_pool
-            .get_all_defined_structs()
-            .into_iter()
-            .map(|s| (s, 1))
-            .collect::<Vec<(Type, u32)>>();
-        if struct_types.is_empty() {
-            warn!("No struct types defined");
-        } else {
-            candidates.push((struct_types, selector.struct_weight));
-        }
-    }
-
-    if selector.enum_weight > 0 {
-        let enum_types = type_pool
-            .get_all_defined_enums()
-            .into_iter()
-            .map(|s| (s, 1))
-            .collect::<Vec<(Type, u32)>>();
-        if enum_types.is_empty() {
-            warn!("No struct types defined");
-        } else {
-            candidates.push((enum_types, selector.enum_weight));
-        }
-    }
-
-    if selector.vector_weight > 0 {
-        warn!("random Vector type not implemented");
-        unimplemented!();
-    }
-
-    if selector.tuple_weight > 0 {
-        let num_elem = selector.config.num_elem_in_tuple.select(u)?;
-
-        // Cannot have a tuple of tuples
-        selectors.iter_mut().for_each(|s| {
-            s.tuple_weight = 0;
-            s.unit_weight = 0;
-            // Avoid having nothing to choose
-            if s.is_all_no() {
-                s.number_weight = 1;
-            }
-        });
-
-        let elems = (0..num_elem)
-            .map(|_| random_type_from_curr_scope(u, env, selectors.clone()))
-            .collect::<Result<Vec<Type>>>()?;
-
-        let typ = Type::Generic(GenericType::Tuple(TupleType { types: elems }));
-        candidates.push((vec![(typ, 1)], selector.tuple_weight));
-    }
-
-    if selector.reference_weight > 0 {
-        warn!("random Reference type not implemented");
-        unimplemented!();
-    }
-
-    if selector.mut_reference_weight > 0 {
-        warn!("random Mutable Reference type not implemented");
-        unimplemented!();
-    }
-
-    if selector.func_return > 0 {
-        let mut ret_types = type_pool
-            .get_all_defined_func_types()
-            .into_iter()
-            .filter_map(|typ| {
-                if let Type::Generic(GenericType::Function(f)) = typ {
-                    if f.has_return() {
-                        Some((f.return_type.as_ref().clone(), 1))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<(Type, u32)>>();
-        if selector.tuple_weight == 0 {
-            // Filter out tuple types
-            ret_types.retain(|(typ, _)| !typ.is_generic_tuple());
-        }
-        if ret_types.is_empty() {
-            warn!("No function defined so far");
-        } else {
-            candidates.push((ret_types, selector.func_return));
-        }
-    }
-
-    // TODO: generate new function types
-    if selector.func_value > 0 {
-        let all_funcs = type_pool.get_all_defined_func_types();
-        let mut chosen = u.choose(&all_funcs)?.clone();
-        match &mut chosen {
-            Type::Generic(GenericType::Function(f)) => {
-                f.is_func_value = true;
-                f.abilities = Some(Ability::copy_drop());
-            },
-            _ => panic!("Not a function type"),
-        }
-        candidates.push((vec![(chosen, 1)], selector.func_value));
-    }
-
-    trace!("Candidates: {:?}", candidates);
-    trace!("Selector: {:?}", selector);
-    let chosen_category = choose_item_weighted(u, &candidates)?;
-    let chosen = choose_item_weighted(u, &chosen_category)?;
-    trace!("Chosen type: {:?}", chosen);
-    Ok(chosen)
+    let curr_scope = get_curr_scope(env);
+    let named_infos = get_named_infos(env);
+    named_infos.random_type(&curr_scope, u, selectors)
 }

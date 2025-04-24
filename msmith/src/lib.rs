@@ -74,7 +74,6 @@ impl MoveSmith {
             .add_generator::<EOTBoolGenerator>()
             .add_generator::<EOTFuncValGenerator>()
             .add_state::<states::config::GenerationConfig>()
-            .add_state::<states::TypePool>()
             .add_state::<states::IdPool>()
             .add_state::<states::CurrScope>()
             .add_state::<states::PartialInfo>()

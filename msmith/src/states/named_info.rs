@@ -7,14 +7,20 @@ use crate::{
         Assignment, DotVariable, MatchArm, MoveAST, Pattern, PatternKind, SingleVariable,
         Statement, Variable,
     },
-    states::{get_defined_vars_from_pattern, GenericType, Id, Named, Scope, Type, Typed},
+    states::{
+        get_defined_vars_from_pattern,
+        types::{Primitive, TupleType, Type, Typed},
+        FunctionType, GenericType, Id, IdKind, Named, Scope, TypeSelector,
+    },
 };
+use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
-    GenLabel, LabelledGenerator, LabelledState, Register, State, StateEntry, StateLabel,
+    selection::choose_item_weighted, GenLabel, LabelledGenerator, LabelledState, Register, State,
+    StateEntry, StateLabel,
 };
 use id_arena::Arena;
-use log::error;
+use log::{error, trace, warn};
 use std::collections::BTreeMap;
 
 type NamedInfoIdx = id_arena::Id<NamedInfo>;
@@ -29,7 +35,6 @@ type NamedInfoIdx = id_arena::Id<NamedInfo>;
 pub struct NamedInfo {
     name: Id,
     typ: Type,
-    root: bool,
 
     dot_var_indices: Vec<NamedInfoIdx>,
     initialized: bool,
@@ -56,7 +61,6 @@ impl NamedInfo {
         Self {
             name,
             typ,
-            root: true,
             dot_var_indices: vec![],
             initialized: false,
             moved: false,
@@ -68,7 +72,6 @@ impl NamedInfo {
         Self {
             name,
             typ,
-            root: true,
             dot_var_indices,
             initialized: false,
             moved: false,
@@ -80,7 +83,6 @@ impl NamedInfo {
         Self {
             name,
             typ,
-            root: false,
             dot_var_indices: vec![],
             initialized: false,
             moved: false,
@@ -93,6 +95,9 @@ impl NamedInfo {
 pub struct NamedInfoPool {
     map: BTreeMap<Id, NamedInfoIdx>,
     arena: Arena<NamedInfo>,
+
+    pub has_struct: bool,
+    pub has_enum: bool,
 }
 
 impl NamedInfoPool {
@@ -105,7 +110,7 @@ impl NamedInfoPool {
     }
 
     pub fn add_new_variable(&mut self, name: Id, typ: Type, initialized: bool) {
-        let dot_vars = self.create_all_dot_vars_from(&name, &typ);
+        let dot_vars = self._create_all_dot_vars_from(&name, &typ);
 
         let mut dot_var_indices = vec![];
         for dot_var in &dot_vars {
@@ -191,7 +196,7 @@ impl NamedInfoPool {
                     return None;
                 }
 
-                if scope.is_in_scope(&info.parent_scope()) {
+                if !scope.is_in_scope(&info.parent_scope()) {
                     return None;
                 }
 
@@ -270,12 +275,12 @@ impl NamedInfoPool {
         callables
     }
 
-    fn create_all_dot_vars_from(&self, name: &Id, typ: &Type) -> Vec<DotVariable> {
+    fn _create_all_dot_vars_from(&self, name: &Id, typ: &Type) -> Vec<DotVariable> {
         let root = DotVariable::new(vec![(name.clone(), typ.clone())]);
-        Self::create_all_dot_vars_from_rec(root)
+        Self::_create_all_dot_vars_from_rec(root)
     }
 
-    fn create_all_dot_vars_from_rec(root: DotVariable) -> Vec<DotVariable> {
+    fn _create_all_dot_vars_from_rec(root: DotVariable) -> Vec<DotVariable> {
         let curr_type = root.ty();
         let fields = match &curr_type {
             Type::Generic(GenericType::Struct(s)) if !s.positional => &s.fields,
@@ -288,18 +293,199 @@ impl NamedInfoPool {
             let new_dot_var =
                 DotVariable::new_with_prefix(&root, (field_name.clone(), field_type.clone()));
             dot_vars.push(new_dot_var.clone());
-            dot_vars.extend(Self::create_all_dot_vars_from_rec(new_dot_var));
+            dot_vars.extend(Self::_create_all_dot_vars_from_rec(new_dot_var));
         }
         dot_vars
+    }
+
+    pub fn random_type(
+        &self,
+        scope: &Scope,
+        u: &mut Unstructured,
+        mut selectors: Vec<TypeSelector>,
+    ) -> Result<Type> {
+        let selector = match selectors.len() {
+            1 => selectors[0].clone(),
+            _ => selectors.remove(0),
+        };
+
+        // Outer vector element: (type candidates in a category, weight of the category)
+        // Inner vector element: (type candidate, weight of the candidate)
+        let mut candidates: Vec<(Vec<(Type, u32)>, u32)> = vec![];
+
+        if selector.unit_weight > 0 {
+            candidates.push((vec![(Type::Unit, 1)], selector.unit_weight));
+        }
+
+        if selector.bool_weight > 0 {
+            candidates.push((
+                vec![(Type::Primitive(Primitive::Bool), 1)],
+                selector.bool_weight,
+            ));
+        }
+
+        if selector.number_weight > 0 {
+            let types = TypeSelector::number_type_selection_weights();
+            candidates.push((types, selector.number_weight));
+        }
+
+        if selector.address_weight > 0 {
+            candidates.push((
+                vec![(Type::Primitive(Primitive::Address), 1)],
+                selector.address_weight,
+            ));
+        }
+
+        if selector.struct_weight > 0 {
+            let struct_types = self
+                .get_all_struct_types(scope)
+                .into_iter()
+                .map(|s| (s, 1))
+                .collect::<Vec<(Type, u32)>>();
+            if struct_types.is_empty() {
+                warn!("No struct types defined");
+            } else {
+                candidates.push((struct_types, selector.struct_weight));
+            }
+        }
+
+        if selector.enum_weight > 0 {
+            let enum_types = self
+                .get_all_enum_types(scope)
+                .into_iter()
+                .map(|e| (e, 1))
+                .collect::<Vec<(Type, u32)>>();
+            if enum_types.is_empty() {
+                warn!("No enum types defined");
+            } else {
+                candidates.push((enum_types, selector.enum_weight));
+            }
+        }
+
+        if selector.vector_weight > 0 {
+            warn!("random Vector type not implemented");
+            unimplemented!();
+        }
+
+        if selector.tuple_weight > 0 {
+            let num_elem = selector.config.num_elem_in_tuple.select(u)?;
+
+            // Cannot have a tuple of tuples
+            selectors.iter_mut().for_each(|s| {
+                s.tuple_weight = 0;
+                s.unit_weight = 0;
+                // Avoid having nothing to choose
+                if s.is_all_no() {
+                    s.number_weight = 1;
+                }
+            });
+
+            let elems = (0..num_elem)
+                .map(|_| self.random_type(scope, u, selectors.clone()))
+                .collect::<Result<Vec<Type>>>()?;
+
+            let typ = Type::Generic(GenericType::Tuple(TupleType { types: elems }));
+            candidates.push((vec![(typ, 1)], selector.tuple_weight));
+        }
+
+        if selector.reference_weight > 0 {
+            warn!("random Reference type not implemented");
+            unimplemented!();
+        }
+
+        if selector.mut_reference_weight > 0 {
+            warn!("random Mutable Reference type not implemented");
+            unimplemented!();
+        }
+
+        if selector.func_return > 0 {
+            let mut ret_types = self
+                .get_callable_info(scope)
+                .into_iter()
+                .filter_map(|info| {
+                    if let Type::Generic(GenericType::Function(f)) = info.ty() {
+                        if f.has_return() {
+                            Some((f.return_type.as_ref().clone(), 1))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<(Type, u32)>>();
+
+            if selector.tuple_weight == 0 {
+                // Filter out tuple types
+                ret_types.retain(|(typ, _)| !typ.is_generic_tuple());
+            }
+
+            if ret_types.is_empty() {
+                warn!("No function defined so far");
+            } else {
+                candidates.push((ret_types, selector.func_return));
+            }
+        }
+
+        if selector.defined_func_type > 0 {
+            let func_types = self
+                .get_callable_info(scope)
+                .into_iter()
+                .filter_map(|info| {
+                    let typ = info.ty();
+                    if typ.is_function() {
+                        Some((typ, 1))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<(Type, u32)>>();
+
+            if func_types.is_empty() {
+                warn!("No function defined so far");
+            } else {
+                candidates.push((func_types, selector.defined_func_type));
+            }
+        }
+
+        // Use the rest of selectors to generate a function type
+        // [parameter1, parameter2, ..]::[return type]
+        if selector.new_func_type > 0 {
+            let ret_type = self.random_type(scope, u, vec![selectors.pop().unwrap()])?;
+
+            let param_types = selectors
+                .into_iter()
+                .map(|s| self.random_type(scope, u, vec![s]).unwrap())
+                .collect::<Vec<Type>>();
+
+            let func_type = Type::Generic(GenericType::Function(FunctionType {
+                name: Id::new_without_scopes("FunctionTypePlaceholder", IdKind::Function),
+                type_params: vec![],
+                params: param_types,
+                return_type: Box::new(ret_type),
+                abilities: None,
+                is_func_value: false,
+            }));
+            candidates.push((vec![(func_type, 1)], selector.new_func_type));
+        }
+
+        trace!("Candidates: {:?}", candidates);
+        trace!("Selector: {:?}", selector);
+        let chosen_category = choose_item_weighted(u, &candidates)?;
+        let chosen = choose_item_weighted(u, &chosen_category)?;
+        trace!("Chosen type: {:?}", chosen);
+        Ok(chosen)
     }
 
     pub fn save_type_info_from_ast(&mut self, new_ast: &MoveAST, generator: &GenLabel) {
         use MoveAST as M;
         match &new_ast {
             M::Struct(s) => {
+                self.has_struct = true;
                 self.add_new_type(s.name.clone(), s.ty());
             },
             M::Enum(e) => {
+                self.has_enum = true;
                 self.add_new_type(e.name.clone(), e.ty());
             },
             M::Signature(s) => {
