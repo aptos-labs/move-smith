@@ -250,7 +250,7 @@ impl NamedInfoPool {
             .arena
             .iter()
             .filter_map(|(_, info)| {
-                if scope.is_in_scope(&info.parent_scope()) {
+                if !scope.is_in_scope(&info.parent_scope()) {
                     return None;
                 }
                 if info.name.is_func() {

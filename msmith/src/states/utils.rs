@@ -272,7 +272,7 @@ pub fn get_complete_patterns_for_enum(
 pub fn random_type_from_curr_scope(
     u: &mut Unstructured,
     env: &StatePool<MoveAST>,
-    mut selectors: Vec<TypeSelector>,
+    selectors: Vec<TypeSelector>,
 ) -> Result<Type> {
     let curr_scope = get_curr_scope(env);
     let named_infos = get_named_infos(env);
