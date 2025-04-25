@@ -6,12 +6,12 @@ use crate::execution::{
     },
     Executor,
 };
-#[cfg(feature = "git_deps")]
-use aptos_transactional_test_harness::run_aptos_test_with_config;
-#[cfg(feature = "legacy_deps")]
-use aptos_transactional_test_harness_legacy::run_aptos_test_with_config;
-#[cfg(feature = "local_deps")]
-use aptos_transactional_test_harness_local::run_aptos_test_with_config;
+// #[cfg(feature = "git_deps")]
+// use aptos_transactional_test_harness::run_aptos_test_with_config;
+// #[cfg(feature = "legacy_deps")]
+// use aptos_transactional_test_harness_legacy::run_aptos_test_with_config;
+// #[cfg(feature = "local_deps")]
+// use aptos_transactional_test_harness_local::run_aptos_test_with_config;
 #[cfg(feature = "git_deps")]
 use move_transactional_test_runner::vm_test_harness;
 #[cfg(feature = "legacy_deps")]

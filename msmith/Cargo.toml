@@ -9,21 +9,21 @@ git_deps = [
     "move-model",
     "move-package",
     "move-transactional-test-runner",
-    "aptos-transactional-test-harness",
+    # "aptos-transactional-test-harness",
 ]
 local_deps = [
     "move-compiler-v2-local",
     "move-model-local",
     "move-package-local",
     "move-transactional-test-runner-local",
-    "aptos-transactional-test-harness-local",
+    # "aptos-transactional-test-harness-local",
 ]
 legacy_deps = [
     "move-compiler-v2-legacy",
     "move-model-legacy",
     "move-package-legacy",
     "move-transactional-test-runner-legacy",
-    "aptos-transactional-test-harness-legacy",
+    # "aptos-transactional-test-harness-legacy",
 ]
 
 [dependencies]
@@ -48,9 +48,9 @@ move-package-legacy = { git = "https://github.com/aptos-labs/aptos-core.git", pa
 move-transactional-test-runner = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true, branch = "main" }
 move-transactional-test-runner-local = { path = "../../aptos-core/third_party/move/testing-infra/transactional-test-runner", package = "move-transactional-test-runner", optional = true }
 move-transactional-test-runner-legacy = { git = "https://github.com/aptos-labs/aptos-core.git", package = "move-transactional-test-runner", optional = true, rev = "2389654a796b329b74323acafcd1fc600c170cfa" }
-aptos-transactional-test-harness = { git = "https://github.com/aptos-labs/aptos-core.git", package = "aptos-transactional-test-harness", optional = true, branch = "main" }
-aptos-transactional-test-harness-local = { path = "../../aptos-core/aptos-move/aptos-transactional-test-harness", package = "aptos-transactional-test-harness", optional = true }
-aptos-transactional-test-harness-legacy = { git = "https://github.com/aptos-labs/aptos-core.git", package = "aptos-transactional-test-harness", optional = true, rev = "2389654a796b329b74323acafcd1fc600c170cfa" }
+# aptos-transactional-test-harness = { git = "https://github.com/aptos-labs/aptos-core.git", package = "aptos-transactional-test-harness", optional = true, branch = "main" }
+# aptos-transactional-test-harness-local = { path = "../../aptos-core/aptos-move/aptos-transactional-test-harness", package = "aptos-transactional-test-harness", optional = true }
+# aptos-transactional-test-harness-legacy = { git = "https://github.com/aptos-labs/aptos-core.git", package = "aptos-transactional-test-harness", optional = true, rev = "2389654a796b329b74323acafcd1fc600c170cfa" }
 num_cpus = { workspace = true }
 once_cell = { workspace = true }
 rand = { workspace = true }
