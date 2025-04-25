@@ -16,7 +16,6 @@ export_all!(
     stmt_let_assign,
     number,
     tuple,
-    // call,
     assignment,
     expr_of_type,
     eot_var,
@@ -28,8 +27,13 @@ export_all!(
     eot_match,
     eot_bool,
     eot_func_val,
+    eot_unit,
     enums,
     pattern,
     enum_match,
-    match_arm
+    match_arm,
+    call,
+    callable,
+    call_args,
+    stmt_call
 );

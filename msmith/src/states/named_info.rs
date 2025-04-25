@@ -33,8 +33,8 @@ type NamedInfoIdx = id_arena::Id<NamedInfo>;
 /// - Variable
 #[derive(Debug, Clone)]
 pub struct NamedInfo {
-    name: Id,
-    typ: Type,
+    pub name: Id,
+    pub typ: Type,
 
     dot_var_indices: Vec<NamedInfoIdx>,
     initialized: bool,
@@ -455,7 +455,7 @@ impl NamedInfoPool {
 
         // Use the rest of selectors to generate a function type
         // [parameter1, parameter2, ..]::[return type]
-        if selector.new_func_type > 0 {
+        if selector.new_func_type > 0 || selector.new_droppable_func_type > 0 {
             // TODO: put this in config
             let func_type = if *self.type_selection_depth.borrow() >= 3 {
                 Type::Generic(GenericType::Function(FunctionType {
@@ -470,7 +470,10 @@ impl NamedInfoPool {
                 let num_params = selector.config.num_params_in_func.select(u)?;
                 let has_ret = bool::arbitrary(u)?;
 
-                let (param_selectors, ret_selector) = TypeSelector::function_selectors(num_params);
+                let (param_selectors, ret_selector) = TypeSelector::function_selectors(
+                    num_params,
+                    selector.new_droppable_func_type > 0,
+                );
 
                 let ret_type = if has_ret {
                     self.random_type(scope, u, vec![ret_selector])?
@@ -492,7 +495,10 @@ impl NamedInfoPool {
                     is_func_value: false,
                 }))
             };
-            candidates.push((vec![(func_type, 1)], selector.new_func_type));
+            candidates.push((
+                vec![(func_type, 1)],
+                selector.new_func_type + selector.new_droppable_func_type,
+            ));
         }
 
         trace!("Candidates: {:?}", candidates);

@@ -1,4 +1,7 @@
-use crate::{generators::SignatureGenerator, move_ast::MoveAST};
+use crate::{
+    generators::{CallableGenerator, SignatureGenerator},
+    move_ast::MoveAST,
+};
 use arbitrary::Unstructured;
 use framework::{
     GenLabel, LabelledGenerator, LabelledState, Register, State, StateEntry, StateLabel,
@@ -7,6 +10,7 @@ use log::trace;
 use std::collections::BTreeMap;
 
 pub const PARTIAL_SIGNATURE: &str = "PartialSignature";
+pub const PARTIAL_CALLABLE: &str = "PartialCallable";
 
 #[derive(Debug, Default)]
 pub struct PartialInfo {
@@ -23,7 +27,7 @@ impl Register<StateEntry> for PartialInfo {
     fn register(&self) -> StateEntry {
         StateEntry {
             label: Self::label(),
-            generators: vec![SignatureGenerator::label()],
+            generators: vec![SignatureGenerator::label(), CallableGenerator::label()],
         }
     }
 }
@@ -36,6 +40,11 @@ impl State<MoveAST> for PartialInfo {
             trace!("Adding partial signature to store: {:?}", new_ast);
             self.store
                 .insert(PARTIAL_SIGNATURE.to_string(), vec![new_ast.clone()]);
+        }
+        if let MoveAST::Callable(_c) = new_ast {
+            trace!("Adding partial callable to store: {:?}", new_ast);
+            self.store
+                .insert(PARTIAL_CALLABLE.to_string(), vec![new_ast.clone()]);
         }
     }
 }

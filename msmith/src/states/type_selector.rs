@@ -16,6 +16,7 @@ pub struct TypeSelector {
     pub func_return: u32,
     pub defined_func_type: u32,
     pub new_func_type: u32,
+    pub new_droppable_func_type: u32,
 }
 
 impl TypeSelector {
@@ -33,6 +34,7 @@ impl TypeSelector {
             && self.func_return == 0
             && self.defined_func_type == 0
             && self.new_func_type == 0
+            && self.new_droppable_func_type == 0
     }
 
     pub fn is_all_yes(&self) -> bool {
@@ -49,6 +51,7 @@ impl TypeSelector {
             && self.func_return > 0
             && self.defined_func_type > 0
             && self.new_func_type > 0
+            && self.new_droppable_func_type > 0
     }
 
     pub fn number_type_selection_weights() -> Vec<(Type, u32)> {
@@ -62,18 +65,23 @@ impl TypeSelector {
         ]
     }
 
-    pub fn function_selectors(num_params: usize) -> (Vec<Self>, Self) {
+    pub fn function_selectors(num_params: usize, droppable: bool) -> (Vec<Self>, Self) {
         let ret_selector = TypeSelectorBuilder::all_no(&GenerationConfig::default())
             .unit(1)
             .bool(1)
             .number(1)
             .structs(1)
-            .enums(1)
-            .tuple(1)
-            .func_return(1)
-            .defined_func_type(1)
-            .new_func_type(1)
-            .build();
+            .enums(1);
+        let ret_selector = if droppable {
+            ret_selector.build()
+        } else {
+            ret_selector
+                .tuple(1)
+                .func_return(1)
+                .defined_func_type(1)
+                .new_func_type(1)
+                .build()
+        };
         let params = (0..num_params)
             .map(|_| {
                 TypeSelectorBuilder::all_no(&GenerationConfig::default())
@@ -113,6 +121,7 @@ impl TypeSelectorBuilder {
                 func_return: 1,
                 defined_func_type: 1,
                 new_func_type: 1,
+                new_droppable_func_type: 1,
             },
         }
     }
@@ -134,6 +143,7 @@ impl TypeSelectorBuilder {
                 func_return: 0,
                 defined_func_type: 0,
                 new_func_type: 0,
+                new_droppable_func_type: 0,
             },
         }
     }
@@ -204,6 +214,11 @@ impl TypeSelectorBuilder {
 
     pub fn new_func_type(mut self, weight: u32) -> Self {
         self.selector.new_func_type = weight;
+        self
+    }
+
+    pub fn new_droppable_func_type(mut self, weight: u32) -> Self {
+        self.selector.new_droppable_func_type = weight;
         self
     }
 

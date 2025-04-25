@@ -31,7 +31,6 @@ pub enum MoveAST {
     BinOp(BinOp),
     UnOp(UnOp),
     Tuple(Tuple),
-    FunctionCall(FunctionCall),
     Struct(Struct),
     StructInstantiation(StructInstantiation),
     Enum(Enum),
@@ -41,6 +40,9 @@ pub enum MoveAST {
     EnumMatch(EnumMatch),
     MatchArm(MatchArm),
     FunctionValue(FunctionValue),
+    Callable(Callable),
+    CallArguments(CallArguments),
+    FunctionCall(FunctionCall),
 }
 
 impl ASTNode for MoveAST {}
@@ -231,6 +233,12 @@ pub struct Function {
     pub body: Block,
 }
 
+impl Named for Function {
+    fn name(&self) -> Id {
+        self.signature.name()
+    }
+}
+
 impl Typed for Function {
     fn ty(&self) -> Type {
         self.signature.ty()
@@ -250,6 +258,12 @@ pub struct Signature {
 impl Signature {
     pub fn has_return(&self) -> bool {
         !self.return_type.is_unit()
+    }
+}
+
+impl Named for Signature {
+    fn name(&self) -> Id {
+        self.name.clone()
     }
 }
 
@@ -299,7 +313,11 @@ pub enum Expression {
     BinOp(BinOp),
     UnOp(UnOp),
     FunctionValue(FunctionValue),
+    Unit(Unit),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Unit;
 
 impl Typed for Expression {
     fn ty(&self) -> Type {
@@ -316,6 +334,7 @@ impl Typed for Expression {
             Expression::BinOp(b) => b.ty(),
             Expression::UnOp(u) => u.ty(),
             Expression::FunctionValue(f) => f.ty(),
+            Expression::Unit(_) => Type::Unit,
         }
     }
 }
@@ -591,20 +610,68 @@ impl Typed for NumberLiteral {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Callable {
+    /// For calling a normal function
+    Function(FunctionType),
+    /// For calling a lambda function
+    Expression {
+        expr: Box<Expression>,
+        func_type: FunctionType,
+    },
+}
+
+impl Callable {
+    pub fn get_arg_types(&self) -> Vec<Type> {
+        match self {
+            Callable::Function(f) => f.params.clone(),
+            Callable::Expression { func_type, .. } => func_type.params.clone(),
+        }
+    }
+
+    pub fn get_func_type(&self) -> Option<FunctionType> {
+        match self {
+            Callable::Function(f) => Some(f.clone()),
+            Callable::Expression { func_type, .. } => Some(func_type.clone()),
+        }
+    }
+}
+
+impl Named for Callable {
+    fn name(&self) -> Id {
+        match self {
+            Callable::Function(f) => f.name(),
+            Callable::Expression { func_type, .. } => func_type.name(),
+        }
+    }
+}
+
+impl Typed for Callable {
+    fn ty(&self) -> Type {
+        match self {
+            Callable::Function(f) => f.return_type.as_ref().clone(),
+            Callable::Expression { func_type, .. } => func_type.return_type.as_ref().clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CallArguments(pub Vec<Expression>);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionCall {
-    pub func_type: FunctionType,
-    pub arguments: Vec<Expression>,
+    pub callable: Callable,
+    pub args: CallArguments,
 }
 
 impl Named for FunctionCall {
     fn name(&self) -> Id {
-        self.func_type.name()
+        self.callable.name()
     }
 }
 
 impl Typed for FunctionCall {
     fn ty(&self) -> Type {
-        self.func_type.return_type.as_ref().clone()
+        self.callable.ty()
     }
 }
 

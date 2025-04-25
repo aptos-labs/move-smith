@@ -588,6 +588,7 @@ impl CodeGenerator for Expression {
             E::BinOp(b) => b.emit_code_lines(),
             E::UnOp(u) => u.emit_code_lines(),
             E::FunctionValue(f) => f.emit_code_lines(),
+            E::Unit(u) => u.emit_code_lines(),
         }
     }
 }
@@ -786,30 +787,33 @@ impl CodeGenerator for UnOperator {
     }
 }
 
+impl CodeGenerator for Callable {
+    fn emit_code_lines(&self) -> Vec<String> {
+        match self {
+            Callable::Function(f) => {
+                vec![f.name().to_string()]
+            },
+            Callable::Expression { expr, .. } => {
+                let lines = expr.emit_code_lines();
+                put_inside_pair_of("(", ")", lines, NO_INDENTATION)
+            },
+        }
+    }
+}
+
 impl CodeGenerator for FunctionCall {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = vec![format!("{}(", self.name())];
+        let mut code = self.callable.emit_code_lines();
 
-        let mut arg_lines = vec![];
-        for arg in &self.arguments {
-            arg_lines.push(arg.emit_code_lines());
+        let mut arg_blocks = vec![];
+        for arg in &self.args.0 {
+            arg_blocks.push(arg.emit_code_lines());
         }
-        let total_lines = arg_lines.iter().map(|l| l.len()).sum::<usize>();
-        if total_lines <= self.arguments.len() + 2 {
-            // Inline generation
-            let args_inline = arg_lines
-                .into_iter()
-                .map(lines_to_inline)
-                .collect::<Vec<String>>();
-            code.last_mut().unwrap().push_str(&args_inline.join(", "));
-            code.last_mut().unwrap().push(')');
-        } else {
-            for lines in arg_lines {
-                append_code_lines_with_indentation(&mut code, lines, INDENTATION_SIZE);
-                code.last_mut().unwrap().push(',');
-            }
-            code.push(')'.to_string());
-        }
+
+        add_comma_for_blocks(&mut arg_blocks, true);
+        let arg_lines = arg_blocks.into_iter().flatten().collect();
+        let args = put_inside_pair_of("(", ")", arg_lines, INDENTATION_SIZE);
+        adaptive_append_inline(&mut code, args, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         code
     }
 }
@@ -919,6 +923,13 @@ impl CodeGenerator for FunctionType {
         vec![code]
     }
 }
+
+impl CodeGenerator for Unit {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec!["()".to_string()]
+    }
+}
+
 #[cfg(test)]
 mod ast_tests {
     use super::*;

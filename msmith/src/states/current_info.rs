@@ -1,4 +1,7 @@
-use crate::{generators::EnumMatchGenerator, move_ast::MoveAST};
+use crate::{
+    generators::{EnumMatchGenerator, FuncCallGenerator},
+    move_ast::MoveAST,
+};
 use arbitrary::Unstructured;
 use framework::{
     GenLabel, LabelledGenerator, LabelledState, Register, State, StateEntry, StateLabel,
@@ -7,6 +10,7 @@ use framework::{
 #[derive(Debug, Default)]
 pub struct CurrentInfo {
     pub match_nesting_depth: usize,
+    pub func_call_nesting_depth: usize,
 }
 
 impl LabelledState for CurrentInfo {
@@ -19,7 +23,7 @@ impl Register<StateEntry> for CurrentInfo {
     fn register(&self) -> StateEntry {
         StateEntry {
             label: Self::label(),
-            generators: vec![EnumMatchGenerator::label()],
+            generators: vec![EnumMatchGenerator::label(), FuncCallGenerator::label()],
         }
     }
 }
@@ -29,11 +33,19 @@ impl State<MoveAST> for CurrentInfo {
         if generator == &EnumMatchGenerator::label() {
             self.match_nesting_depth += 1;
         }
+
+        if generator == &FuncCallGenerator::label() {
+            self.func_call_nesting_depth += 1;
+        }
     }
 
     fn update_post(&mut self, _u: &mut Unstructured, _new_ast: &MoveAST, generator: &GenLabel) {
         if generator == &EnumMatchGenerator::label() {
             self.match_nesting_depth -= 1;
+        }
+
+        if generator == &FuncCallGenerator::label() {
+            self.func_call_nesting_depth -= 1;
         }
     }
 }

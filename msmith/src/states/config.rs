@@ -54,8 +54,11 @@ pub struct GenerationConfig {
     /// The number of functions that can have `inline`
     pub num_inline_funcs: RandomNumber,
 
-    /// Allow recursive calls in the generated code
-    pub allow_recursive_calls: bool,
+    /// The number of functions that can have `inline`
+    pub num_nested_calls: RandomNumber,
+
+    /// Levels of nested function types
+    pub num_nested_func_type: RandomNumber,
 
     /******** Expression Related ********/
     /// Maximum depth of nested expression

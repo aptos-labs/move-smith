@@ -1,10 +1,13 @@
 use super::BlockGenerator;
 use crate::{
     generators::ExprOfTypeGenerator,
-    move_ast::{Expression, FunctionValue, MoveAST, Signature, SingleVariable, TypeParameters},
+    move_ast::{
+        Block, Expression, FunctionValue, MoveAST, Signature, SingleVariable, TypeParameters,
+    },
     states::{
-        get_named_infos_mut, new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope,
-        pop_scope, GenericType, IdKind, PartialInfo, Type, PARTIAL_SIGNATURE,
+        almost_reached_max_expr_depth, get_named_infos_mut, new_id_from_curr_scope,
+        new_id_from_curr_scope_and_push_scope, pop_scope, GenericType, IdKind, PartialInfo, Type,
+        PARTIAL_SIGNATURE,
     },
 };
 use anyhow::Result;
@@ -72,6 +75,16 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncValGenerator {
             is_func_value: true,
         };
 
+        // If almost reached max expr depth, ignore the function body
+        if almost_reached_max_expr_depth(env, 1) {
+            let subtrees = vec![Subtree::new_generator_subtree(
+                ExprOfTypeGenerator::label(),
+                AnyConstraint::new().with("type", *func_type.return_type.clone()),
+            )];
+
+            return Ok((subtrees, AnyConstraint::new().with("signature", signature)));
+        }
+
         // Simulate how PartialInfo keeps track of func signatures
         // TODO: this should be removed and automated
         let partial = env.get_mut::<PartialInfo>().unwrap();
@@ -96,10 +109,21 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncValGenerator {
         constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        pop_scope(env);
-
         let signature = constraint.get::<Signature>("signature").unwrap().clone();
-        let body = asts.into_iter().next().unwrap().into_block().unwrap();
+        let node = asts.into_iter().next().unwrap();
+        let body = match node {
+            MoveAST::Block(body) => body,
+            MoveAST::Expression(expr) => {
+                let (name, _) = new_id_from_curr_scope(env, IdKind::Block);
+                Block {
+                    name,
+                    sequences: vec![],
+                    return_expr: Some(expr),
+                }
+            },
+            _ => panic!("FuncVal compose should only have block or expression"),
+        };
+        pop_scope(env);
         Ok(Expression::FunctionValue(FunctionValue {
             signature,
             body: Box::new(body),

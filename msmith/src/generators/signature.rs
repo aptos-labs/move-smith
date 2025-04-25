@@ -1,8 +1,8 @@
 use crate::{
     move_ast::{MoveAST, Signature, SingleVariable, TypeParameters},
     states::{
-        get_config, get_curr_scope, new_id_from_curr_scope, random_type_from_curr_scope, Id,
-        IdKind, Scope, Type, TypeSelectorBuilder,
+        get_config, new_id_from_curr_scope, random_type_from_curr_scope, Id, IdKind, Scope, Type,
+        TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -29,15 +29,10 @@ impl Register<GeneratorEntry> for SignatureGenerator {
 }
 
 impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
-    fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+    fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         constraint.check_exist_and_type::<Id>("name")
             && constraint.check_exist_and_type::<Scope>("scope")
             && constraint.check_not_exist_or_has_type::<bool>("has_return")
-            && {
-                // Make sure the current scope is in a function
-                let curr_scope = get_curr_scope(env);
-                curr_scope.get_last_scope_id().is_func()
-            }
     }
 
     fn subtrees(
@@ -56,6 +51,8 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             .bool(1)
             .structs(1)
             .enums(1)
+            .defined_func_type(1)
+            .new_func_type(1)
             .build();
         let mut parameters = vec![];
 

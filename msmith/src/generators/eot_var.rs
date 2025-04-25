@@ -9,7 +9,7 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
-use log::{trace, warn};
+use log::trace;
 
 /// Generate a variable of the given type.
 #[derive(Default)]
@@ -29,7 +29,6 @@ impl Register<GeneratorEntry> for EOTVariableGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
     fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
-        warn!("EOTVariableGenerator::check_constraint is not complete");
         match constraint.get::<Type>("type") {
             Some(typ) => {
                 let curr_scope = get_curr_scope(env);
