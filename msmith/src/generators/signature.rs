@@ -45,7 +45,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
 
         let config = get_config(env);
         let num_params = config.num_params_in_func.select(u)?;
-        trace!("Generating {} parameters for function {}", num_params, name);
+        trace!("Generating {num_params} parameters for function {name}");
         let type_selector = TypeSelectorBuilder::all_no(config)
             .number(1)
             .bool(1)

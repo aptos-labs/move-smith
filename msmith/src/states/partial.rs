@@ -37,12 +37,12 @@ impl State<MoveAST> for PartialInfo {
 
     fn update_post(&mut self, _u: &mut Unstructured, new_ast: &MoveAST, _generator: &GenLabel) {
         if let MoveAST::Signature(_s) = new_ast {
-            trace!("Adding partial signature to store: {:?}", new_ast);
+            trace!("Adding partial signature to store: {new_ast:?}");
             self.store
                 .insert(PARTIAL_SIGNATURE.to_string(), vec![new_ast.clone()]);
         }
         if let MoveAST::Callable(_c) = new_ast {
-            trace!("Adding partial callable to store: {:?}", new_ast);
+            trace!("Adding partial callable to store: {new_ast:?}");
             self.store
                 .insert(PARTIAL_CALLABLE.to_string(), vec![new_ast.clone()]);
         }

@@ -58,7 +58,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
         } else {
             match constraint.get::<Type>("type") {
                 Some(typ) => {
-                    trace!("Block type: using provided type {:?}", typ);
+                    trace!("Block type: using provided type {typ:?}");
                     typ.clone()
                 },
                 None => {
@@ -80,12 +80,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
 
         let (name, block_scope, parent_scope) =
             new_id_from_curr_scope_and_push_scope(env, IdKind::Block);
-        trace!(
-            "Generating block -- {}, {:?}, parent scope: {:?}",
-            name,
-            block_scope,
-            parent_scope
-        );
+        trace!("Generating block -- {name}, {block_scope:?}, parent scope: {parent_scope:?}");
 
         let mut compose_constraint = AnyConstraint::new();
 
@@ -96,7 +91,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
             None => get_config(env).num_sequences_in_block.select(u)?,
         };
         compose_constraint.insert("num_sequences", num_sequences);
-        trace!("Block {} will generate {} sequences", name, num_sequences);
+        trace!("Block {name} will generate {num_sequences} sequences");
 
         let mut subtrees = vec![];
 
@@ -109,7 +104,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
 
         if return_type != Type::Unit {
             compose_constraint.insert("has_return", true);
-            trace!("Block {} has return type: {:?}", name, return_type);
+            trace!("Block {name} has return type: {return_type:?}");
 
             let expr_constraint = AnyConstraint::new().with("type", return_type);
             subtrees.push(Subtree::new_generator_subtree(
@@ -118,7 +113,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
             ));
         } else {
             compose_constraint.insert("has_return", false);
-            trace!("Block {} has no return expr", name);
+            trace!("Block {name} has no return expr");
         }
 
         Ok((subtrees, compose_constraint))

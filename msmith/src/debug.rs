@@ -21,7 +21,7 @@ pub fn main() {
     let ms = MoveSmith::new();
     // let ms = MoveSmith::variant(Variant::FlushWrites);
     let code = ms.generate(&buffer).unwrap();
-    println!("{}", code);
+    println!("{code}");
     if log::max_level() == LevelFilter::Trace {
         warn!("Trace level logging is enabled, skipping compilation & execution.");
         return;
@@ -50,7 +50,7 @@ pub fn main() {
             println!("Execution succeeded: {:?}", result.status);
         },
         Err(err) => {
-            println!("Execution failed: {:?}", err);
+            println!("Execution failed: {err:?}");
         },
     }
 }

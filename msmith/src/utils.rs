@@ -48,7 +48,7 @@ pub fn create_tmp_move_file(code: &str, name_hint: Option<&str>) -> (PathBuf, Te
     let file_path = dir.path().join(name);
     {
         let mut file = File::create(&file_path).unwrap();
-        writeln!(file, "{}", code).unwrap();
+        writeln!(file, "{code}").unwrap();
     }
     (file_path, dir)
 }

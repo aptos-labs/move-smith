@@ -83,7 +83,7 @@ impl Generator<MoveAST, AnyConstraint> for EnumMatchGenerator {
         };
         let et = match ct {
             Type::Generic(GenericType::Enum(et)) => et,
-            _ => panic!("Expected enum type, found: {:?}", ct),
+            _ => panic!("Expected enum type, found: {ct:?}"),
         };
 
         let pat_scopes = get_complete_patterns_for_enum(u, env, et.clone(), &curr_scope);

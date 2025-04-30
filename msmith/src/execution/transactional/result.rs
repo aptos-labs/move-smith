@@ -146,7 +146,7 @@ impl TransactionalResultBuilder {
             result.log.push_str(&format!("Log from run #{}\n", i + 1));
             let run_log = match &res {
                 Ok(_) => "Success\n".to_string(),
-                Err(e) => format!("{:?}", e),
+                Err(e) => format!("{e:?}"),
             };
             for ignore in TO_IGNORE.iter() {
                 if run_log.contains(ignore) {
@@ -244,7 +244,7 @@ impl TransactionalResult {
             let canonicals: BTreeSet<String> =
                 runs.iter().map(|e| e[i].canonical.clone()).collect();
             if canonicals.len() > 1 {
-                debug!("unmatched canonical output: {:#?}", canonicals);
+                debug!("unmatched canonical output: {canonicals:#?}");
                 return ResultStatus::Failure;
             }
         }
@@ -289,7 +289,7 @@ impl ResultChunk {
                 last_chunk.original.push('\n');
                 last_chunk.original.push_str(line);
             } else {
-                error!("cannot parse line: {:?}", line);
+                error!("cannot parse line: {line:?}");
             }
         }
         chunks.retain(|e| e.kind != ResultChunkKind::Warning && e.kind != ResultChunkKind::Task);

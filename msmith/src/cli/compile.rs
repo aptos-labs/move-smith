@@ -50,7 +50,7 @@ fn print_result(input: &CompileInput, result: &CompileResult) {
             version,
             result.duration.as_millis()
         ),
-        CompileStatus::Panic => format!("Paniced during {} compilation", version),
+        CompileStatus::Panic => format!("Panicked during {version} compilation"),
     };
-    println!("{}", msg);
+    println!("{msg}");
 }

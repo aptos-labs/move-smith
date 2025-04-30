@@ -26,7 +26,7 @@ pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
             let bytes = fs::read(&cmd.file).unwrap();
             let (success, log, code) = raw2move(&bytes);
             if !success {
-                println!("Failed to convert raw bytes to Move code:\n{}", log);
+                println!("Failed to convert raw bytes to Move code:\n{log}");
                 return;
             }
             input_builder.set_code(&code)
@@ -41,7 +41,7 @@ pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
     let result = match result {
         Ok(result) => result,
         Err(e) => {
-            println!("{:?}", e);
+            println!("{e:?}");
             return;
         },
     };
@@ -70,7 +70,7 @@ pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
             println!("Duration: {:?}", result.duration);
         },
         OutputMode::Canonicalized => {
-            println!("{}", result);
+            println!("{result}");
         },
         OutputMode::None => (),
     }

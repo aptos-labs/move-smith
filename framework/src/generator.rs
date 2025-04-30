@@ -195,7 +195,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
             if let Some(children) = self.dependencies.get(label) {
                 for child in children {
                     if visited.contains(&child) {
-                        error!("Cyclic dependency detected: {:?} --> {:?}", label, child);
+                        error!("Cyclic dependency detected: {label:?} --> {child:?}");
                         return false;
                     }
                     to_visit.push(child);
@@ -209,7 +209,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
                 if entry.forward {
                     if let Some(children) = self.dependencies.get(label) {
                         if children.is_empty() {
-                            error!("Forwarding node {} has no children", label);
+                            error!("Forwarding node {label} has no children");
                             return false;
                         }
                     }
@@ -246,7 +246,7 @@ impl<ASTNode, Constraint> GeneratorPool<ASTNode, Constraint> {
         let mut stack = vec![label.clone()];
         while let Some(label) = stack.pop() {
             if visited.contains(&label) {
-                panic!("Cyclic dependency detected: {:?} --> {:?}", visited, label);
+                panic!("Cyclic dependency detected: {visited:?} --> {label:?}");
             }
             if let Some(entry) = self.get_entry(&label) {
                 if skip_forward {

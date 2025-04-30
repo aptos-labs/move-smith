@@ -121,8 +121,8 @@ where
             self.depth.borrow()
         );
         *self.depth.borrow_mut() += 1;
-        trace!("Generating ASTNode with label: {}", base_label);
-        trace!("Generation constraint: {:?}", constraint);
+        trace!("Generating ASTNode with label: {base_label}");
+        trace!("Generation constraint: {constraint:?}");
 
         // The constraint should be at least be well-formed for the base label
         let generator = self.generators.get(base_label).unwrap();
@@ -137,7 +137,7 @@ where
         // For all the usable generators, randomly select one that the constraint is well-formed for
         // If none of the specialized generators can be used, we will fall back to the base generator
         let usable_generators: Vec<GenLabel> = self.generators.generators_from(base_label, true);
-        trace!("Usable generators: {:?}", usable_generators);
+        trace!("Usable generators: {usable_generators:?}");
         let selected_idx = choose_idx_filter(u, &usable_generators, |g| {
             self.generators
                 .get(g)
@@ -146,19 +146,16 @@ where
         })?
         .unwrap();
         let selected_label = &usable_generators[selected_idx];
-        trace!("Selected generator: {:?}", selected_label);
+        trace!("Selected generator: {selected_label:?}");
 
         let state_hook_generators = self.generators.generators_from(base_label, false);
-        trace!("State hook generators: {:?}", state_hook_generators);
-        trace!("Running all update_pre for base label: {}", base_label);
+        trace!("State hook generators: {state_hook_generators:?}");
+        trace!("Running all update_pre for base label: {base_label}");
         for g in &state_hook_generators {
-            trace!("Running update_pre for generator: {:?}", g);
+            trace!("Running update_pre for generator: {g:?}");
             self.states_mut().update_pre(u, g);
         }
-        trace!(
-            "Finished running all update_pre for base label: {}",
-            base_label
-        );
+        trace!("Finished running all update_pre for base label: {base_label}");
 
         // Register the subtrees
         let generator = self.generators.get(selected_label).unwrap();
@@ -198,12 +195,7 @@ where
             &compose_constraint,
             &new_node,
         );
-        trace!(
-            "{:?}'s check_ast result on {:?}: {}",
-            base_label,
-            selected_label,
-            result
-        );
+        trace!("{base_label:?}'s check_ast result on {selected_label:?}: {result}");
 
         // TODO: use reference
         if !result {
@@ -215,15 +207,12 @@ where
             ));
         }
 
-        trace!("Running all update_post for base label: {}", base_label);
+        trace!("Running all update_post for base label: {base_label}");
         for g in &state_hook_generators {
-            trace!("Running update_post for generator: {:?}", g);
+            trace!("Running update_post for generator: {g:?}");
             self.states_mut().update_post(u, &new_node, g);
         }
-        trace!(
-            "Finished running all update_post for base label: {}",
-            base_label
-        );
+        trace!("Finished running all update_post for base label: {base_label}");
 
         *self.depth.borrow_mut() -= 1;
         trace!(

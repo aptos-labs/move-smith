@@ -639,7 +639,7 @@ impl CodeGenerator for Pattern {
             PatternKind::Variable(v) => vec![v.inline()],
             PatternKind::Positional(pats) => {
                 let mut code = if self.typ.is_tuple() || self.typ.is_struct() {
-                    format!("{}(", typ_name)
+                    format!("{typ_name}(")
                 } else {
                     '('.to_string()
                 };
@@ -891,7 +891,7 @@ impl CodeGenerator for FunctionType {
             .map(|p| {
                 let type_s = p.inline();
                 if p.is_function() {
-                    format!("({})", type_s)
+                    format!("({type_s})")
                 } else {
                     type_s
                 }
@@ -917,7 +917,7 @@ impl CodeGenerator for FunctionType {
                 .map(|a| a.emit_code())
                 .collect::<Vec<String>>()
                 .join("+");
-            code.push_str(&format!(" has {}", abilities));
+            code.push_str(&format!(" has {abilities}"));
         }
 
         vec![code]

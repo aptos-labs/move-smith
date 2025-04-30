@@ -109,7 +109,7 @@ impl RandomNumber {
         } else {
             self.select_large(u)
         };
-        trace!("NUM: selected value: {:?} from: {:?}", v, self);
+        trace!("NUM: selected value: {v:?} from: {self:?}");
         v
     }
 
@@ -245,8 +245,7 @@ mod tests {
             let lower = (exp * (1.0 - tolerance)) as u32;
             let upper = (exp * (1.0 + tolerance)) as u32;
             let err_msg = format!(
-                "Expecting the count for index {:?} to be in range [{:?}, {:?}], got {:?}",
-                idx, lower, upper, actual
+                "Expecting the count for index {idx:?} to be in range [{lower:?}, {upper:?}], got {actual:?}"
             );
             assert!(actual >= lower, "{}", err_msg);
             assert!(actual <= upper, "{}", err_msg);

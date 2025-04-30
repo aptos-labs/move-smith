@@ -208,7 +208,7 @@ impl Scope {
     ///     `(M1::F2).is_in_scope(M1::F1::B1)` ==> false ==> not accessible
     pub fn is_in_scope(&self, scope: &Scope) -> bool {
         match (&self.0, &scope.0) {
-            (Some(c), Some(p)) => c == p || c.starts_with(&format!("{}::", p)),
+            (Some(c), Some(p)) => c == p || c.starts_with(&format!("{p}::")),
             (Some(_), None) => true,
             (None, Some(_)) => false,
             (None, None) => true,
@@ -297,7 +297,7 @@ impl IdPool {
         self.insert_new_id(&typ, new_id.clone());
 
         self.scopes.insert(new_id.clone(), scope.clone());
-        trace!("Inserted new id: {:?} under scope: {:?}", new_id, scope);
+        trace!("Inserted new id: {new_id:?} under scope: {scope:?}");
         (new_id, new_scope)
     }
 
@@ -377,7 +377,7 @@ impl IdPool {
 
     fn merge_scopes(&self, parent: &Scope, child: &Scope) -> Scope {
         Scope(match (&parent.0, &child.0) {
-            (Some(p), Some(c)) => Some(format!("{}::{}", p, c)),
+            (Some(p), Some(c)) => Some(format!("{p}::{c}")),
             (Some(p), None) => Some(p.clone()),
             (None, Some(c)) => Some(c.clone()),
             (None, None) => None,
@@ -403,7 +403,7 @@ fn test_id_type() {
     let _ = id_pool.next_id(IdKind::Struct, &ROOT_SCOPE);
 
     let bids = id_pool.get_ids_of_ident_kind(IdKind::Block);
-    println!("{:?}", bids);
+    println!("{bids:?}");
     assert!(bids.len() == 2);
     let sids = id_pool.get_ids_of_ident_kind(IdKind::Struct);
     assert!(sids.len() == 1);

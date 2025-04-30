@@ -32,9 +32,9 @@ pub fn handle_raw2move(_env: &MoveSmithEnv, cmd: &Raw2move) {
         let save_as = PathBuf::from(save_as);
         create_move_package(code.clone(), &save_as);
         println!("Generated Move package in {}ms", elapsed.as_millis());
-        println!("Saved as package at: {:?}", save_as);
+        println!("Saved as package at: {save_as:?}");
     } else {
-        println!("{}", code);
+        println!("{code}");
         println!("// Generated Move code in {}ms", elapsed.as_millis());
     }
 }
@@ -50,7 +50,7 @@ pub fn raw2move(bytes: &[u8]) -> (bool, String, String) {
         Err(e) => {
             return (
                 false,
-                format!("MoveSmith failed to generate code:\n{:?}", e),
+                format!("MoveSmith failed to generate code:\n{e:?}"),
                 "".to_string(),
             );
         },

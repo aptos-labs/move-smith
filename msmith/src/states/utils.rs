@@ -183,7 +183,7 @@ pub fn get_patterns_for_type(
 /// Return ONE random partial patterns for the given position or named pattern.
 /// TODO: maybe return all possible and choose later
 pub fn get_partial_patterns(u: &mut Unstructured, pat: &Pattern) -> Option<Pattern> {
-    trace!("Generating partial pattern for {:?}", pat);
+    trace!("Generating partial pattern for {pat:?}");
     match &pat.body {
         PatternKind::Positional(pats) => {
             if pats.is_empty() {

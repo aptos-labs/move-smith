@@ -49,7 +49,7 @@ impl Generator<MoveAST, AnyConstraint> for ProgramGenerator {
             .initialize(expr_depths);
 
         let num_modules = get_config(env).num_modules.select(u)?;
-        trace!("Generating {} modules", num_modules);
+        trace!("Generating {num_modules} modules");
         let mut subtrees = vec![];
 
         // TODO: we generate 1 module for now so no need to let them reference each other

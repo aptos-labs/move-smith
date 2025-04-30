@@ -51,7 +51,7 @@ impl Generator<MoveAST, AnyConstraint> for PatternGenerator {
             .map(|p| p.into())
             .collect::<Vec<MoveAST>>();
         if all_patterns.is_empty() {
-            error!("No patterns found for type {:?}", typ);
+            error!("No patterns found for type {typ:?}");
         }
         let subtree = Subtree::new_candidates_subtree(all_patterns);
         Ok((vec![subtree], AnyConstraint::new()))

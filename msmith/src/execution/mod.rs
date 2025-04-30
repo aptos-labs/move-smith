@@ -214,7 +214,7 @@ where
                             return;
                         }
                         cnt += 1;
-                        report.push_str(&format!("Cluster #{}\n", cnt));
+                        report.push_str(&format!("Cluster #{cnt}\n"));
                         report.push_str(&result.to_report(format));
                         report.push_str("\nFiles:\n");
                         for input in inputs {

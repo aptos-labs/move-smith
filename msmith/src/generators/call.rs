@@ -35,15 +35,10 @@ impl Generator<MoveAST, AnyConstraint> for FuncCallGenerator {
         _env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let mut subtrees = vec![];
-        subtrees.push(Subtree::new_generator_subtree(
-            CallableGenerator::label(),
-            AnyConstraint::new(),
-        ));
-        subtrees.push(Subtree::new_generator_subtree(
-            CallArgumentsGenerator::label(),
-            AnyConstraint::new(),
-        ));
+        let subtrees = vec![
+            Subtree::new_generator_subtree(CallableGenerator::label(), AnyConstraint::new()),
+            Subtree::new_generator_subtree(CallArgumentsGenerator::label(), AnyConstraint::new()),
+        ];
         Ok((subtrees, AnyConstraint::new()))
     }
 

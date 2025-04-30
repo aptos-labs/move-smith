@@ -119,7 +119,7 @@ impl NamedInfoPool {
             let dot_var_info =
                 NamedInfo::new_dot_var(dot_name.clone(), dot_var.ty(), dot_var.clone());
             let idx = self.arena.alloc(dot_var_info);
-            dot_var_indices.push(idx.clone());
+            dot_var_indices.push(idx);
             self.map.insert(dot_name.clone(), idx);
         }
 
@@ -150,8 +150,7 @@ impl NamedInfoPool {
             self._set_var_as_initialized(&idx);
         } else {
             error!(
-                "Variable {} not found in NamedInfoPool when trying to set it as initialized",
-                name
+                "Variable {name} not found in NamedInfoPool when trying to set it as initialized",
             );
         }
     }
@@ -162,7 +161,7 @@ impl NamedInfoPool {
             info.initialized = true;
             info.moved = false;
             for dot_var_idx in &info.dot_var_indices {
-                todo_indices.push(dot_var_idx.clone());
+                todo_indices.push(*dot_var_idx);
             }
         }
         for dot_var_idx in todo_indices {
@@ -264,7 +263,6 @@ impl NamedInfoPool {
 
         callables.extend(
             self._get_usable_vars_iter(scope.clone())
-                .into_iter()
                 .filter_map(|info| {
                     if info.typ.is_function() {
                         Some(info.clone())
@@ -501,11 +499,11 @@ impl NamedInfoPool {
             ));
         }
 
-        trace!("Candidates: {:?}", candidates);
-        trace!("Selector: {:?}", selector);
+        trace!("Candidates: {candidates:?}");
+        trace!("Selector: {selector:?}");
         let chosen_category = choose_item_weighted(u, &candidates)?;
         let mut chosen = choose_item_weighted(u, &chosen_category)?;
-        trace!("Chosen type: {:?}", chosen);
+        trace!("Chosen type: {chosen:?}");
 
         if let Type::Generic(GenericType::Function(f)) = &mut chosen {
             f.is_func_value = true;

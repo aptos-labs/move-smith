@@ -28,7 +28,7 @@ use std::{
 pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
     let timer = Instant::now();
     let corpus_dir = Path::new(&cmd.corpus_dir);
-    println!("Checking corpus dir: {:?}", corpus_dir);
+    println!("Checking corpus dir: {corpus_dir:?}");
     if !corpus_dir.exists() {
         panic!("Corpus dir does not exist");
     }
@@ -169,7 +169,7 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
             },
             Err(e) => {
                 let error_file = move_file.with_extension("error");
-                let msg = format!("{:?}", e);
+                let msg = format!("{e:?}");
                 pb.println(format!("Error while executing {}", move_file.display(),));
                 fs::write(&error_file, msg).unwrap();
             },
@@ -187,6 +187,6 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
         num_clusters,
     );
 
-    println!("[5/5] Saved report to: {:?}", to_open);
+    println!("[5/5] Saved report to: {to_open:?}");
     println!("Done checking in {}", HumanDuration(timer.elapsed()));
 }

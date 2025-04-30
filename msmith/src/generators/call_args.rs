@@ -31,13 +31,7 @@ impl Generator<MoveAST, AnyConstraint> for CallArgumentsGenerator {
         partial
             .store
             .get(PARTIAL_CALLABLE)
-            .and_then(|callables| {
-                if callables.is_empty() {
-                    Some(false)
-                } else {
-                    Some(true)
-                }
-            })
+            .map(|callables| !callables.is_empty())
             .unwrap_or(false)
     }
 

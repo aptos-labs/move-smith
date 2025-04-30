@@ -33,7 +33,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
             Some(typ) => {
                 let curr_scope = get_curr_scope(env);
                 let vars = get_named_infos(env).get_initialized_vars_of_type(&curr_scope, typ);
-                trace!("Finding vars of type {:?}: {:?}", typ, vars);
+                trace!("Finding vars of type {typ:?}: {vars:?}");
                 !vars.is_empty()
             },
             None => false,
