@@ -1,5 +1,5 @@
 use crate::{
-    generators::{EnumMatchGenerator, FuncCallGenerator},
+    generators::{EOTFuncCallGenerator, EnumMatchGenerator},
     move_ast::MoveAST,
 };
 use arbitrary::Unstructured;
@@ -23,7 +23,7 @@ impl Register<StateEntry> for CurrentInfo {
     fn register(&self) -> StateEntry {
         StateEntry {
             label: Self::label(),
-            generators: vec![EnumMatchGenerator::label(), FuncCallGenerator::label()],
+            generators: vec![EnumMatchGenerator::label(), EOTFuncCallGenerator::label()],
         }
     }
 }
@@ -34,7 +34,7 @@ impl State<MoveAST> for CurrentInfo {
             self.match_nesting_depth += 1;
         }
 
-        if generator == &FuncCallGenerator::label() {
+        if generator == &EOTFuncCallGenerator::label() {
             self.func_call_nesting_depth += 1;
         }
     }
@@ -44,7 +44,7 @@ impl State<MoveAST> for CurrentInfo {
             self.match_nesting_depth -= 1;
         }
 
-        if generator == &FuncCallGenerator::label() {
+        if generator == &EOTFuncCallGenerator::label() {
             self.func_call_nesting_depth -= 1;
         }
     }

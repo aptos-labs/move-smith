@@ -1,9 +1,7 @@
-use super::{ExprOfTypeGenerator, FuncCallGenerator};
 use crate::{
-    move_ast::{Expression, MoveAST},
-    states::{
-        get_curr_scope, get_id_pool, get_type_pool, reached_max_expr_depth, FunctionType, Type,
-    },
+    generators::{CallArgumentsGenerator, CallableGenerator, ExprOfTypeGenerator},
+    move_ast::{Expression, FunctionCall, MoveAST},
+    states::{get_current_info, Type},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -17,7 +15,7 @@ pub struct EOTFuncCallGenerator;
 
 impl LabelledGenerator for EOTFuncCallGenerator {
     fn label() -> GenLabel {
-        GenLabel::new("EOTFuncCall")
+        GenLabel::new("EOTFuncCallGenerator")
     }
 }
 
@@ -28,43 +26,23 @@ impl Register<GeneratorEntry> for EOTFuncCallGenerator {
 }
 
 impl Generator<MoveAST, AnyConstraint> for EOTFuncCallGenerator {
-    fn check_constraint(&self, env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        if reached_max_expr_depth(env) {
-            return false;
-        }
-
-        let curr_scope_id = get_curr_scope(env).get_last_scope_id();
-        let curr_func_id = get_id_pool(env).get_func_scope_id_of(&curr_scope_id);
-        let callable = get_type_pool(env).all_callable_function_within(&curr_func_id);
-
-        let typ = _constraint.get::<Type>("type").unwrap();
-        let type_ok_funcs = callable
-            .into_iter()
-            .filter(|f| f.return_type.as_ref() == typ)
-            .collect::<Vec<FunctionType>>();
-        !type_ok_funcs.is_empty()
+    fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+        // The desired return type of this call
+        constraint.check_exist_and_type::<Type>("type")
+            && get_current_info(env).func_call_nesting_depth <= 4
     }
 
     fn subtrees(
         &self,
-        u: &mut Unstructured,
-        env: &mut StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        _u: &mut Unstructured,
+        _env: &mut StatePool<MoveAST>,
+        constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let curr_scope_id = get_curr_scope(env).get_last_scope_id();
-        let curr_func_id = get_id_pool(env).get_func_scope_id_of(&curr_scope_id);
-        let callable = get_type_pool(env).all_callable_function_within(&curr_func_id);
-
-        let typ = _constraint.get::<Type>("type").unwrap();
-        let type_ok_funcs = callable
-            .into_iter()
-            .filter(|f| f.return_type.as_ref() == typ)
-            .collect::<Vec<FunctionType>>();
-
-        let chosen_name = u.choose(&type_ok_funcs)?.name.clone();
-        let gen_constraint = AnyConstraint::new().with("name", chosen_name.clone());
-        let subtree = Subtree::new_generator_subtree(FuncCallGenerator::label(), gen_constraint);
-        Ok((vec![subtree], AnyConstraint::new()))
+        let subtrees = vec![
+            Subtree::new_generator_subtree(CallableGenerator::label(), constraint.clone()),
+            Subtree::new_generator_subtree(CallArgumentsGenerator::label(), AnyConstraint::new()),
+        ];
+        Ok((subtrees, AnyConstraint::new()))
     }
 
     fn compose(
@@ -74,12 +52,10 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncCallGenerator {
         _constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        let call = asts
-            .into_iter()
-            .next()
-            .unwrap()
-            .into_functioncall()
-            .unwrap();
+        let mut iter = asts.into_iter();
+        let callable = iter.next().unwrap().into_callable().unwrap();
+        let args = iter.next().unwrap().into_callarguments().unwrap();
+        let call = FunctionCall { callable, args };
         Ok(Expression::FunctionCall(call).into())
     }
 
@@ -90,6 +66,8 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncCallGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        matches!(ast.as_expression(), Some(Expression::FunctionCall(_)))
+        ast.as_expression()
+            .and_then(|e| e.as_functioncall())
+            .is_some()
     }
 }

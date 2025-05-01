@@ -126,6 +126,18 @@ impl Type {
         self.is_generic_function() || self.is_concrete_function()
     }
 
+    pub fn as_function(&self) -> Option<&FunctionType> {
+        if !self.is_function() {
+            return None;
+        }
+
+        match self {
+            Type::Generic(GenericType::Function(f)) => Some(f),
+            Type::Concrete(ConcreteType { typ, .. }) => typ.as_function(),
+            _ => None,
+        }
+    }
+
     /// Return whether the `other` type is included in `self`
     ///     - If `other` is the same as `self`, return true
     ///     - If `self` is a tuple or a function return type, check if `other` in the tuple
@@ -340,7 +352,7 @@ pub struct FunctionType {
     pub type_params: Vec<TypeParameter>,
     pub params: Vec<Type>,
     pub return_type: Box<Type>,
-    pub abilities: Option<Vec<Ability>>,
+    pub abilities: Vec<Ability>,
     pub is_func_value: bool,
 }
 

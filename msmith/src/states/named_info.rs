@@ -89,6 +89,14 @@ impl NamedInfo {
             dot_var: Some(dot_var),
         }
     }
+
+    pub fn to_variable(&self) -> Variable {
+        if let Some(ref dot_var) = self.dot_var {
+            Variable::DotVariable(dot_var.clone())
+        } else {
+            Variable::SingleVariable(SingleVariable::new(&self.name, &self.typ))
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -246,32 +254,15 @@ impl NamedInfoPool {
     }
 
     pub fn get_callable_info(&self, scope: &Scope) -> Vec<NamedInfo> {
-        let mut callables = self
-            .arena
-            .iter()
-            .filter_map(|(_, info)| {
-                if !scope.is_in_scope(&info.parent_scope()) {
-                    return None;
-                }
-                if info.name.is_func() {
+        self._get_usable_vars_iter(scope.clone())
+            .filter_map(|info| {
+                if info.typ.is_function() {
                     Some(info.clone())
                 } else {
                     None
                 }
             })
-            .collect::<Vec<NamedInfo>>();
-
-        callables.extend(
-            self._get_usable_vars_iter(scope.clone())
-                .filter_map(|info| {
-                    if info.typ.is_function() {
-                        Some(info.clone())
-                    } else {
-                        None
-                    }
-                }),
-        );
-        callables
+            .collect::<Vec<_>>()
     }
 
     fn _create_all_dot_vars_from(&self, name: &Id, typ: &Type) -> Vec<DotVariable> {
@@ -451,8 +442,6 @@ impl NamedInfoPool {
             }
         }
 
-        // Use the rest of selectors to generate a function type
-        // [parameter1, parameter2, ..]::[return type]
         if selector.new_func_type > 0 || selector.new_droppable_func_type > 0 {
             // TODO: put this in config
             let func_type = if *self.type_selection_depth.borrow() >= 3 {
@@ -461,7 +450,7 @@ impl NamedInfoPool {
                     type_params: vec![],
                     params: vec![],
                     return_type: Box::new(Type::Unit),
-                    abilities: None,
+                    abilities: vec![],
                     is_func_value: false,
                 }))
             } else {
@@ -489,7 +478,7 @@ impl NamedInfoPool {
                     type_params: vec![],
                     params: param_types,
                     return_type: Box::new(ret_type),
-                    abilities: None,
+                    abilities: vec![],
                     is_func_value: false,
                 }))
             };
@@ -507,7 +496,7 @@ impl NamedInfoPool {
 
         if let Type::Generic(GenericType::Function(f)) = &mut chosen {
             f.is_func_value = true;
-            f.abilities = Some(Ability::copy_drop());
+            f.abilities = Ability::copy_drop();
         }
 
         *self.type_selection_depth.borrow_mut() -= 1;
@@ -527,6 +516,8 @@ impl NamedInfoPool {
             },
             M::Signature(s) => {
                 self.add_new_type(s.name.clone(), s.ty());
+                // Treat function as a variable
+                self.add_new_initialized_variable(s.name.clone(), s.ty());
 
                 for p in &s.parameters {
                     self.add_new_initialized_variable(p.name.clone(), p.ty());

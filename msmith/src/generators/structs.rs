@@ -69,6 +69,7 @@ impl Generator<MoveAST, AnyConstraint> for StructGenerator {
                 typ: field_type,
                 declare: true,
                 show_type: true,
+                is_normal_function: false,
             });
         }
 

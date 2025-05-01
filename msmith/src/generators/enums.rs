@@ -72,6 +72,7 @@ impl Generator<MoveAST, AnyConstraint> for EnumGenerator {
                     typ: field_type,
                     declare: true,
                     show_type: true,
+                    is_normal_function: false,
                 });
             }
             let positional = u.arbitrary()?;

@@ -1,9 +1,9 @@
 use super::ExprOfTypeGenerator;
 use crate::{
-    move_ast::{Callable, MoveAST},
+    move_ast::{Callable, Expression, MoveAST},
     states::{
         get_config, get_curr_scope, get_named_infos, random_type_from_curr_scope, FunctionType,
-        GenericType, Type, TypeSelectorBuilder,
+        GenericType, Type, TypeSelectorBuilder, Typed,
     },
 };
 use anyhow::Result;
@@ -29,18 +29,40 @@ impl Register<GeneratorEntry> for CallableGenerator {
 }
 
 impl Generator<MoveAST, AnyConstraint> for CallableGenerator {
-    fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        true
+    fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+        // The desired return type of this callable
+        constraint.check_not_exist_or_has_type::<Type>("type")
     }
 
     fn subtrees(
         &self,
         u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
+        let want_type = match constraint.get::<Type>("type") {
+            Some(typ) => typ.clone(),
+            None => {
+                let selector = TypeSelectorBuilder::all_no(get_config(env))
+                    .bool(1)
+                    .number(1)
+                    .structs(1)
+                    .enums(1)
+                    .tuple(1)
+                    .build();
+                random_type_from_curr_scope(u, env, vec![selector])?
+            },
+        };
+
         let curr_scope = get_curr_scope(env);
-        let callables = get_named_infos(env).get_callable_info(&curr_scope);
+
+        // Get all callable info in the current scope
+        // that returns the desired type
+        let callables = get_named_infos(env)
+            .get_callable_info(&curr_scope)
+            .into_iter()
+            .filter(|info| info.ty().as_function().unwrap().return_type.as_ref() == &want_type)
+            .collect::<Vec<_>>();
 
         let mut use_expr = bool::arbitrary(u)?;
 
@@ -56,47 +78,26 @@ impl Generator<MoveAST, AnyConstraint> for CallableGenerator {
             let selector = TypeSelectorBuilder::all_no(get_config(env))
                 .new_droppable_func_type(1)
                 .build();
-            let new_func_typ = random_type_from_curr_scope(u, env, vec![selector])?;
-            let mut all_typs = callables
-                .into_iter()
-                .filter_map(|info| {
-                    if info.name.is_var() {
-                        Some(info.typ.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-            all_typs.push(new_func_typ);
-            let chosen = u.choose(&all_typs)?.clone();
+            let mut new_func_typ = random_type_from_curr_scope(u, env, vec![selector])?;
+
+            if let Type::Generic(GenericType::Function(f_typ)) = &mut new_func_typ {
+                f_typ.return_type = Box::new(want_type.clone());
+                comp_constraints.insert("type", f_typ.clone());
+            } else {
+                panic!("Expected a function type");
+            }
+
             subtrees.push(Subtree::new_generator_subtree(
                 ExprOfTypeGenerator::label(),
-                AnyConstraint::new().with("type", chosen.clone()),
+                AnyConstraint::new().with("type", new_func_typ),
             ));
-
-            if let Type::Generic(GenericType::Function(f_typ)) = chosen {
-                comp_constraints.insert("type", f_typ);
-            }
         } else {
-            let funcs = callables
-                .iter()
-                .filter_map(|info| {
-                    if info.name.is_func() {
-                        Some(info.typ.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-            let chosen = u.choose(&funcs)?.clone();
-            if let Type::Generic(GenericType::Function(f_typ)) = chosen {
-                comp_constraints.insert("type", f_typ.clone());
-                subtrees.push(Subtree::new_single_candidate(
-                    Callable::Function(f_typ).into(),
-                ));
-            } else {
-                panic!("Invalid type for callable");
-            }
+            let chosen = u.choose(&callables)?.clone();
+            let func_typ = chosen.ty().as_function().unwrap().clone();
+            comp_constraints.insert("type", func_typ);
+            subtrees.push(Subtree::new_single_candidate(
+                Expression::Variable(chosen.to_variable()).into(),
+            ));
         }
         Ok((subtrees, comp_constraints))
     }
@@ -109,16 +110,12 @@ impl Generator<MoveAST, AnyConstraint> for CallableGenerator {
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
         let typ = constraint.get::<FunctionType>("type").unwrap();
-        let node = asts.into_iter().next().unwrap();
-        let callable = match node {
-            MoveAST::Callable(c) => c,
-            MoveAST::Expression(expr) => Callable::Expression {
-                expr: Box::new(expr),
-                func_type: typ.clone(),
-            },
-            _ => panic!("Invalid AST node for callable"),
-        };
-        Ok(callable.into())
+        let expr = asts.into_iter().next().unwrap().into_expression().unwrap();
+        Ok(Callable {
+            expr: Box::new(expr),
+            func_type: typ.clone(),
+        }
+        .into())
     }
 
     fn check_ast(

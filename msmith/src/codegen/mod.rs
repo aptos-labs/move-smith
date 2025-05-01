@@ -789,15 +789,8 @@ impl CodeGenerator for UnOperator {
 
 impl CodeGenerator for Callable {
     fn emit_code_lines(&self) -> Vec<String> {
-        match self {
-            Callable::Function(f) => {
-                vec![f.name().to_string()]
-            },
-            Callable::Expression { expr, .. } => {
-                let lines = expr.emit_code_lines();
-                put_inside_pair_of("(", ")", lines, NO_INDENTATION)
-            },
-        }
+        let expr_lines = self.expr.as_ref().emit_code_lines();
+        put_inside_pair_of("(", ")", expr_lines, NO_INDENTATION)
     }
 }
 
@@ -911,8 +904,9 @@ impl CodeGenerator for FunctionType {
             code.push_str(" )");
         }
 
-        if let Some(abilities) = &self.abilities {
-            let abilities = abilities
+        if self.is_func_value && !self.abilities.is_empty() {
+            let abilities = self
+                .abilities
                 .iter()
                 .map(|a| a.emit_code())
                 .collect::<Vec<String>>()

@@ -1,8 +1,8 @@
 use crate::{
     move_ast::{MoveAST, Signature, SingleVariable, TypeParameters},
     states::{
-        get_config, new_id_from_curr_scope, random_type_from_curr_scope, Id, IdKind, Scope, Type,
-        TypeSelectorBuilder,
+        get_config, new_id_from_curr_scope, random_type_from_curr_scope, Ability, Id, IdKind,
+        Scope, Type, TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -88,7 +88,7 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
                 type_params: TypeParameters::default(),
                 parameters,
                 return_type,
-                abilities: None,
+                abilities: vec![Ability::Copy],
                 is_func_value: false,
             }
             .into(),

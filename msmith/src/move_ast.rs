@@ -251,7 +251,7 @@ pub struct Signature {
     pub type_params: TypeParameters,
     pub parameters: Vec<SingleVariable>,
     pub return_type: Type,
-    pub abilities: Option<Vec<Ability>>,
+    pub abilities: Vec<Ability>,
     pub is_func_value: bool,
 }
 
@@ -563,6 +563,7 @@ pub struct SingleVariable {
     pub typ: Type,
     pub declare: bool,
     pub show_type: bool,
+    pub is_normal_function: bool,
 }
 
 impl Named for SingleVariable {
@@ -584,6 +585,7 @@ impl SingleVariable {
             typ: typ.clone(),
             declare: false,
             show_type: false,
+            is_normal_function: false,
         }
     }
 
@@ -593,6 +595,17 @@ impl SingleVariable {
             typ: typ.clone(),
             declare: true,
             show_type: true,
+            is_normal_function: false,
+        }
+    }
+
+    pub fn new_func_var(name: &Id, typ: &Type) -> Self {
+        SingleVariable {
+            name: name.clone(),
+            typ: typ.clone(),
+            declare: true,
+            show_type: true,
+            is_normal_function: true,
         }
     }
 }
@@ -610,47 +623,30 @@ impl Typed for NumberLiteral {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Callable {
-    /// For calling a normal function
-    Function(FunctionType),
-    /// For calling a lambda function
-    Expression {
-        expr: Box<Expression>,
-        func_type: FunctionType,
-    },
+pub struct Callable {
+    pub expr: Box<Expression>,
+    pub func_type: FunctionType,
 }
 
 impl Callable {
     pub fn get_arg_types(&self) -> Vec<Type> {
-        match self {
-            Callable::Function(f) => f.params.clone(),
-            Callable::Expression { func_type, .. } => func_type.params.clone(),
-        }
+        self.func_type.params.clone()
     }
 
-    pub fn get_func_type(&self) -> Option<FunctionType> {
-        match self {
-            Callable::Function(f) => Some(f.clone()),
-            Callable::Expression { func_type, .. } => Some(func_type.clone()),
-        }
+    pub fn get_func_type(&self) -> FunctionType {
+        self.func_type.clone()
     }
 }
 
 impl Named for Callable {
     fn name(&self) -> Id {
-        match self {
-            Callable::Function(f) => f.name(),
-            Callable::Expression { func_type, .. } => func_type.name(),
-        }
+        self.func_type.name()
     }
 }
 
 impl Typed for Callable {
     fn ty(&self) -> Type {
-        match self {
-            Callable::Function(f) => f.return_type.as_ref().clone(),
-            Callable::Expression { func_type, .. } => func_type.return_type.as_ref().clone(),
-        }
+        self.func_type.return_type.as_ref().clone()
     }
 }
 

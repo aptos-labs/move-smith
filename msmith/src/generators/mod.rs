@@ -21,7 +21,7 @@ export_all!(
     eot_var,
     eot_tuple,
     eot_number,
-    // eot_call,
+    eot_call,
     eot_struct,
     eot_enum,
     eot_match,
@@ -32,8 +32,6 @@ export_all!(
     pattern,
     enum_match,
     match_arm,
-    call,
     callable,
-    call_args,
-    stmt_call
+    call_args
 );
