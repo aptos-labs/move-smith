@@ -1,7 +1,9 @@
 use log::{warn, LevelFilter};
+use msmith::execution::ExecutionResult;
 #[allow(unused)]
 use msmith::{
     execution::{
+        comparison::{ComparisonExecutor, ComparisonInputs, ComparisonOneInput, ComparisonOutput},
         compile::{print_compile_result, CompileExecutor, CompileInput, CompileStatus},
         transactional::{
             CommonRunConfig, TransactionalExecutor, TransactionalInputBuilder, TransactionalResult,
@@ -12,6 +14,7 @@ use msmith::{
     MoveSmith, Variant,
 };
 use rand::{rngs::StdRng, Rng, SeedableRng};
+use std::sync::Arc;
 
 pub fn main() {
     env_logger::init();
@@ -51,6 +54,32 @@ pub fn main() {
         },
         Err(err) => {
             println!("Execution failed: {err:?}");
+        },
+    }
+
+    let mut inputs = vec![];
+    for i in 0..2 {
+        let input = ComparisonOneInput {
+            code: code.clone(),
+            v2_setting: Some(V2Setting::default()),
+            checker: Arc::new(move |result| result.is_bug()),
+        };
+        inputs.push(input);
+    }
+
+    let comp_input = ComparisonInputs {
+        inputs,
+        checker: Arc::new(|_results| false),
+    };
+
+    let executor = ExecutionManager::<ComparisonOutput, ComparisonExecutor>::new();
+    let result = executor.execute(&comp_input);
+    match result {
+        Ok(result) => {
+            println!("Comparison succeeded: {:?}", result.is_bug);
+        },
+        Err(err) => {
+            println!("Comparison failed: {err:?}");
         },
     }
 }

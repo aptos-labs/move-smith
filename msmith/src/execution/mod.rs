@@ -11,6 +11,7 @@ use std::{
     thread::ThreadId,
 };
 
+pub mod comparison;
 pub mod compile;
 pub mod transactional;
 
