@@ -1,4 +1,4 @@
 [toolchain]
-channel = "nightly"
+channel = "nightly-2024-08-22"
 
 components = ["cargo", "clippy", "rustc", "rust-std", "llvm-tools-preview"]
