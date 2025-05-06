@@ -64,6 +64,8 @@ impl MoveSmith {
             .add_generator::<AssignmentGenerator>()
             .add_generator::<EnumMatchGenerator>()
             .add_generator::<MatchArmGenerator>()
+            .add_generator::<RunnersGenerator>()
+            .add_generator::<RunnerGenerator>()
             .add_generator::<ExprOfTypeGenerator>()
             .add_generator::<EOTNumberGenerator>()
             .add_generator::<EOTTupleGenerator>()

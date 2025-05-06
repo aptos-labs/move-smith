@@ -224,13 +224,19 @@ impl CodeGenerator for MoveModule {
         }
 
         code.push("}\n".to_string());
+
+        for c in &self.cmds {
+            append_code_lines_with_indentation(&mut code, c.emit_code_lines(), NO_INDENTATION);
+            code.push('\n'.to_string());
+        }
+
         code
     }
 }
 
 impl CodeGenerator for Address {
     fn emit_code_lines(&self) -> Vec<String> {
-        vec![self.name.clone().unwrap()]
+        vec![self.0.clone()]
     }
 }
 
@@ -921,6 +927,12 @@ impl CodeGenerator for FunctionType {
 impl CodeGenerator for Unit {
     fn emit_code_lines(&self) -> Vec<String> {
         vec!["()".to_string()]
+    }
+}
+
+impl CodeGenerator for Command {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![format!("//# run {}", self.full_name.get_name())]
     }
 }
 

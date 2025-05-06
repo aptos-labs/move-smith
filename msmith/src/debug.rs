@@ -58,7 +58,7 @@ pub fn main() {
     }
 
     let mut inputs = vec![];
-    for i in 0..2 {
+    for _ in 0..2 {
         let input = ComparisonOneInput {
             code: code.clone(),
             v2_setting: Some(V2Setting::default()),

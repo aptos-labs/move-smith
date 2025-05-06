@@ -213,6 +213,28 @@ impl NamedInfoPool {
             .collect()
     }
 
+    /// Return all defined struct types that is accessible with in `scope`
+    pub fn get_all_normal_functions(&self, scope: &Scope) -> Vec<NamedInfo> {
+        self.arena
+            .iter()
+            .filter_map(|(_, info)| {
+                if !info.typ.is_function() {
+                    return None;
+                }
+
+                if !scope.is_in_scope(&info.parent_scope()) {
+                    return None;
+                }
+
+                if info.typ.as_function().unwrap().is_func_value {
+                    return None;
+                }
+
+                Some(info.clone())
+            })
+            .collect()
+    }
+
     /// Return infos for variables that are:
     ///     - in scope
     ///     - initialized
@@ -451,7 +473,7 @@ impl NamedInfoPool {
                     params: vec![],
                     return_type: Box::new(Type::Unit),
                     abilities: vec![],
-                    is_func_value: false,
+                    is_func_value: true,
                 }))
             } else {
                 let num_params = selector.config.num_params_in_func.select(u)?;
@@ -479,7 +501,7 @@ impl NamedInfoPool {
                     params: param_types,
                     return_type: Box::new(ret_type),
                     abilities: vec![],
-                    is_func_value: false,
+                    is_func_value: true,
                 }))
             };
             candidates.push((
@@ -515,7 +537,6 @@ impl NamedInfoPool {
                 self.add_new_type(e.name.clone(), e.ty());
             },
             M::Signature(s) => {
-                self.add_new_type(s.name.clone(), s.ty());
                 // Treat function as a variable
                 self.add_new_initialized_variable(s.name.clone(), s.ty());
 

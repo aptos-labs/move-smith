@@ -1,7 +1,8 @@
+use super::RunnersGenerator;
 use crate::{
     generators::{EnumGenerator, FunctionGenerator, StructGenerator},
-    move_ast::{Address, MoveAST, MoveModule},
-    states::{get_config, new_id_and_push_scope, pop_scope, Id, IdKind, ROOT_SCOPE},
+    move_ast::{Address, Command, MoveAST, MoveModule},
+    states::{get_config, get_id_pool_mut, new_id_and_push_scope, pop_scope, Id, IdKind, Named},
 };
 use anyhow::{anyhow, Result};
 use arbitrary::Unstructured;
@@ -9,6 +10,7 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
+use hex;
 
 #[derive(Default)]
 pub struct ModuleGenerator;
@@ -36,7 +38,11 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
         env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let (name, _scope) = new_id_and_push_scope(env, IdKind::Module, &ROOT_SCOPE);
+        let random_bytes: [u8; 32] = u.arbitrary()?;
+        let hex_string = format!("0x{}", hex::encode(random_bytes));
+        let (_, addr_scope) = get_id_pool_mut(env).new_address(&hex_string);
+        let (name, _) = new_id_and_push_scope(env, IdKind::Module, &addr_scope);
+        let address = Address(hex_string);
 
         let mut subtrees = vec![];
 
@@ -66,7 +72,14 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
             ));
         }
 
-        let compose_constraint = AnyConstraint::new().with("name", name);
+        subtrees.push(Subtree::new_generator_subtree(
+            RunnersGenerator::label(),
+            AnyConstraint::new(),
+        ));
+
+        let compose_constraint = AnyConstraint::new()
+            .with("name", name)
+            .with("address", address);
 
         Ok((subtrees, compose_constraint))
     }
@@ -82,20 +95,34 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
         let mut structs = vec![];
         let mut enums = vec![];
         let mut functions = vec![];
+        let mut runners = vec![];
         for node in asts {
             match node {
                 MoveAST::Struct(s) => structs.push(s),
                 MoveAST::Enum(e) => enums.push(e),
                 MoveAST::Function(f) => functions.push(f),
+                MoveAST::Runners(rs) => {
+                    runners.extend(rs.0);
+                },
                 _ => return Err(anyhow!("Unexpected AST node")),
             }
         }
+
+        let runner_cmds = runners
+            .iter()
+            .map(|r| Command {
+                full_name: r.full_name(),
+            })
+            .collect::<Vec<Command>>();
+        functions.extend(runners);
+
         Ok(MoveModule {
-            address: Address::default(),
+            address: constraint.get::<Address>("address").unwrap().clone(),
             name: constraint.get::<Id>("name").unwrap().clone(),
             structs,
             enums,
             functions,
+            cmds: runner_cmds,
         }
         .into())
     }

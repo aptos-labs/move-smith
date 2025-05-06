@@ -20,6 +20,10 @@ pub trait Named {
     fn self_scope(&self) -> Scope {
         self.name().get_self_scope()
     }
+
+    fn full_name(&self) -> Scope {
+        self.self_scope()
+    }
 }
 
 /// Represents a Move Id.
@@ -275,6 +279,23 @@ pub struct IdPool {
 impl IdPool {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn new_address(&mut self, address: &str) -> (Id, Scope) {
+        let address_scope = Scope(Some(address.to_string()));
+        let new_scope = self.merge_scopes(&ROOT_SCOPE, &address_scope);
+
+        let new_id = Id::new_str(
+            address,
+            IdKind::Address,
+            ROOT_SCOPE.clone(),
+            new_scope.clone(),
+        );
+        self.insert_new_id(&IdKind::Address, new_id.clone());
+
+        self.scopes.insert(new_id.clone(), ROOT_SCOPE.clone());
+        trace!("Inserted new id: {new_id:?} under scope: {ROOT_SCOPE:?}");
+        (new_id, new_scope)
     }
 
     /// Creates a new Id under the given scope.

@@ -39,6 +39,11 @@ pub fn get_id_pool(env: &StatePool<MoveAST>) -> &IdPool {
 }
 
 #[inline]
+pub fn get_id_pool_mut(env: &mut StatePool<MoveAST>) -> &mut IdPool {
+    env.get_mut::<IdPool>().unwrap()
+}
+
+#[inline]
 pub fn get_curr_scope(env: &StatePool<MoveAST>) -> Scope {
     env.get::<CurrScope>().unwrap().get()
 }

@@ -1,6 +1,6 @@
 use crate::{
     generators::ExprOfTypeGenerator,
-    move_ast::{CallArguments, MoveAST},
+    move_ast::{CallArguments, Callable, MoveAST},
     states::{partial::PARTIAL_CALLABLE, PartialInfo},
 };
 use anyhow::Result;
@@ -26,24 +26,31 @@ impl Register<GeneratorEntry> for CallArgumentsGenerator {
 }
 
 impl Generator<MoveAST, AnyConstraint> for CallArgumentsGenerator {
-    fn check_constraint(&self, env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        let partial = env.get::<PartialInfo>().unwrap();
-        partial
-            .store
-            .get(PARTIAL_CALLABLE)
-            .map(|callables| !callables.is_empty())
-            .unwrap_or(false)
+    fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+        constraint.check_exist_and_type::<Callable>("callable") || {
+            let partial = env.get::<PartialInfo>().unwrap();
+            partial
+                .store
+                .get(PARTIAL_CALLABLE)
+                .map(|callables| !callables.is_empty())
+                .unwrap_or(false)
+        }
     }
 
     fn subtrees(
         &self,
         _u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
-        _constraint: &AnyConstraint,
+        constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let partial = env.get_mut::<PartialInfo>().unwrap();
-        let callables = partial.store.get_mut(PARTIAL_CALLABLE).unwrap();
-        let callable = callables.pop().unwrap().into_callable().unwrap();
+        let callable = match constraint.get::<Callable>("callable") {
+            Some(callable) => callable.clone(),
+            None => {
+                let partial = env.get_mut::<PartialInfo>().unwrap();
+                let callables = partial.store.get_mut(PARTIAL_CALLABLE).unwrap();
+                callables.pop().unwrap().into_callable().unwrap()
+            },
+        };
 
         let mut subtrees = vec![];
         for arg_typ in callable.get_arg_types() {

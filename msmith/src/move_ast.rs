@@ -43,6 +43,7 @@ pub enum MoveAST {
     Callable(Callable),
     CallArguments(CallArguments),
     FunctionCall(FunctionCall),
+    Runners(Runners),
 }
 
 impl ASTNode for MoveAST {}
@@ -58,7 +59,6 @@ impl MoveAST {
 pub struct Program {
     pub modules: Vec<MoveModule>,
     // pub scripts: Vec<Script>,
-    // pub cmds: Vec<Command>,
 }
 
 /// A Move module
@@ -69,21 +69,20 @@ pub struct MoveModule {
     pub structs: Vec<Struct>,
     pub enums: Vec<Enum>,
     pub functions: Vec<Function>,
+    pub cmds: Vec<Command>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Address {
-    // Place holder for now
-    pub name: Option<String>,
+pub struct Runners(pub Vec<Function>);
+
+/// Currently only support the `//# run` command for a function with no arguments
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Command {
+    pub full_name: Scope,
 }
 
-impl Default for Address {
-    fn default() -> Self {
-        Address {
-            name: Some("0xCAFE".to_string()),
-        }
-    }
-}
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+pub struct Address(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Bool {
@@ -697,6 +696,7 @@ impl Default for Program {
                 structs: vec![],
                 enums: vec![],
                 functions: vec![],
+                cmds: vec![],
             }],
         }
     }

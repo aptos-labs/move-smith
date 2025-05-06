@@ -19,6 +19,7 @@ tokio = "1.39.2"
 toml = "0.8.19"
 serde_json = "1.0.127"
 id-arena = { version = "2", features = ["rayon"] }
+hex = "0.4.3"
 enuminto = { path = "enuminto" }
 framework = { path = "framework" }
 

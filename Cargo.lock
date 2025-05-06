@@ -3234,6 +3234,7 @@ dependencies = [
  "enuminto",
  "env_logger",
  "framework",
+ "hex",
  "id-arena",
  "indicatif",
  "log",
