@@ -1,7 +1,7 @@
 use crate::{
     generators::{CallArgumentsGenerator, CallableGenerator, ExprOfTypeGenerator},
     move_ast::{Expression, FunctionCall, MoveAST},
-    states::{get_current_info, Type},
+    states::{almost_reached_max_expr_depth, get_current_info, Type},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -30,6 +30,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncCallGenerator {
         // The desired return type of this call
         constraint.check_exist_and_type::<Type>("type")
             && get_current_info(env).func_call_nesting_depth <= 4
+            && !almost_reached_max_expr_depth(env, 2)
     }
 
     fn subtrees(
