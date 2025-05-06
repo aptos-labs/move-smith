@@ -5,7 +5,8 @@ use crate::{
         TypeParameters,
     },
     states::{
-        new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope, pop_scope, Id, IdKind, Type,
+        new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope, pop_scope, Depth, Id,
+        IdKind, Type,
     },
 };
 use anyhow::Result;
@@ -42,6 +43,7 @@ impl Generator<MoveAST, AnyConstraint> for RunnerGenerator {
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let (new_name, _, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function);
+        env.get_mut::<Depth>().unwrap().expr_depth.set_max_depth(0);
 
         let callable = constraint.get::<Callable>("callable").unwrap();
         let subtrees = vec![Subtree::new_generator_subtree(
@@ -62,6 +64,7 @@ impl Generator<MoveAST, AnyConstraint> for RunnerGenerator {
         constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
+        env.get_mut::<Depth>().unwrap().expr_depth.reset_max_depth();
         let (block_id, _) = new_id_from_curr_scope(env, IdKind::Block);
         pop_scope(env);
 
