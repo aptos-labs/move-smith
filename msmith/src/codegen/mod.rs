@@ -376,11 +376,7 @@ impl CodeGenerator for EnumVariant {
 impl CodeGenerator for EnumInstantiation {
     fn emit_code_lines(&self) -> Vec<String> {
         let variant_type = self.get_variant_type();
-        let mut code = vec![format!(
-            "{}::{}",
-            self.enum_type.name(),
-            variant_type.name(),
-        )];
+        let mut code = vec![self.enum_type.name().inline()];
 
         let mut field_blocks = vec![];
         for (var, expr) in &self.fields {
@@ -430,7 +426,7 @@ impl CodeGenerator for EnumMatch {
             LINE_WRAP_LIMIT,
             true,
         );
-        let name = format!("{}::", self.enum_type.name().inline());
+        let name: String = format!("{}::", self.enum_type.name_without_variant().inline());
         let mut arm_blocks = vec![];
         for arm in &self.arms {
             let mut arm_lines = arm.emit_code_lines();

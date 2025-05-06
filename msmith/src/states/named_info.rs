@@ -367,7 +367,12 @@ impl NamedInfoPool {
             let enum_types = self
                 .get_all_enum_types(scope)
                 .into_iter()
-                .map(|e| (e, 1))
+                .map(|e| {
+                    let mut enum_type = e.as_enum().unwrap().clone();
+                    let chosen_variant = u.choose_index(enum_type.variants.len()).unwrap();
+                    enum_type.variant_pos = Some(chosen_variant);
+                    (Type::Generic(GenericType::Enum(enum_type)), 1)
+                })
                 .collect::<Vec<(Type, u32)>>();
             if enum_types.is_empty() {
                 warn!("No enum types defined");

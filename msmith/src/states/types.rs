@@ -102,6 +102,14 @@ impl Type {
         self.is_generic_enum() || self.is_concrete_enum()
     }
 
+    pub fn as_enum(&self) -> Option<&EnumType> {
+        match self {
+            Type::Generic(GenericType::Enum(e)) => Some(e),
+            Type::Concrete(ConcreteType { typ, .. }) => typ.as_enum(),
+            _ => None,
+        }
+    }
+
     pub fn is_generic_tuple(&self) -> bool {
         matches!(self, Type::Generic(GenericType::Tuple(_)))
     }
@@ -302,6 +310,20 @@ impl EnumType {
                 }
             })
             .collect()
+    }
+
+    pub fn name_with_variant(&self) -> Id {
+        if self.variant_pos.is_some() {
+            let variant = self.variants[self.variant_pos.unwrap()].0.clone();
+            let name = format!("{}::{}", self.name, variant);
+            Id::new_without_scopes(&name, IdKind::Var)
+        } else {
+            self.name.clone()
+        }
+    }
+
+    pub fn name_without_variant(&self) -> Id {
+        self.name.clone()
     }
 }
 

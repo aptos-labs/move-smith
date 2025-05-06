@@ -30,7 +30,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTEnumGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         warn!("EOTEnumGenerator::check_constraint not implemented, need to check if type parameters and abilities can be created");
         let typ = constraint.get::<Type>("type").unwrap();
-        matches!(typ, Type::Generic(GenericType::Enum(_)))
+        typ.as_enum().and_then(|e| e.variant_pos.as_ref()).is_some()
     }
 
     fn subtrees(
@@ -44,7 +44,9 @@ impl Generator<MoveAST, AnyConstraint> for EOTEnumGenerator {
             panic!("EOTEnumGenerator::subtrees: constraint does not have a struct type");
         };
 
-        let variant_pos = u.choose_index(enum_type.variants.len())?;
+        let variant_pos = enum_type.variant_pos.expect(
+            "The enum type should have a variant_pos chosen before calling EOTEnumGenerator",
+        );
         let (_, variant_type) = &enum_type.variants[variant_pos];
 
         let mut subtrees = vec![];
