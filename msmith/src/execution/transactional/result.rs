@@ -10,7 +10,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 7] = [
+const TO_IGNORE: [&str; 8] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     "infer",
     "MAX_",
@@ -27,6 +27,7 @@ const TO_IGNORE: [&str; 7] = [
     // "BORROWLOC_EXISTS_BORROW_ERROR",
     // "VEC_BORROW_ELEMENT_EXISTS_MUTABLE_BORROW_ERROR",
     // end V1 vector bugs
+    "too many arguments captured in lambda",
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
