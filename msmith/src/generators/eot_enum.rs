@@ -35,7 +35,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTEnumGenerator {
 
     fn subtrees(
         &self,
-        u: &mut Unstructured,
+        _u: &mut Unstructured,
         _env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
