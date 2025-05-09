@@ -42,7 +42,7 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
         let hex_string = if random_bytes.iter().all(|&b| b == 0xFF) {
             "0xCAFE".to_string()
         } else {
-            format!("0x{}", hex::encode(random_bytes))
+            format!("0x{}", hex::encode(random_bytes).to_uppercase())
         };
         let (_, addr_scope) = get_id_pool_mut(env).new_address(&hex_string);
         let (name, _) = new_id_and_push_scope(env, IdKind::Module, &addr_scope);
