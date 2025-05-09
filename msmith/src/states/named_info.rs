@@ -485,6 +485,7 @@ impl NamedInfoPool {
                 let has_ret = bool::arbitrary(u)?;
 
                 let (param_selectors, ret_selector) = TypeSelector::function_selectors(
+                    &selector.config,
                     num_params,
                     selector.new_droppable_func_type > 0,
                 );

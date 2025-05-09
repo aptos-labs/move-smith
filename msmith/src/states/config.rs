@@ -10,8 +10,14 @@ use framework::{
     selection::{RandomCounter, RandomNumber},
     GenLabel, LabelledState, Register, State, StateEntry, StateLabel,
 };
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 use std::path::Path;
+
+static DEFAULT_CONFIG: Lazy<Config> = Lazy::new(|| {
+    let file_content = include_str!("../../../MoveSmith.default.toml");
+    toml::from_str(file_content).expect("Cannot parse default config TOML")
+});
 
 /// The configuration for the MoveSmith fuzzer.
 #[derive(Debug, Clone, Deserialize)]
@@ -92,8 +98,7 @@ impl fmt::Debug for GenerationConfig {
 impl Default for Config {
     /// Load default configuration from MoveSmith.default.toml
     fn default() -> Self {
-        let file_content = include_str!("../../../MoveSmith.default.toml");
-        toml::from_str(file_content).expect("Cannot parse default config TOML")
+        DEFAULT_CONFIG.clone()
     }
 }
 

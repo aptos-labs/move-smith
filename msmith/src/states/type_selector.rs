@@ -65,8 +65,12 @@ impl TypeSelector {
         ]
     }
 
-    pub fn function_selectors(num_params: usize, droppable: bool) -> (Vec<Self>, Self) {
-        let ret_selector = TypeSelectorBuilder::all_no(&GenerationConfig::default())
+    pub fn function_selectors(
+        config: &GenerationConfig,
+        num_params: usize,
+        droppable: bool,
+    ) -> (Vec<Self>, Self) {
+        let ret_selector = TypeSelectorBuilder::all_no(config)
             .unit(1)
             .bool(1)
             .number(1)
@@ -84,7 +88,7 @@ impl TypeSelector {
         };
         let params = (0..num_params)
             .map(|_| {
-                TypeSelectorBuilder::all_no(&GenerationConfig::default())
+                TypeSelectorBuilder::all_no(config)
                     .bool(1)
                     .number(1)
                     .structs(1)
