@@ -63,3 +63,10 @@ path = "fuzz_targets/hfuzz_v2_opt_levels.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "hfuzz-v2-extra"
+path = "fuzz_targets/hfuzz_v2_extra.rs"
+test = false
+doc = false
+bench = false

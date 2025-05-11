@@ -10,16 +10,16 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 8] = [
+const TO_IGNORE: [&str; 6] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
-    "infer",
+    // "infer",
     "MAX_",
     "TOO_MANY",
     "exceeded maximal",
     // "EQUALITY_OP_TYPE_MISMATCH_ERROR",
-    "unbound",
-    "dangling",
-    "OUT_OF_GAS",
+    // "unbound",
+    // "dangling",
+    // "OUT_OF_GAS",
     // V1 vector bugs
     // "READREF_EXISTS_MUTABLE_BORROW_ERROR",
     // "CALL_BORROWED_MUTABLE_REFERENCE_ERRO",
@@ -28,6 +28,8 @@ const TO_IGNORE: [&str; 8] = [
     // "VEC_BORROW_ELEMENT_EXISTS_MUTABLE_BORROW_ERROR",
     // end V1 vector bugs
     "too many arguments captured in lambda",
+    "CONSTRAINT_NOT_SATISFIED",
+    "ARITHMETIC_ERROR",
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]

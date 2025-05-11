@@ -233,7 +233,7 @@ fuzz_target=${1}
 total_hour=${2:-24} # Default to 24 hours
 JOBS=${3:-12}       # Default to 12 jobs
 input_len=${4:-8}   # Default to 8 KB
-timeout=${5:-5}     # Default to 5 seconds
+timeout=${5:-10}     # Default to 10 seconds
 
 check_existing
 
