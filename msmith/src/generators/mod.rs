@@ -28,6 +28,7 @@ export_all!(
     eot_bool,
     eot_func_val,
     eot_unit,
+    eot_number_ops,
     enums,
     pattern,
     enum_match,

@@ -91,7 +91,7 @@ impl ExecutionResult for ComparisonOutput {
         self.is_bug
     }
 
-    fn similar(&self, other: &Self, mode: &ResultCompareMode) -> bool {
+    fn similar(&self, _other: &Self, _mode: &ResultCompareMode) -> bool {
         warn!("ComparisonOutput::similar is not implemented");
         false
     }
