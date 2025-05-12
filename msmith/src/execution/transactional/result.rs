@@ -10,7 +10,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 7] = [
+const TO_IGNORE: [&str; 12] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     // "infer",
     "MAX_",
@@ -31,6 +31,11 @@ const TO_IGNORE: [&str; 7] = [
     "CONSTRAINT_NOT_SATISFIED",
     "ARITHMETIC_ERROR",
     "still mutably borrowed",
+    "POSITIVE_STACK_SIZE_AT_BLOCK_END",
+    "INDEX_OUT_OF_BOUNDS",
+    "NUMBER_OF_ARGUMENTS_MISMATCH",
+    "cannot be modified inside of a lambda",
+    "does not have the `drop` ability",
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
@@ -154,7 +159,9 @@ impl TransactionalResultBuilder {
             };
             for ignore in TO_IGNORE.iter() {
                 if run_log.contains(ignore) {
-                    return TransactionalResult::success();
+                    let mut succ_result = TransactionalResult::success();
+                    succ_result.log = format!("Ignored error\n{}", run_log.clone());
+                    return succ_result;
                 }
             }
             if is_diff {

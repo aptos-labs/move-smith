@@ -1,5 +1,5 @@
 use crate::{
-    generators::ModuleGenerator,
+    generators::{ModuleGenerator, ScriptGenerator},
     move_ast::{MoveAST, Program},
     states::{get_config, get_config_mut, Depth, GenerationConfig},
 };
@@ -52,11 +52,18 @@ impl Generator<MoveAST, AnyConstraint> for ProgramGenerator {
         trace!("Generating {num_modules} modules");
         let mut subtrees = vec![];
 
-        // TODO: we generate 1 module for now so no need to let them reference each other
         for _ in 0..num_modules {
             let module_gen = ModuleGenerator::label();
             let constraints = AnyConstraint::new();
             let subtree = Subtree::new_generator_subtree(module_gen, constraints);
+            subtrees.push(subtree);
+        }
+
+        let num_scripts = get_config(env).num_scripts.select(u)?;
+        trace!("Generating {num_scripts} scripts");
+        for _ in 0..num_modules {
+            let subtree =
+                Subtree::new_generator_subtree(ScriptGenerator::label(), AnyConstraint::new());
             subtrees.push(subtree);
         }
 
@@ -70,11 +77,16 @@ impl Generator<MoveAST, AnyConstraint> for ProgramGenerator {
         _constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        let modules = asts
-            .into_iter()
-            .map(|ast| ast.try_into().unwrap())
-            .collect();
-        let prog = Program { modules };
+        let mut modules = vec![];
+        let mut scripts = vec![];
+        for ast in asts {
+            match ast {
+                MoveAST::MoveModule(m) => modules.push(m),
+                MoveAST::Script(s) => scripts.push(s),
+                _ => unreachable!(),
+            }
+        }
+        let prog = Program { modules, scripts };
         Ok(prog.into())
     }
 

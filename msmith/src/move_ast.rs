@@ -18,6 +18,7 @@ use num_bigint::BigUint;
 pub enum MoveAST {
     Program(Program),
     MoveModule(MoveModule),
+    Script(Script),
     Function(Function),
     Signature(Signature),
     Block(Block),
@@ -53,7 +54,10 @@ impl ASTNode for MoveAST {}
 
 impl MoveAST {
     pub fn empty() -> Self {
-        MoveAST::Program(Program { modules: vec![] })
+        MoveAST::Program(Program {
+            modules: vec![],
+            scripts: vec![],
+        })
     }
 }
 
@@ -61,7 +65,7 @@ impl MoveAST {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
     pub modules: Vec<MoveModule>,
-    // pub scripts: Vec<Script>,
+    pub scripts: Vec<Script>,
 }
 
 /// A Move module
@@ -85,6 +89,11 @@ pub struct Producers(pub Vec<Function>);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Command {
     pub full_name: Scope,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Script {
+    pub main: Function,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
@@ -756,6 +765,7 @@ impl Default for Program {
                 functions: vec![],
                 cmds: vec![],
             }],
+            scripts: vec![],
         }
     }
 }

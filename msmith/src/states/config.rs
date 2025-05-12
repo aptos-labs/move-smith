@@ -30,6 +30,7 @@ pub struct Config {
 pub struct GenerationConfig {
     /******** Module Related ********/
     pub num_modules: RandomNumber,
+    pub num_scripts: RandomNumber,
     pub num_functions_in_module: RandomNumber,
     pub num_structs_in_module: RandomNumber,
     pub num_enum_in_module: RandomNumber,
@@ -80,8 +81,6 @@ pub struct GenerationConfig {
     pub num_elem_in_tuple: RandomNumber,
 
     /******** Execution ********/
-    pub num_calls_in_script: RandomNumber,
-
     /// The number of `//# run 0xCAFE::ModuleX::funX` to invoke
     pub num_runs_per_func: RandomNumber,
 

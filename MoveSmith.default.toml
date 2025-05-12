@@ -1,6 +1,7 @@
 [generation]
 ######## Module Related ########
 num_modules = { min = 1, target = 3, max = 5 }
+num_scripts = { min = 1, target = 3, max = 5 }
 num_functions_in_module = { min = 3, target = 5, max = 32 }
 num_structs_in_module = { min = 0, target = 3, max = 32 }
 num_enum_in_module = { min = 0, target = 3, max = 32 }
@@ -36,6 +37,5 @@ type_depth = { min = 1, target = 4, max = 50 }
 num_elem_in_tuple = { min = 1, target = 4, max = 50 }
 
 ######## Execution ########
-num_calls_in_script = { min = 0, target = 20, max = 50 }
 num_runs_per_func = { min = 1, target = 3, max = 10 }
 generation_timeout_sec = 5

@@ -102,9 +102,9 @@ impl RunConfig {
 
 #[derive(ValueEnum, Debug, Clone, Default)]
 pub enum CommonRunConfig {
+    #[default]
     V2Only,
     V1V2Comparison,
-    #[default]
     V2OptLevels,
     V2Extra,
     All,

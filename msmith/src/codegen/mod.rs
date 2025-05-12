@@ -194,6 +194,11 @@ impl CodeGenerator for Program {
         for m in &self.modules {
             code.extend(m.emit_code_lines());
         }
+
+        for s in &self.scripts {
+            code.extend(s.emit_code_lines());
+        }
+
         code.push(EPILOGUE.to_string());
         code
     }
@@ -230,6 +235,16 @@ impl CodeGenerator for MoveModule {
             code.push('\n'.to_string());
         }
 
+        code
+    }
+}
+
+impl CodeGenerator for Script {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec!["//# run".to_string(), "script {".to_string()];
+        let func_lines = self.main.emit_code_lines();
+        append_code_lines_with_indentation(&mut code, func_lines, INDENTATION_SIZE);
+        code.push("}\n".to_string());
         code
     }
 }

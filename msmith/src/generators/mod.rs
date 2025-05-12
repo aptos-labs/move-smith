@@ -4,6 +4,7 @@ mod template;
 export_all!(
     program,
     module,
+    script,
     structs,
     function,
     signature,

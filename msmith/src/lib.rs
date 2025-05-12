@@ -45,6 +45,7 @@ impl MoveSmith {
         let builder = FrameworkBuilder::new()
             .add_generator::<ProgramGenerator>()
             .add_generator::<ModuleGenerator>()
+            .add_generator::<ScriptGenerator>()
             .add_generator::<StructGenerator>()
             .add_generator::<EnumGenerator>()
             .add_generator::<FunctionGenerator>()
