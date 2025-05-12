@@ -1,6 +1,5 @@
-use super::EnumMatchGenerator;
 use crate::{
-    generators::ExprOfTypeGenerator,
+    generators::{EnumMatchGenerator, ExprOfTypeGenerator},
     move_ast::{Expression, MoveAST},
     states::{
         almost_reached_max_expr_depth, get_config, get_current_info, get_named_infos,

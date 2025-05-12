@@ -1,5 +1,5 @@
-use super::ExprOfTypeGenerator;
 use crate::{
+    generators::ExprOfTypeGenerator,
     move_ast::{Expression, MoveAST, Unit},
     states::Type,
 };

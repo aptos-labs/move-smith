@@ -1,5 +1,5 @@
-use super::{BlockGenerator, ExprOfTypeGenerator};
 use crate::{
+    generators::{BlockGenerator, ExprOfTypeGenerator},
     move_ast::{MatchArm, MoveAST, Pattern},
     states::{pop_scope, push_scope, EnumVariantType, Scope, Type},
 };

@@ -1,6 +1,5 @@
-use super::RunnersGenerator;
 use crate::{
-    generators::{EnumGenerator, FunctionGenerator, StructGenerator},
+    generators::{EnumGenerator, FunctionGenerator, RunnersGenerator, StructGenerator},
     move_ast::{Address, Command, MoveAST, MoveModule},
     states::{get_config, get_id_pool_mut, new_id_and_push_scope, pop_scope, Id, IdKind, Named},
 };

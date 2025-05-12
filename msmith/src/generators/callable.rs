@@ -1,5 +1,5 @@
-use super::ExprOfTypeGenerator;
 use crate::{
+    generators::ExprOfTypeGenerator,
     move_ast::{Callable, Expression, MoveAST},
     states::{
         get_config, get_curr_scope, get_named_infos, random_type_from_curr_scope, FunctionType,

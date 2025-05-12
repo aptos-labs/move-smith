@@ -1,5 +1,5 @@
-use super::ExprOfTypeGenerator;
 use crate::{
+    generators::ExprOfTypeGenerator,
     move_ast::{MoveAST, Tuple},
     states::TupleType,
 };

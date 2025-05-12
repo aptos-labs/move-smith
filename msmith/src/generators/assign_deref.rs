@@ -1,5 +1,5 @@
 use crate::{
-    generators::{ExprOfTypeGenerator},
+    generators::ExprOfTypeGenerator,
     move_ast::{Assignment, Dereference, MoveAST},
     states::{
         get_config, random_type_from_curr_scope, types::ReferenceType, Type, TypeSelectorBuilder,
@@ -88,9 +88,6 @@ impl Generator<MoveAST, AnyConstraint> for AssignDerefGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        match ast.as_assignment() {
-            Some(Assignment::AssignDeref(_, _)) => true,
-            _ => false,
-        }
+        matches!(ast.as_assignment(), Some(Assignment::AssignDeref(_, _)))
     }
 }

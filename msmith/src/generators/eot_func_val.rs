@@ -1,6 +1,5 @@
-use super::BlockGenerator;
 use crate::{
-    generators::ExprOfTypeGenerator,
+    generators::{ExprOfTypeGenerator, BlockGenerator},
     move_ast::{
         Block, Expression, FunctionValue, MoveAST, Signature, SingleVariable, TypeParameters,
     },

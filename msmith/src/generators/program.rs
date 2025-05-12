@@ -1,5 +1,5 @@
-use super::ModuleGenerator;
 use crate::{
+    generators::ModuleGenerator,
     move_ast::{MoveAST, Program},
     states::{get_config, get_config_mut, Depth, GenerationConfig},
 };

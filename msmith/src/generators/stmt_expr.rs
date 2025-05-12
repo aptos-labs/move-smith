@@ -1,6 +1,5 @@
-use super::ExpressionGenerator;
 use crate::{
-    generators::StatementGenerator,
+    generators::{ExpressionGenerator, StatementGenerator},
     move_ast::{MoveAST, Statement},
 };
 use anyhow::Result;

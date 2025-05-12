@@ -1,7 +1,7 @@
-use super::result::TransactionalResultBuilder;
 use crate::execution::{
     transactional::{
         input::{ExecutionMode, TransactionalInput},
+        result::TransactionalResultBuilder,
         TransactionalResult,
     },
     Executor,

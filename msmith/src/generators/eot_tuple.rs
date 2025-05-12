@@ -1,6 +1,5 @@
-use super::TupleGenerator;
 use crate::{
-    generators::ExprOfTypeGenerator,
+    generators::{ExprOfTypeGenerator, TupleGenerator},
     move_ast::{Expression, MoveAST},
     states::{GenericType, Type},
 };
