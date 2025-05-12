@@ -119,7 +119,10 @@ fn generate_move_with_seed(output_path: &PathBuf, seed: u64, package: bool) -> S
         }
 
         let buffer_file_path = match package {
-            true => output_path.join("buffer.raw"),
+            true => {
+                fs::create_dir_all(output_path).expect("Failed to create package directory");
+                output_path.join("buffer.raw")
+            },
             false => output_path.with_extension("raw"),
         };
         fs::write(buffer_file_path, buffer.clone()).expect("Failed to write the raw buffer file");
