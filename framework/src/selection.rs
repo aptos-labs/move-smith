@@ -139,7 +139,11 @@ impl RandomNumber {
 
     /// We simply map some raw bytes to a value in [target*2, max]
     /// so the distribution is controlled by the fuzzer
+    /// If target*2 >= max, we default to `select_small`
     fn select_large(&self, u: &mut Unstructured) -> Result<usize> {
+        if self.target * 2 >= self.max {
+            return self.select_small(u);
+        }
         u.int_in_range(self.target * 2..=self.max)
     }
 }

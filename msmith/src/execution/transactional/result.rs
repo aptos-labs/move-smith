@@ -10,7 +10,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 6] = [
+const TO_IGNORE: [&str; 7] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     // "infer",
     "MAX_",
@@ -30,6 +30,7 @@ const TO_IGNORE: [&str; 6] = [
     "too many arguments captured in lambda",
     "CONSTRAINT_NOT_SATISFIED",
     "ARITHMETIC_ERROR",
+    "still mutably borrowed",
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
