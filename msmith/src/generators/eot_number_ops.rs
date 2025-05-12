@@ -116,8 +116,16 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
             // Mul can overflow much more easily than add
             // Thus we stricly generate a small number literal for RHS
             BinOperator::Mul => {
+                let upper = match &num_typ {
+                    NumberType::U8 => 4,
+                    NumberType::U16 => (u8::MAX / 4) as u32,
+                    NumberType::U32 => (u16::MAX / 4) as u32,
+                    NumberType::U64 => (u32::MAX / 4) as u32,
+                    NumberType::U128 => (u64::MAX / 4) as u32,
+                    NumberType::U256 => (u128::MAX / 4) as u32,
+                };
                 let rhs = NumberLiteral {
-                    value: BigUint::from(u.int_in_range(0..=255)? as u32),
+                    value: BigUint::from(u.int_in_range(0..=upper)? as u32),
                     typ: Type::Primitive(Primitive::Number(num_typ.clone())),
                 };
                 subtrees.push(Subtree::new_single_candidate(
