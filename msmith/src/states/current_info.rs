@@ -1,5 +1,5 @@
 use crate::{
-    generators::{EOTFuncCallGenerator, EnumMatchGenerator},
+    generators::{EOTFuncCallGenerator, EOTFuncValGenerator, EnumMatchGenerator},
     move_ast::MoveAST,
 };
 use arbitrary::Unstructured;
@@ -11,6 +11,13 @@ use framework::{
 pub struct CurrentInfo {
     pub match_nesting_depth: usize,
     pub func_call_nesting_depth: usize,
+    in_lambda: usize,
+}
+
+impl CurrentInfo {
+    pub fn is_in_lambda(&self) -> bool {
+        self.in_lambda > 0
+    }
 }
 
 impl LabelledState for CurrentInfo {
@@ -23,7 +30,11 @@ impl Register<StateEntry> for CurrentInfo {
     fn register(&self) -> StateEntry {
         StateEntry {
             label: Self::label(),
-            generators: vec![EnumMatchGenerator::label(), EOTFuncCallGenerator::label()],
+            generators: vec![
+                EnumMatchGenerator::label(),
+                EOTFuncCallGenerator::label(),
+                EOTFuncValGenerator::label(),
+            ],
         }
     }
 }
@@ -37,6 +48,10 @@ impl State<MoveAST> for CurrentInfo {
         if generator == &EOTFuncCallGenerator::label() {
             self.func_call_nesting_depth += 1;
         }
+
+        if generator == &EOTFuncValGenerator::label() {
+            self.in_lambda += 1;
+        }
     }
 
     fn update_post(&mut self, _u: &mut Unstructured, _new_ast: &MoveAST, generator: &GenLabel) {
@@ -46,6 +61,10 @@ impl State<MoveAST> for CurrentInfo {
 
         if generator == &EOTFuncCallGenerator::label() {
             self.func_call_nesting_depth -= 1;
+        }
+
+        if generator == &EOTFuncValGenerator::label() {
+            self.in_lambda -= 1;
         }
     }
 }

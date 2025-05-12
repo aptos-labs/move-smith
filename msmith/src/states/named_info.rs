@@ -1,6 +1,6 @@
 use crate::{
     generators::{
-        AssignmentGenerator, EnumGenerator, LetAssignGenerator, LetDeclGenerator,
+        AssignPatternGenerator, EnumGenerator, LetAssignGenerator, LetDeclGenerator,
         SignatureGenerator, StructGenerator,
     },
     move_ast::{
@@ -10,7 +10,7 @@ use crate::{
     states::{
         get_defined_vars_from_pattern,
         types::{Primitive, TupleType, Type, Typed},
-        Ability, FunctionType, GenericType, Id, IdKind, Named, Scope, TypeSelector,
+        Ability, FunctionType, GenericType, Id, IdKind, Named, ReferenceType, Scope, TypeSelector,
     },
 };
 use anyhow::Result;
@@ -390,7 +390,8 @@ impl NamedInfoPool {
             let num_elem = selector.config.num_elem_in_tuple.select(u)?;
 
             // Cannot have a tuple of tuples
-            selectors.iter_mut().for_each(|s| {
+            let mut rec_selectors = selectors.clone();
+            rec_selectors.iter_mut().for_each(|s| {
                 s.tuple_weight = 0;
                 s.unit_weight = 0;
                 s.defined_func_type = 0;
@@ -402,7 +403,7 @@ impl NamedInfoPool {
             });
 
             let elems = (0..num_elem)
-                .map(|_| self.random_type(scope, u, selectors.clone()))
+                .map(|_| self.random_type(scope, u, rec_selectors.clone()))
                 .collect::<Result<Vec<Type>>>()?;
 
             let typ = Type::Generic(GenericType::Tuple(TupleType { types: elems }));
@@ -410,13 +411,33 @@ impl NamedInfoPool {
         }
 
         if selector.reference_weight > 0 {
-            warn!("random Reference type not implemented");
-            unimplemented!();
+            let mut rec_selectors = selectors.clone();
+            rec_selectors.iter_mut().for_each(|s| {
+                s.reference_weight = 0;
+                s.mut_reference_weight = 0;
+                // TODO: should allow droppable functions
+                s.new_func_type = 0;
+                s.new_droppable_func_type = 0;
+                s.defined_func_type = 0;
+            });
+            let inner_type = self.random_type(scope, u, rec_selectors)?;
+            let typ = Type::Generic(GenericType::Reference(ReferenceType::Immutable(Box::new(
+                inner_type,
+            ))));
+            candidates.push((vec![(typ, 1)], selector.reference_weight));
         }
 
         if selector.mut_reference_weight > 0 {
-            warn!("random Mutable Reference type not implemented");
-            unimplemented!();
+            let mut rec_selectors = selectors.clone();
+            rec_selectors.iter_mut().for_each(|s| {
+                s.reference_weight = 0;
+                s.mut_reference_weight = 0;
+            });
+            let inner_type = self.random_type(scope, u, rec_selectors)?;
+            let typ = Type::Generic(GenericType::Reference(ReferenceType::Mutable(Box::new(
+                inner_type,
+            ))));
+            candidates.push((vec![(typ, 1)], selector.reference_weight));
         }
 
         if selector.func_return > 0 {
@@ -640,7 +661,7 @@ impl Register<StateEntry> for NamedInfoPool {
                 SignatureGenerator::label(),
                 LetAssignGenerator::label(),
                 LetDeclGenerator::label(),
-                AssignmentGenerator::label(),
+                AssignPatternGenerator::label(),
             ],
         }
     }

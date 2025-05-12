@@ -53,6 +53,8 @@ impl Generator<MoveAST, AnyConstraint> for SignatureGenerator {
             .enums(1)
             .defined_func_type(1)
             .new_func_type(1)
+            .reference(1)
+            .mut_reference(1)
             .build();
         let mut parameters = vec![];
 

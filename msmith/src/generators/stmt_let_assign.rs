@@ -1,6 +1,5 @@
-use super::AssignmentGenerator;
 use crate::{
-    generators::StatementGenerator,
+    generators::{AssignPatternGenerator, StatementGenerator},
     move_ast::{MoveAST, Statement},
 };
 use anyhow::Result;
@@ -39,7 +38,7 @@ impl Generator<MoveAST, AnyConstraint> for LetAssignGenerator {
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let subtree =
-            Subtree::new_generator_subtree(AssignmentGenerator::label(), AnyConstraint::new());
+            Subtree::new_generator_subtree(AssignPatternGenerator::label(), AnyConstraint::new());
         Ok((vec![subtree], AnyConstraint::new()))
     }
 

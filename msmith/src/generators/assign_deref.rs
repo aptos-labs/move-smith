@@ -1,7 +1,9 @@
 use crate::{
-    generators::{ExprOfTypeGenerator, PatternGenerator},
-    move_ast::{Assignment, MoveAST},
-    states::{get_config, random_type_from_curr_scope, Type, TypeSelectorBuilder},
+    generators::{ExprOfTypeGenerator},
+    move_ast::{Assignment, Dereference, MoveAST},
+    states::{
+        get_config, random_type_from_curr_scope, types::ReferenceType, Type, TypeSelectorBuilder,
+    },
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -11,21 +13,21 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct AssignmentGenerator;
+pub struct AssignDerefGenerator;
 
-impl LabelledGenerator for AssignmentGenerator {
+impl LabelledGenerator for AssignDerefGenerator {
     fn label() -> GenLabel {
-        GenLabel::new("AssignmentGenerator")
+        GenLabel::new("AssignDerefGenerator")
     }
 }
 
-impl Register<GeneratorEntry> for AssignmentGenerator {
+impl Register<GeneratorEntry> for AssignDerefGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry::new::<Self>()
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
+impl Generator<MoveAST, AnyConstraint> for AssignDerefGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         constraint.check_not_exist_or_has_type::<Type>("type")
     }
@@ -45,19 +47,23 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
                     .func_return(5)
                     .structs(1)
                     .enums(1)
-                    .defined_func_type(1)
-                    .new_func_type(1)
                     .build();
                 random_type_from_curr_scope(u, env, vec![type_selector])?
             },
         };
-
-        let gen_constraint = AnyConstraint::new().with("type", wanted_type.clone());
-        let lhs = Subtree::new_generator_subtree(PatternGenerator::label(), gen_constraint.clone());
-        let rhs =
-            Subtree::new_generator_subtree(ExprOfTypeGenerator::label(), gen_constraint.clone());
-
-        Ok((vec![lhs, rhs], gen_constraint))
+        let lhs_type = ReferenceType::new_mut_ref_type(&wanted_type);
+        let rhs_type = wanted_type;
+        let subtrees = vec![
+            Subtree::new_generator_subtree(
+                ExprOfTypeGenerator::label(),
+                AnyConstraint::new().with("type", lhs_type.clone()),
+            ),
+            Subtree::new_generator_subtree(
+                ExprOfTypeGenerator::label(),
+                AnyConstraint::new().with("type", rhs_type.clone()),
+            ),
+        ];
+        Ok((subtrees, AnyConstraint::new()))
     }
 
     fn compose(
@@ -68,9 +74,11 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
         let mut iter = asts.into_iter();
-        let lhs = iter.next().unwrap().into_pattern().unwrap();
+        let lhs_inner = iter.next().unwrap().into_expression().unwrap();
+        let lhs = Dereference(Box::new(lhs_inner)).into();
         let rhs = iter.next().unwrap().into_expression().unwrap();
-        Ok(Assignment::AssignPattern(lhs, Box::new(rhs)).into())
+        let assignment = Assignment::AssignDeref(Box::new(lhs), Box::new(rhs));
+        Ok(assignment.into())
     }
 
     fn check_ast(
@@ -80,6 +88,9 @@ impl Generator<MoveAST, AnyConstraint> for AssignmentGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        ast.as_assignment().is_some()
+        match ast.as_assignment() {
+            Some(Assignment::AssignDeref(_, _)) => true,
+            _ => false,
+        }
     }
 }

@@ -146,6 +146,36 @@ impl Type {
         }
     }
 
+    pub fn is_immut_reference(&self) -> bool {
+        matches!(
+            self,
+            Type::Generic(GenericType::Reference(ReferenceType::Immutable(_)))
+        )
+    }
+
+    pub fn is_mut_reference(&self) -> bool {
+        matches!(
+            self,
+            Type::Generic(GenericType::Reference(ReferenceType::Mutable(_)))
+        )
+    }
+
+    pub fn is_reference(&self) -> bool {
+        matches!(self, Type::Generic(GenericType::Reference(_)))
+    }
+
+    pub fn as_reference(&self) -> Option<&ReferenceType> {
+        if !self.is_reference() {
+            return None;
+        }
+
+        match self {
+            Type::Generic(GenericType::Reference(r)) => Some(r),
+            Type::Concrete(ConcreteType { typ, .. }) => typ.as_reference(),
+            _ => None,
+        }
+    }
+
     /// Return whether the `other` type is included in `self`
     ///     - If `other` is the same as `self`, return true
     ///     - If `self` is a tuple or a function return type, check if `other` in the tuple
@@ -404,6 +434,27 @@ pub struct VectorType {
 pub enum ReferenceType {
     Immutable(Box<Type>),
     Mutable(Box<Type>),
+}
+
+impl ReferenceType {
+    pub fn get_inner_type(&self) -> &Type {
+        match self {
+            ReferenceType::Immutable(t) => t,
+            ReferenceType::Mutable(t) => t,
+        }
+    }
+
+    pub fn new_immut_ref_type(typ: &Type) -> Type {
+        Type::Generic(GenericType::Reference(ReferenceType::Immutable(Box::new(
+            typ.clone(),
+        ))))
+    }
+
+    pub fn new_mut_ref_type(typ: &Type) -> Type {
+        Type::Generic(GenericType::Reference(ReferenceType::Mutable(Box::new(
+            typ.clone(),
+        ))))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]

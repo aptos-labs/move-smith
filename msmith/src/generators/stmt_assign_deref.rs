@@ -1,4 +1,7 @@
-use crate::move_ast::MoveAST;
+use crate::{
+    generators::{AssignDerefGenerator, StatementGenerator},
+    move_ast::{Expression, MoveAST, Statement},
+};
 use anyhow::Result;
 use arbitrary::Unstructured;
 use framework::{
@@ -7,23 +10,21 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct StatementGenerator;
+pub struct StmtAssignDerefGenerator;
 
-impl LabelledGenerator for StatementGenerator {
+impl LabelledGenerator for StmtAssignDerefGenerator {
     fn label() -> GenLabel {
-        GenLabel::new_func_body_level("StatementGenerator")
+        GenLabel::new_func_body_level("StmtAssignDerefGenerator")
     }
 }
 
-impl Register<GeneratorEntry> for StatementGenerator {
+impl Register<GeneratorEntry> for StmtAssignDerefGenerator {
     fn register(&self) -> GeneratorEntry {
-        let mut entry = GeneratorEntry::new::<Self>();
-        entry.forward = true;
-        entry
+        GeneratorEntry::new::<Self>().with_parent::<StatementGenerator>()
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for StatementGenerator {
+impl Generator<MoveAST, AnyConstraint> for StmtAssignDerefGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
         true
     }
@@ -34,7 +35,9 @@ impl Generator<MoveAST, AnyConstraint> for StatementGenerator {
         _env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        unimplemented!()
+        let subtree =
+            Subtree::new_generator_subtree(AssignDerefGenerator::label(), AnyConstraint::new());
+        Ok((vec![subtree], AnyConstraint::new()))
     }
 
     fn compose(
@@ -42,9 +45,10 @@ impl Generator<MoveAST, AnyConstraint> for StatementGenerator {
         _u: &mut Unstructured,
         _env: &mut StatePool<MoveAST>,
         _constraint: AnyConstraint,
-        _asts: Vec<MoveAST>,
+        asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        unimplemented!()
+        let assign = asts.into_iter().next().unwrap().into_assignment().unwrap();
+        Ok(Statement::Expression(Expression::Assignment(assign)).into())
     }
 
     fn check_ast(
@@ -54,6 +58,6 @@ impl Generator<MoveAST, AnyConstraint> for StatementGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        ast.as_statement().is_some()
+        matches!(ast, MoveAST::Statement(Statement::LetAssign(_)))
     }
 }

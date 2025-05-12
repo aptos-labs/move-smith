@@ -6,7 +6,7 @@ use crate::{
     states::{
         ids::{Id, Named},
         types::{Type, Typed},
-        Ability, FunctionType, GenericType, NumberType, Primitive,
+        Ability, FunctionType, GenericType, NumberType, Primitive, ReferenceType,
     },
 };
 
@@ -136,12 +136,12 @@ fn lines_to_inline(lines: Vec<String>) -> String {
 fn put_inside_pair_of(
     left: &str,
     right: &str,
-    lines: Vec<String>,
+    mut lines: Vec<String>,
     indentation: usize,
 ) -> Vec<String> {
     let mut wrapped = vec![left.to_string()];
-    append_code_lines_with_indentation(&mut wrapped, lines, indentation);
-    wrapped.push(right.to_string());
+    lines.push(right.to_string());
+    adaptive_append_inline(&mut wrapped, lines, indentation, LINE_WRAP_LIMIT, true);
     wrapped
 }
 
@@ -591,6 +591,8 @@ impl CodeGenerator for Expression {
             E::UnOp(u) => u.emit_code_lines(),
             E::FunctionValue(f) => f.emit_code_lines(),
             E::Unit(u) => u.emit_code_lines(),
+            E::Reference(r) => r.emit_code_lines(),
+            E::Dereference(d) => d.emit_code_lines(),
         }
     }
 }
@@ -629,7 +631,13 @@ impl CodeGenerator for Assignment {
                 append_block(&mut code, expr.emit_code_lines(), 0);
                 code
             },
-            _ => unimplemented!(),
+            Assignment::AssignDeref(lhs, rhs) => {
+                let mut code = lhs.emit_code_lines();
+                code.last_mut().unwrap().push_str(" =");
+                let rhs_lines = rhs.emit_code_lines();
+                adaptive_append_inline(&mut code, rhs_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
+                code
+            },
         }
     }
 }
@@ -848,7 +856,17 @@ impl CodeGenerator for GenericType {
             },
             G::Enum(e) => e.name.name.clone(),
             G::Function(f) => f.emit_code(),
+            G::Reference(r) => r.emit_code(),
             _ => unimplemented!(),
+        }]
+    }
+}
+
+impl CodeGenerator for ReferenceType {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![match self {
+            ReferenceType::Mutable(t) => format!("&mut {}", t.inline()),
+            ReferenceType::Immutable(t) => format!("&{}", t.inline()),
         }]
     }
 }
@@ -929,6 +947,24 @@ impl CodeGenerator for Unit {
 impl CodeGenerator for Command {
     fn emit_code_lines(&self) -> Vec<String> {
         vec![format!("//# run {}", self.full_name.get_name())]
+    }
+}
+
+impl CodeGenerator for Reference {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let left_op = match self {
+            Reference::Mutable(_) => "&mut (",
+            Reference::Immutable(_) => "&(",
+        };
+        let expr_lines = self.get_expr().emit_code_lines();
+        put_inside_pair_of(left_op, ")", expr_lines, NO_INDENTATION)
+    }
+}
+
+impl CodeGenerator for Dereference {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let expr_lines = self.get_expr().emit_code_lines();
+        put_inside_pair_of("*(", ")", expr_lines, NO_INDENTATION)
     }
 }
 

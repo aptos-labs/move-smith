@@ -29,6 +29,11 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncCallGenerator {
     fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         // The desired return type of this call
         constraint.check_exist_and_type::<Type>("type")
+            && {
+                // TODO: allow this later
+                let typ = constraint.get::<Type>("type").unwrap();
+                !typ.is_reference()
+            }
             && get_current_info(env).func_call_nesting_depth <= 4
             && !almost_reached_max_expr_depth(env, 2)
     }

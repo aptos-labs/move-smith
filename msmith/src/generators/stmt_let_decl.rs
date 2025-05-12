@@ -48,6 +48,9 @@ impl Generator<MoveAST, AnyConstraint> for LetDeclGenerator {
                     .number(1)
                     .structs(1)
                     .enums(1)
+                    .new_func_type(1)
+                    .reference(1)
+                    .mut_reference(1)
                     .build();
                 let mut types = vec![];
                 for _ in 0..num_new_vars {

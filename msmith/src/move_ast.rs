@@ -44,6 +44,8 @@ pub enum MoveAST {
     CallArguments(CallArguments),
     FunctionCall(FunctionCall),
     Runners(Runners),
+    Reference(Reference),
+    Dereference(Dereference),
 }
 
 impl ASTNode for MoveAST {}
@@ -313,6 +315,8 @@ pub enum Expression {
     UnOp(UnOp),
     FunctionValue(FunctionValue),
     Unit(Unit),
+    Reference(Reference),
+    Dereference(Dereference),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -334,6 +338,8 @@ impl Typed for Expression {
             Expression::UnOp(u) => u.ty(),
             Expression::FunctionValue(f) => f.ty(),
             Expression::Unit(_) => Type::Unit,
+            Expression::Reference(r) => r.ty(),
+            Expression::Dereference(d) => d.ty(),
         }
     }
 }
@@ -679,6 +685,45 @@ pub struct FunctionValue {
 impl Typed for FunctionValue {
     fn ty(&self) -> Type {
         self.signature.ty()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Reference {
+    Mutable(Box<Expression>),
+    Immutable(Box<Expression>),
+}
+
+impl Reference {
+    pub fn get_expr(&self) -> &Expression {
+        match self {
+            Reference::Mutable(expr) => expr,
+            Reference::Immutable(expr) => expr,
+        }
+    }
+}
+
+impl Typed for Reference {
+    fn ty(&self) -> Type {
+        match self {
+            Reference::Mutable(expr) => expr.ty(),
+            Reference::Immutable(expr) => expr.ty(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Dereference(pub Box<Expression>);
+
+impl Dereference {
+    pub fn get_expr(&self) -> &Expression {
+        self.0.as_ref()
+    }
+}
+
+impl Typed for Dereference {
+    fn ty(&self) -> Type {
+        self.0.ty()
     }
 }
 
