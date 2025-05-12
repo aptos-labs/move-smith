@@ -474,9 +474,25 @@ impl CodeGenerator for Ability {
 
 impl CodeGenerator for Function {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = vec![format!("{}", self.signature.emit_code())];
+        let mut code = vec![format!(
+            "{}{}",
+            self.visibility.emit_code(),
+            self.signature.emit_code()
+        )];
         append_block(&mut code, self.body.emit_code_lines(), 0);
         code
+    }
+}
+
+impl CodeGenerator for Visibility {
+    fn emit_code_lines(&self) -> Vec<String> {
+        use Visibility as V;
+        vec![match self {
+            V::Private => "".to_string(),
+            V::Public => "public ".to_string(),
+            V::PublicFriend => "public(friend) ".to_string(),
+            V::Package => "package ".to_string(),
+        }]
     }
 }
 

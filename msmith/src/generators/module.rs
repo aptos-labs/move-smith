@@ -1,5 +1,7 @@
 use crate::{
-    generators::{EnumGenerator, FunctionGenerator, RunnersGenerator, StructGenerator},
+    generators::{
+        EnumGenerator, FunctionGenerator, ProducersGenerator, RunnersGenerator, StructGenerator,
+    },
     move_ast::{Address, Command, MoveAST, MoveModule},
     states::{get_config, get_id_pool_mut, new_id_and_push_scope, pop_scope, Id, IdKind, Named},
 };
@@ -80,6 +82,11 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
             AnyConstraint::new(),
         ));
 
+        subtrees.push(Subtree::new_generator_subtree(
+            ProducersGenerator::label(),
+            AnyConstraint::new(),
+        ));
+
         let compose_constraint = AnyConstraint::new()
             .with("name", name)
             .with("address", address);
@@ -106,6 +113,9 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
                 MoveAST::Function(f) => functions.push(f),
                 MoveAST::Runners(rs) => {
                     runners.extend(rs.0);
+                },
+                MoveAST::Producers(ps) => {
+                    functions.extend(ps.0);
                 },
                 _ => return Err(anyhow!("Unexpected AST node")),
             }

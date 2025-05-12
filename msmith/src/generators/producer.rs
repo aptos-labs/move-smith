@@ -1,9 +1,6 @@
 use crate::{
-    generators::CallArgumentsGenerator,
-    move_ast::{
-        Block, Callable, Function, FunctionCall, MoveAST, Sequence, Signature, Statement,
-        TypeParameters, Visibility,
-    },
+    generators::ExprOfTypeGenerator,
+    move_ast::{Block, Function, MoveAST, Signature, TypeParameters, Visibility},
     states::{
         new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope, pop_scope, Depth, Id,
         IdKind, Type,
@@ -17,23 +14,23 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct RunnerGenerator;
+pub struct ProducerGenerator;
 
-impl LabelledGenerator for RunnerGenerator {
+impl LabelledGenerator for ProducerGenerator {
     fn label() -> GenLabel {
-        GenLabel::new("RunnerGenerator")
+        GenLabel::new("ProducerGenerator")
     }
 }
 
-impl Register<GeneratorEntry> for RunnerGenerator {
+impl Register<GeneratorEntry> for ProducerGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry::new::<Self>()
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for RunnerGenerator {
+impl Generator<MoveAST, AnyConstraint> for ProducerGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
-        constraint.check_exist_and_type::<Callable>("callable")
+        constraint.check_exist_and_type::<Type>("type")
     }
 
     fn subtrees(
@@ -45,16 +42,12 @@ impl Generator<MoveAST, AnyConstraint> for RunnerGenerator {
         let (new_name, _, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function);
         env.get_mut::<Depth>().unwrap().expr_depth.set_max_depth(0);
 
-        let callable = constraint.get::<Callable>("callable").unwrap();
         let subtrees = vec![Subtree::new_generator_subtree(
-            CallArgumentsGenerator::label(),
-            AnyConstraint::new().with("callable", callable.clone()),
+            ExprOfTypeGenerator::label(),
+            constraint.clone(),
         )];
 
-        let comp_constraint = AnyConstraint::new()
-            .with("callable", callable.clone())
-            .with("name", new_name);
-        Ok((subtrees, comp_constraint))
+        Ok((subtrees, constraint.clone().with("name", new_name)))
     }
 
     fn compose(
@@ -68,37 +61,23 @@ impl Generator<MoveAST, AnyConstraint> for RunnerGenerator {
         let (block_id, _) = new_id_from_curr_scope(env, IdKind::Block);
         pop_scope(env);
 
-        let runner_name = constraint.get::<Id>("name").unwrap();
-        let callable = constraint.get::<Callable>("callable").unwrap();
-        let callargs = asts
-            .into_iter()
-            .next()
-            .unwrap()
-            .into_callarguments()
-            .unwrap();
-
+        let name = constraint.get::<Id>("name").unwrap().clone();
+        let return_type = constraint.get::<Type>("type").unwrap().clone();
+        let return_expr = asts.into_iter().next().unwrap().into_expression().unwrap();
         let func = Function {
             visibility: Visibility::Public,
             signature: Signature {
-                name: runner_name.clone(),
+                name,
                 type_params: TypeParameters::default(),
                 parameters: vec![],
-                return_type: Type::Unit,
+                return_type,
                 abilities: vec![],
                 is_func_value: false,
             },
             body: Block {
                 name: block_id,
-                sequences: vec![Sequence {
-                    statements: vec![Statement::Expression(
-                        FunctionCall {
-                            callable: callable.clone(),
-                            args: callargs,
-                        }
-                        .into(),
-                    )],
-                }],
-                return_expr: None,
+                sequences: vec![],
+                return_expr: Some(return_expr),
             },
         };
         Ok(func.into())

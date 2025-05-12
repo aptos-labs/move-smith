@@ -110,6 +110,14 @@ impl Type {
         }
     }
 
+    pub fn as_enum_mut(&mut self) -> Option<&mut EnumType> {
+        match self {
+            Type::Generic(GenericType::Enum(e)) => Some(e),
+            Type::Concrete(ConcreteType { typ, .. }) => typ.as_enum_mut(),
+            _ => None,
+        }
+    }
+
     pub fn is_generic_tuple(&self) -> bool {
         matches!(self, Type::Generic(GenericType::Tuple(_)))
     }

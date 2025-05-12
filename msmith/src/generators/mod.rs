@@ -40,5 +40,7 @@ export_all!(
     callable,
     call_args,
     runner,
-    runners
+    runners,
+    producer,
+    producers
 );

@@ -44,6 +44,7 @@ pub enum MoveAST {
     CallArguments(CallArguments),
     FunctionCall(FunctionCall),
     Runners(Runners),
+    Producers(Producers),
     Reference(Reference),
     Dereference(Dereference),
 }
@@ -76,6 +77,9 @@ pub struct MoveModule {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Runners(pub Vec<Function>);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Producers(pub Vec<Function>);
 
 /// Currently only support the `//# run` command for a function with no arguments
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -230,6 +234,7 @@ pub struct TypeParameters {
 /// The definition of the whole function
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
+    pub visibility: Visibility,
     pub signature: Signature,
     pub body: Block,
 }
@@ -244,6 +249,14 @@ impl Typed for Function {
     fn ty(&self) -> Type {
         self.signature.ty()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Visibility {
+    Private,
+    Public,
+    PublicFriend,
+    Package,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

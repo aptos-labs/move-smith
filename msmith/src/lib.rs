@@ -68,6 +68,8 @@ impl MoveSmith {
             .add_generator::<MatchArmGenerator>()
             .add_generator::<RunnersGenerator>()
             .add_generator::<RunnerGenerator>()
+            .add_generator::<ProducersGenerator>()
+            .add_generator::<ProducerGenerator>()
             .add_generator::<ExprOfTypeGenerator>()
             .add_generator::<EOTNumberGenerator>()
             .add_generator::<EOTTupleGenerator>()

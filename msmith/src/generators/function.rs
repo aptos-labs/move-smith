@@ -1,5 +1,5 @@
 use crate::{
-    move_ast::{Function, MoveAST},
+    move_ast::{Function, MoveAST, Visibility},
     states::{new_id_from_curr_scope_and_push_scope, pop_scope, IdKind, Type},
     BlockGenerator, SignatureGenerator,
 };
@@ -64,7 +64,12 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
         pop_scope(env);
         let signature = asts.remove(0).into_signature().unwrap();
         let body = asts.remove(0).into_block().unwrap();
-        Ok(Function { signature, body }.into())
+        Ok(Function {
+            visibility: Visibility::Public,
+            signature,
+            body,
+        }
+        .into())
     }
 
     fn check_ast(
