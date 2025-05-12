@@ -2,7 +2,7 @@ use crate::{
     generators::{EnumMatchGenerator, ExprOfTypeGenerator},
     move_ast::{Expression, MoveAST},
     states::{
-        almost_reached_max_expr_depth, get_config, get_current_info, get_named_infos,
+        almost_reached_max_expr_depth, get_config, get_current_info, get_per_module_info,
         random_type_from_curr_scope, Type, TypeSelectorBuilder,
     },
 };
@@ -30,7 +30,7 @@ impl Register<GeneratorEntry> for EOTMatchGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for EOTMatchGenerator {
     fn check_constraint(&self, env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        get_named_infos(env).has_enum
+        get_per_module_info(env).has_enum
             && !almost_reached_max_expr_depth(env, 2)
             && get_current_info(env).match_nesting_depth <= 3
     }

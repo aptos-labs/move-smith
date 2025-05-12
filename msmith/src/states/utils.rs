@@ -4,8 +4,8 @@ use crate::{
     move_ast::{MoveAST, Pattern, PatternKind},
     states::{
         types::{EnumType, EnumVariantType, GenericType, Type},
-        CurrScope, CurrentInfo, Depth, GenerationConfig, Id, IdKind, IdPool, NamedInfoPool, Scope,
-        TypeSelector,
+        CurrScope, Depth, GenerationConfig, Id, IdKind, IdPool, NamedInfoPool, PerFuncInfo,
+        PerModuleInfo, Scope, TypeSelector,
     },
 };
 use anyhow::Result;
@@ -49,8 +49,13 @@ pub fn get_curr_scope(env: &StatePool<MoveAST>) -> Scope {
 }
 
 #[inline]
-pub fn get_current_info(env: &StatePool<MoveAST>) -> &CurrentInfo {
-    env.get::<CurrentInfo>().unwrap()
+pub fn get_current_info(env: &StatePool<MoveAST>) -> &PerFuncInfo {
+    env.get::<PerFuncInfo>().unwrap()
+}
+
+#[inline]
+pub fn get_per_module_info(env: &StatePool<MoveAST>) -> &PerModuleInfo {
+    env.get::<PerModuleInfo>().unwrap()
 }
 
 #[inline]

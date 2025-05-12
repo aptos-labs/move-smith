@@ -65,6 +65,10 @@ def main(base_path):
             print(d)
     else:
         print("All directories compiled successfully.")
+    (base_dir / "failed_packages.txt").write_text("\n".join(failed))
+
+    failed_count = len(failed)
+    print(f"Compilation rate: {total - failed_count}/{total} ({100 * (total - failed_count) / total:.2f}%)")
 
 
 if __name__ == "__main__":

@@ -103,9 +103,6 @@ impl NamedInfo {
 pub struct NamedInfoPool {
     map: BTreeMap<Id, NamedInfoIdx>,
     arena: Arena<NamedInfo>,
-
-    pub has_struct: bool,
-    pub has_enum: bool,
     type_selection_depth: RefCell<usize>,
 }
 
@@ -556,11 +553,9 @@ impl NamedInfoPool {
         use MoveAST as M;
         match &new_ast {
             M::Struct(s) => {
-                self.has_struct = true;
                 self.add_new_type(s.name.clone(), s.ty());
             },
             M::Enum(e) => {
-                self.has_enum = true;
                 self.add_new_type(e.name.clone(), e.ty());
             },
             M::Signature(s) => {

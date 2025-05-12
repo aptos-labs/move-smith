@@ -87,7 +87,8 @@ impl MoveSmith {
             .add_state::<states::CurrScope>()
             .add_state::<states::PartialInfo>()
             .add_state::<states::Depth>()
-            .add_state::<states::CurrentInfo>()
+            .add_state::<states::PerFuncInfo>()
+            .add_state::<states::PerModuleInfo>()
             .add_state::<states::NamedInfoPool>();
 
         use Variant as V;

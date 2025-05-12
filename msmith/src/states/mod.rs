@@ -7,7 +7,8 @@ export_all!(
     partial,
     utils,
     depth,
-    current_info,
+    per_func,
     named_info,
-    type_selector
+    type_selector,
+    per_module
 );

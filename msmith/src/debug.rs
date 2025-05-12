@@ -19,7 +19,7 @@ use std::sync::Arc;
 pub fn main() {
     env_logger::init();
     let mut rng = StdRng::seed_from_u64(123);
-    let mut buffer = vec![0u8; 4096];
+    let mut buffer = vec![0u8; 1024 * 16];
     rng.fill(&mut buffer[..]);
     let ms = MoveSmith::new();
     // let ms = MoveSmith::variant(Variant::FlushWrites);

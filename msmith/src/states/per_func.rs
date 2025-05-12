@@ -1,5 +1,7 @@
 use crate::{
-    generators::{EOTFuncCallGenerator, EOTFuncValGenerator, EnumMatchGenerator},
+    generators::{
+        EOTFuncCallGenerator, EOTFuncValGenerator, EnumMatchGenerator, FunctionGenerator,
+    },
     move_ast::MoveAST,
 };
 use arbitrary::Unstructured;
@@ -8,29 +10,36 @@ use framework::{
 };
 
 #[derive(Debug, Default)]
-pub struct CurrentInfo {
+pub struct PerFuncInfo {
     pub match_nesting_depth: usize,
     pub func_call_nesting_depth: usize,
     in_lambda: usize,
 }
 
-impl CurrentInfo {
+impl PerFuncInfo {
     pub fn is_in_lambda(&self) -> bool {
         self.in_lambda > 0
     }
+
+    pub fn reset(&mut self) {
+        self.match_nesting_depth = 0;
+        self.func_call_nesting_depth = 0;
+        self.in_lambda = 0;
+    }
 }
 
-impl LabelledState for CurrentInfo {
+impl LabelledState for PerFuncInfo {
     fn label() -> StateLabel {
         StateLabel::new("CurrentInfo")
     }
 }
 
-impl Register<StateEntry> for CurrentInfo {
+impl Register<StateEntry> for PerFuncInfo {
     fn register(&self) -> StateEntry {
         StateEntry {
             label: Self::label(),
             generators: vec![
+                FunctionGenerator::label(),
                 EnumMatchGenerator::label(),
                 EOTFuncCallGenerator::label(),
                 EOTFuncValGenerator::label(),
@@ -39,7 +48,7 @@ impl Register<StateEntry> for CurrentInfo {
     }
 }
 
-impl State<MoveAST> for CurrentInfo {
+impl State<MoveAST> for PerFuncInfo {
     fn update_pre(&mut self, _u: &mut Unstructured, generator: &GenLabel) {
         if generator == &EnumMatchGenerator::label() {
             self.match_nesting_depth += 1;
@@ -55,6 +64,10 @@ impl State<MoveAST> for CurrentInfo {
     }
 
     fn update_post(&mut self, _u: &mut Unstructured, _new_ast: &MoveAST, generator: &GenLabel) {
+        if generator == &FunctionGenerator::label() {
+            self.reset();
+        }
+
         if generator == &EnumMatchGenerator::label() {
             self.match_nesting_depth -= 1;
         }
