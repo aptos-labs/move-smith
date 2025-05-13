@@ -10,7 +10,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 12] = [
+const TO_IGNORE: [&str; 23] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     // "infer",
     "MAX_",
@@ -36,6 +36,17 @@ const TO_IGNORE: [&str; 12] = [
     "NUMBER_OF_ARGUMENTS_MISMATCH",
     "cannot be modified inside of a lambda",
     "does not have the `drop` ability",
+    "bug: inconsistent tuple arity",
+    "cannot drop",
+    "captured value cannot be a reference",
+    "STLOC_TYPE_MISMATCH_ERROR",
+    "BORROWFIELD_EXISTS_MUTABLE_BORROW_ERROR",
+    "BORROWLOC_EXISTS_BORROW_ERROR",
+    "MOVELOC_EXISTS_BORROW_ERROR",
+    "COPYLOC_EXISTS_BORROW_ERROR",
+    "WRITEREF_TYPE_MISMATCH_ERROR",
+    "bug: unexpected tuple type Tuple",
+    "CLOSURE_CALL_REQUIRES_FUNCTION",
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]

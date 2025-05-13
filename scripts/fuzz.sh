@@ -5,7 +5,7 @@
 # Usage: ./scripts/fuzz.sh <fuzz_target> [total_hour] [max_input_len]
 #
 # * Keep a log file under move-smith/logs
-# * Creates an initial corpus with 8KB inputs by default, specified by `max_input_len``
+# * Creates an initial corpus with 16KB inputs by default, specified by `max_input_len``
 # * Runs the fuzz target for the given number of hours
 # * If the fuzz target starts with 'afl', it runs AFL in tmux sessions
 
@@ -232,7 +232,7 @@ fi
 fuzz_target=${1}
 total_hour=${2:-24} # Default to 24 hours
 JOBS=${3:-12}       # Default to 12 jobs
-input_len=${4:-8}   # Default to 8 KB
+input_len=${4:-16}   # Default to 16 KB
 timeout=${5:-10}     # Default to 10 seconds
 
 check_existing
