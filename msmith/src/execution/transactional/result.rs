@@ -10,7 +10,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 25] = [
+const TO_IGNORE: [&str; 26] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     // "infer",
     "MAX_",
@@ -49,6 +49,7 @@ const TO_IGNORE: [&str; 25] = [
     "CLOSURE_CALL_REQUIRES_FUNCTION",
     "cannot immutably borrow value which is already mutably borrowed",
     "cannot transfer mutable value since it is borrowed",
+    "bug: Unpacking a reference to a struct must return the references of fields"
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
