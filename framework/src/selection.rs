@@ -184,22 +184,26 @@ pub fn choose_idx_weighted(u: &mut Unstructured, weights: &[u32]) -> Result<usiz
     Ok(0)
 }
 
-pub fn choose_idx_filter<T, F>(
+pub fn choose_idx_weighted_filter<T, F>(
     u: &mut Unstructured,
     items: &[T],
+    weights: &[u32],
     filter: F,
 ) -> Result<Option<usize>>
 where
     F: Fn(&T) -> bool,
 {
+    assert!(items.len() == weights.len());
     let mut indices = (0..items.len()).collect::<Vec<usize>>();
+    let mut weights = weights.to_vec();
     while !indices.is_empty() {
-        let chosen = u.int_in_range(0..=indices.len() - 1)?;
+        let chosen = choose_idx_weighted(u, &weights)?;
         let idx = indices[chosen];
         if filter(&items[idx]) {
             return Ok(Some(idx));
         }
         indices.remove(chosen);
+        weights.remove(chosen);
     }
     Ok(None)
 }

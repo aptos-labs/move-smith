@@ -8,26 +8,24 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
-use log::warn;
 
 #[derive(Default)]
-pub struct ExprStmtGenerator;
+pub struct StmtExprGenerator;
 
-impl LabelledGenerator for ExprStmtGenerator {
+impl LabelledGenerator for StmtExprGenerator {
     fn label() -> GenLabel {
-        GenLabel::new_func_body_level("ExprStmtGenerator")
+        GenLabel::new_func_body_level("StmtExprGenerator")
     }
 }
 
-impl Register<GeneratorEntry> for ExprStmtGenerator {
+impl Register<GeneratorEntry> for StmtExprGenerator {
     fn register(&self) -> GeneratorEntry {
         GeneratorEntry::new::<Self>().with_parent::<StatementGenerator>()
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for ExprStmtGenerator {
+impl Generator<MoveAST, AnyConstraint> for StmtExprGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        warn!("check_constraint not implemented for ExprStmtGenerator");
         true
     }
 

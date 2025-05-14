@@ -1,4 +1,8 @@
-use std::fmt;
+use serde::{Deserialize, Deserializer};
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+};
 
 pub trait LabelledGenerator {
     fn label() -> GenLabel;
@@ -12,13 +16,40 @@ pub trait LabelledState {
     fn label() -> StateLabel;
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialOrd, Ord, Clone)]
 pub struct GenLabel {
     pub name: String,
     pub level: GeneratorLevel,
 }
 
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone)]
+impl PartialEq for GenLabel {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for GenLabel {}
+
+impl Hash for GenLabel {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
+impl<'de> Deserialize<'de> for GenLabel {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(GenLabel {
+            name: s,
+            level: GeneratorLevel::default(),
+        })
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub enum GeneratorLevel {
     #[default]
     Top = 0,

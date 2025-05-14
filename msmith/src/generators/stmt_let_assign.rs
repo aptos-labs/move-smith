@@ -8,7 +8,6 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
-use log::warn;
 
 #[derive(Default)]
 pub struct LetAssignGenerator;
@@ -27,7 +26,6 @@ impl Register<GeneratorEntry> for LetAssignGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for LetAssignGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        warn!("check_constraint not implemented for LetAssignGenerator");
         true
     }
 

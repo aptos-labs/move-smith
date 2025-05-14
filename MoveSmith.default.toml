@@ -39,3 +39,57 @@ num_elem_in_tuple = { min = 1, target = 4, max = 50 }
 ######## Execution ########
 num_runs_per_func = { min = 1, target = 3, max = 10 }
 generation_timeout_sec = 5
+
+[priorities]
+######## Expression ########
+ExpressionGenerator = 1
+ExprOfTypeGenerator = 1
+EOTFuncCallGenerator = 5
+EOTVariableGenerator = 8
+EOTMatchGenerator = 3
+EOTDereferenceGenerator = 4
+# Expressions that only work for one type
+EOTFuncValGenerator = 5
+EOTNumberOpsGenerator = 5
+EOTNumberGenerator = 5
+EOTReferenceGenerator = 5
+EOTStructGenerator = 5
+EOTTupleGenerator = 5
+EOTBoolGenerator = 5
+EOTUnitGenerator = 5
+EOTEnumGenerator = 5
+
+######## Statement ########
+StatementGenerator = 1
+StmtAssignDerefGenerator = 3
+StmtExprGenerator = 5
+LetAssignGenerator = 5
+LetCallGenerator = 3
+LetDeclGenerator = 2
+
+######## Basic Nodes ########
+# They are directly used by other generators
+TupleGenerator = 1
+PatternGenerator = 1
+TypedNumberGenerator = 1
+MatchArmGenerator = 1
+AssignDerefGenerator = 1
+AssignPatternGenerator = 1
+CallableGenerator = 1
+CallArgumentsGenerator = 1
+EnumMatchGenerator = 1
+
+######## Top Level ########
+ProgramGenerator = 1
+ModuleGenerator = 1
+ScriptGenerator = 1
+StructGenerator = 1
+EnumGenerator = 1
+FunctionGenerator = 1
+BlockGenerator = 1
+SequenceGenerator = 1
+SignatureGenerator = 1
+ProducerGenerator = 1
+ProducersGenerator = 1
+RunnerGenerator = 1
+RunnersGenerator = 1

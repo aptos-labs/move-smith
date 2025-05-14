@@ -2,14 +2,17 @@ use crate::{
     constraints::Constraint,
     generator::{GeneratorPool, Subtree},
     label::{GenLabel, LabelledGenerator, LabelledState},
-    selection::choose_idx_filter,
+    selection::choose_idx_weighted_filter,
     states::{State, StatePool},
     ASTNode, Generator,
 };
 use anyhow::{anyhow, Result};
 use arbitrary::Unstructured;
 use log::trace;
-use std::cell::{Ref, RefCell, RefMut};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    collections::HashMap,
+};
 
 pub struct FrameworkBuilder<A: ASTNode, C: Constraint> {
     framework: Framework<A, C>,
@@ -37,6 +40,7 @@ where
                 states: RefCell::new(StatePool::empty()),
                 cnt: RefCell::new(0),
                 depth: RefCell::new(0),
+                priorities: HashMap::new(),
             },
         }
     }
@@ -78,6 +82,11 @@ where
         self
     }
 
+    pub fn set_priorities(mut self, priorities: &HashMap<GenLabel, u32>) -> Self {
+        self.framework.priorities = priorities.clone();
+        self
+    }
+
     pub fn build(mut self) -> Framework<A, C> {
         if !self.framework.generators.initialize() {
             panic!("Failed to initialize the generator pool");
@@ -93,6 +102,8 @@ pub struct Framework<A: ASTNode, C: Constraint> {
     cnt: RefCell<usize>,
     /// Keep track of the depth of the current generation for debugging purposes
     depth: RefCell<usize>,
+    /// Marking the priority of each generator
+    priorities: HashMap<GenLabel, u32>,
 }
 
 impl<A, C> Framework<A, C>
@@ -137,8 +148,13 @@ where
         // For all the usable generators, randomly select one that the constraint is well-formed for
         // If none of the specialized generators can be used, we will fall back to the base generator
         let usable_generators: Vec<GenLabel> = self.generators.generators_from(base_label, true);
+        let weights = usable_generators
+            .iter()
+            .map(|g| *self.priorities.get(g).unwrap_or(&1))
+            .collect::<Vec<u32>>();
         trace!("Usable generators: {usable_generators:?}");
-        let selected_idx = choose_idx_filter(u, &usable_generators, |g| {
+        trace!("Weights: {weights:?}");
+        let selected_idx = choose_idx_weighted_filter(u, &usable_generators, &weights, |g| {
             self.generators
                 .get(g)
                 .unwrap()

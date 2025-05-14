@@ -12,7 +12,7 @@ use framework::{
 };
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 static DEFAULT_CONFIG: Lazy<Config> = Lazy::new(|| {
     let file_content = include_str!("../../../MoveSmith.default.toml");
@@ -23,6 +23,7 @@ static DEFAULT_CONFIG: Lazy<Config> = Lazy::new(|| {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub generation: GenerationConfig,
+    pub priorities: HashMap<GenLabel, u32>,
 }
 
 /// MoveSmith will randomly pick within [0..max_num_XXX] during generation.
@@ -103,7 +104,7 @@ impl Default for Config {
 
 impl Default for GenerationConfig {
     fn default() -> Self {
-        let Config { generation } = Config::default();
+        let Config { generation, .. } = Config::default();
         generation
     }
 }

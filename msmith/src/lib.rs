@@ -42,6 +42,8 @@ impl MoveSmith {
     }
 
     pub fn variant(variant: Variant) -> Self {
+        // TODO: Move config out of states. It should live as msmith config
+        let config = states::Config::default();
         let builder = FrameworkBuilder::new()
             .add_generator::<ProgramGenerator>()
             .add_generator::<ModuleGenerator>()
@@ -59,7 +61,7 @@ impl MoveSmith {
             .add_generator::<LetCallGenerator>()
             .add_generator::<PatternGenerator>()
             .add_generator::<ExpressionGenerator>()
-            .add_generator::<ExprStmtGenerator>()
+            .add_generator::<StmtExprGenerator>()
             .add_generator::<NumberGenerator>()
             .add_generator::<TupleGenerator>()
             .add_generator::<CallableGenerator>()
@@ -93,7 +95,8 @@ impl MoveSmith {
             .add_state::<states::Depth>()
             .add_state::<states::PerFuncInfo>()
             .add_state::<states::PerModuleInfo>()
-            .add_state::<states::NamedInfoPool>();
+            .add_state::<states::NamedInfoPool>()
+            .set_priorities(&config.priorities);
 
         use Variant as V;
         let framework = match variant {

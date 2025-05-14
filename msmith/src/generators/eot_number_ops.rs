@@ -29,7 +29,7 @@ pub struct EOTNumberOpsGenerator;
 
 impl LabelledGenerator for EOTNumberOpsGenerator {
     fn label() -> GenLabel {
-        GenLabel::new("TypedEOTNumberOpsGenerator")
+        GenLabel::new("EOTNumberOpsGenerator")
     }
 }
 
@@ -120,7 +120,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
                     NumberType::U8 => 4,
                     NumberType::U16 => (u8::MAX / 4) as u32,
                     NumberType::U32 => (u16::MAX / 4) as u32,
-                    NumberType::U64 => (u32::MAX / 4) as u32,
+                    NumberType::U64 => u32::MAX / 4,
                     NumberType::U128 => (u64::MAX / 4) as u32,
                     NumberType::U256 => (u128::MAX / 4) as u32,
                 };
