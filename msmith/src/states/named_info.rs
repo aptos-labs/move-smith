@@ -238,7 +238,7 @@ impl NamedInfoPool {
     ///     - not moved
     fn _get_usable_vars_iter(&self, scope: Scope) -> impl Iterator<Item = &NamedInfo> {
         self.arena.iter().filter_map(move |(_, info)| {
-            if !info.name.is_var() {
+            if !(info.name.is_var() || info.name.is_func()) {
                 return None;
             }
 
@@ -275,6 +275,10 @@ impl NamedInfoPool {
     pub fn get_callable_info(&self, scope: &Scope) -> Vec<NamedInfo> {
         self._get_usable_vars_iter(scope.clone())
             .filter_map(|info| {
+                // Do not self-recursion to avoid infinite loop
+                if scope.is_in_scope(&info.name.get_self_scope()) {
+                    return None;
+                }
                 if info.typ.is_function() {
                     Some(info.clone())
                 } else {
@@ -637,6 +641,7 @@ fn get_initialized_vars_from_pattern(pattern: &Pattern) -> Vec<Id> {
             .flat_map(|(_, p)| get_initialized_vars_from_pattern(p))
             .collect(),
         PatternKind::Wildcard => vec![],
+        PatternKind::Unit => vec![],
     }
 }
 

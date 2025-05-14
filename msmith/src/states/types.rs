@@ -37,6 +37,7 @@ pub fn get_defined_vars_from_pattern(pattern: &Pattern) -> Vec<(Id, Type)> {
             top_level.into_iter().chain(nested).collect()
         },
         PatternKind::Wildcard => vec![],
+        PatternKind::Unit => vec![],
     }
 }
 

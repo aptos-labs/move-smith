@@ -184,6 +184,12 @@ pub fn get_patterns_for_type(
             let (name, _) = new_id(env, IdKind::Var, scope);
             patterns.push(Pattern::new_single_var(&name, typ));
         },
+        Type::Unit => {
+            patterns.push(Pattern {
+                body: PatternKind::Unit,
+                typ: typ.clone(),
+            });
+        },
         Type::Generic(_) => {},
         _ => {},
     }

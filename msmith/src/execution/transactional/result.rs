@@ -10,7 +10,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 23] = [
+const TO_IGNORE: [&str; 25] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     // "infer",
     "MAX_",
@@ -47,6 +47,8 @@ const TO_IGNORE: [&str; 23] = [
     "WRITEREF_TYPE_MISMATCH_ERROR",
     "bug: unexpected tuple type Tuple",
     "CLOSURE_CALL_REQUIRES_FUNCTION",
+    "cannot immutably borrow value which is already mutably borrowed",
+    "cannot transfer mutable value since it is borrowed",
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]

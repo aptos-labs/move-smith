@@ -15,6 +15,7 @@ export_all!(
     stmt_expr,
     stmt_let_decl,
     stmt_let_assign,
+    stmt_let_call,
     stmt_assign_deref,
     number,
     tuple,

@@ -56,6 +56,7 @@ impl MoveSmith {
             .add_generator::<StmtAssignDerefGenerator>()
             .add_generator::<LetDeclGenerator>()
             .add_generator::<LetAssignGenerator>()
+            .add_generator::<LetCallGenerator>()
             .add_generator::<PatternGenerator>()
             .add_generator::<ExpressionGenerator>()
             .add_generator::<ExprStmtGenerator>()

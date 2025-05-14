@@ -61,7 +61,7 @@ impl Generator<MoveAST, AnyConstraint> for ProgramGenerator {
 
         let num_scripts = get_config(env).num_scripts.select(u)?;
         trace!("Generating {num_scripts} scripts");
-        for _ in 0..num_modules {
+        for _ in 0..num_scripts {
             let subtree =
                 Subtree::new_generator_subtree(ScriptGenerator::label(), AnyConstraint::new());
             subtrees.push(subtree);

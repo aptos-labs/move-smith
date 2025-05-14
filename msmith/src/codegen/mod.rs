@@ -679,7 +679,7 @@ impl CodeGenerator for Pattern {
         match &self.body {
             PatternKind::Variable(v) => vec![v.inline()],
             PatternKind::Positional(pats) => {
-                let mut code = if self.typ.is_tuple() || self.typ.is_struct() {
+                let mut code = if self.typ.is_struct() {
                     format!("{typ_name}(")
                 } else {
                     '('.to_string()
@@ -718,6 +718,7 @@ impl CodeGenerator for Pattern {
                 code
             },
             PatternKind::Wildcard => vec!['_'.to_string()],
+            PatternKind::Unit => vec!["()".to_string()],
         }
     }
 }

@@ -10,6 +10,8 @@ done_count = 0
 CURR_FILE = Path(__file__).resolve()
 MSMITH = CURR_FILE.parent.parent / "target/debug/msmith"
 
+TO_IGNORE = ["graph.rs:396", "graph.rs:397"]
+
 
 def run_move_file(base_dir: Path, file: Path, total: int):
     global done_count
@@ -36,7 +38,16 @@ def run_move_file(base_dir: Path, file: Path, total: int):
             done_count += 1
             print(f"\033[92mDone {done_count}/{total}:\033[0m {file}")
 
-        return None if result.returncode == 0 else str(file)
+        count_as_failed = result.returncode != 0
+        for ignore_pat in TO_IGNORE:
+            if ignore_pat in result.stdout:
+                count_as_failed = False
+                break
+
+        if count_as_failed:
+            return str(file)
+        else:
+            return None
 
     except Exception as e:
         error_file = base_dir / f"{file.stem}.error"

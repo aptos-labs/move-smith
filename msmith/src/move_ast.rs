@@ -533,6 +533,7 @@ pub enum PatternKind {
     /// If number of fields is less than the number of fields, dot dot will be added
     Named(Vec<(Id, Pattern)>, usize),
     Wildcard,
+    Unit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumInto)]

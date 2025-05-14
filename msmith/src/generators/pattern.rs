@@ -28,6 +28,7 @@ impl Register<GeneratorEntry> for PatternGenerator {
 impl Generator<MoveAST, AnyConstraint> for PatternGenerator {
     fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         constraint.check_exist_and_type::<Type>("type")
+            && constraint.check_not_exist_or_has_type::<bool>("no_partial")
     }
 
     fn subtrees(
@@ -40,20 +41,27 @@ impl Generator<MoveAST, AnyConstraint> for PatternGenerator {
             panic!("Type not found in constraint")
         };
         let curr_scope = get_curr_scope(env);
-        let patterns = get_patterns_for_type(u, env, typ, &curr_scope);
-        let partials = patterns
-            .iter()
-            .filter_map(|pat| get_partial_patterns(u, pat))
-            .collect::<Vec<Pattern>>();
-        let all_patterns = patterns
+        let mut patterns = get_patterns_for_type(u, env, typ, &curr_scope);
+
+        let no_partial_pattern = constraint.get_or("no_partial", false);
+
+        if !no_partial_pattern {
+            let partials = patterns
+                .iter()
+                .filter_map(|pat| get_partial_patterns(u, pat))
+                .collect::<Vec<Pattern>>();
+            patterns.extend(partials);
+        }
+
+        let pattern_nodes = patterns
             .into_iter()
-            .chain(partials)
             .map(|p| p.into())
             .collect::<Vec<MoveAST>>();
-        if all_patterns.is_empty() {
+
+        if pattern_nodes.is_empty() {
             error!("No patterns found for type {typ:?}");
         }
-        let subtree = Subtree::new_candidates_subtree(all_patterns);
+        let subtree = Subtree::new_candidates_subtree(pattern_nodes);
         Ok((vec![subtree], AnyConstraint::new()))
     }
 
