@@ -4,7 +4,7 @@ use crate::{
     move_ast::{MoveAST, Pattern, PatternKind},
     states::{
         types::{EnumType, EnumVariantType, GenericType, Type},
-        CurrScope, Depth, GenerationConfig, Id, IdKind, IdPool, NamedInfoPool, PerFuncInfo,
+        CurrScope, Depth, GenerationConfig, Id, IdKind, IdPool, Named, NamedInfoPool, PerFuncInfo,
         PerModuleInfo, Scope, TypeSelector,
     },
 };
@@ -121,6 +121,8 @@ pub fn get_patterns_for_type(
     scope: &Scope,
 ) -> Vec<Pattern> {
     let mut patterns = vec![];
+    let cross_mod = !scope.is_from_same_module(&typ.name().get_self_scope());
+
     match typ {
         Type::Concrete(ct) => {
             patterns = get_patterns_for_type(u, env, &ct.get_concretized_type(), scope)
@@ -143,38 +145,42 @@ pub fn get_patterns_for_type(
         Type::Generic(GenericType::Struct(s)) if s.positional => {
             let (name, _) = new_id(env, IdKind::Var, scope);
             patterns.push(Pattern::new_single_var(&name, typ));
-            let field_patterns = s
-                .fields
-                .iter()
-                .map(|(_, t)| {
-                    let pats = get_patterns_for_type(u, env, t, scope);
-                    let partials = pats
-                        .iter()
-                        .filter_map(|pat| get_partial_patterns(u, pat))
-                        .collect::<Vec<Pattern>>();
-                    let all = pats.into_iter().chain(partials).collect::<Vec<Pattern>>();
-                    u.choose(&all).unwrap().clone()
-                })
-                .collect::<Vec<Pattern>>();
-            patterns.push(Pattern::new_full_positional(typ, field_patterns));
+            if !cross_mod {
+                let field_patterns = s
+                    .fields
+                    .iter()
+                    .map(|(_, t)| {
+                        let pats = get_patterns_for_type(u, env, t, scope);
+                        let partials = pats
+                            .iter()
+                            .filter_map(|pat| get_partial_patterns(u, pat))
+                            .collect::<Vec<Pattern>>();
+                        let all = pats.into_iter().chain(partials).collect::<Vec<Pattern>>();
+                        u.choose(&all).unwrap().clone()
+                    })
+                    .collect::<Vec<Pattern>>();
+                patterns.push(Pattern::new_full_positional(typ, field_patterns));
+            }
         },
         Type::Generic(GenericType::Struct(s)) if !s.positional => {
             let (name, _) = new_id(env, IdKind::Var, scope);
             patterns.push(Pattern::new_single_var(&name, typ));
-            let field_patterns = s
-                .fields
-                .iter()
-                .map(|(name, t)| {
-                    let pats = get_patterns_for_type(u, env, t, scope);
-                    let partials = pats
-                        .iter()
-                        .filter_map(|pat| get_partial_patterns(u, pat))
-                        .collect::<Vec<Pattern>>();
-                    let all = pats.into_iter().chain(partials).collect::<Vec<Pattern>>();
-                    (name.clone(), u.choose(&all).unwrap().clone())
-                })
-                .collect::<Vec<(Id, Pattern)>>();
-            patterns.push(Pattern::new_named(typ, field_patterns, s.fields.len()));
+            if !cross_mod {
+                let field_patterns = s
+                    .fields
+                    .iter()
+                    .map(|(name, t)| {
+                        let pats = get_patterns_for_type(u, env, t, scope);
+                        let partials = pats
+                            .iter()
+                            .filter_map(|pat| get_partial_patterns(u, pat))
+                            .collect::<Vec<Pattern>>();
+                        let all = pats.into_iter().chain(partials).collect::<Vec<Pattern>>();
+                        (name.clone(), u.choose(&all).unwrap().clone())
+                    })
+                    .collect::<Vec<(Id, Pattern)>>();
+                patterns.push(Pattern::new_named(typ, field_patterns, s.fields.len()));
+            }
         },
         Type::Generic(GenericType::Enum(_)) => {
             let (name, _) = new_id(env, IdKind::Var, scope);
