@@ -32,19 +32,23 @@ impl Generator<MoveAST, AnyConstraint> for ProducersGenerator {
 
     fn subtrees(
         &self,
-        u: &mut Unstructured,
+        _u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         let curr_scope = get_curr_scope(env);
-        let mut all_enums = get_named_infos(env).get_all_enum_types(&curr_scope);
-        for t in &mut all_enums {
-            let et = t.as_enum_mut().unwrap();
-            let variant_idx = u.choose_index(et.variants.len())?;
-            et.variant_pos = Some(variant_idx);
-        }
         let mut all_types = get_named_infos(env).get_all_struct_types(&curr_scope);
-        all_types.extend(all_enums);
+
+        let all_enums = get_named_infos(env).get_all_enum_types(&curr_scope);
+        for t in &all_enums {
+            let et = t.as_enum().unwrap();
+            for i in 0..et.variants.len() {
+                let mut copy = t.clone();
+                let copy_et = copy.as_enum_mut().unwrap();
+                copy_et.variant_pos = Some(i);
+                all_types.push(copy);
+            }
+        }
 
         let mut subtrees = vec![];
 

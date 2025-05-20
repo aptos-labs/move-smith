@@ -385,8 +385,7 @@ impl Named for EnumType {
 
 impl PartialEq for EnumType {
     fn eq(&self, other: &Self) -> bool {
-        // Ignore variant when comparing just the type
-        self.name == other.name
+        self.name == other.name && self.variant_pos == other.variant_pos
     }
 }
 
