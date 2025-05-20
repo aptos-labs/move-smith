@@ -264,6 +264,12 @@ impl NamedInfoPool {
             if !scope.is_in_scope(&info.parent_scope()) {
                 return None;
             }
+
+            if info.dot_var.is_some() {
+                if !scope.is_from_same_module(&info.ty().name().get_self_scope()) {
+                    return None;
+                }
+            }
             Some(info)
         })
     }
@@ -275,16 +281,10 @@ impl NamedInfoPool {
                     return None;
                 }
 
-                match info.dot_var {
-                    Some(ref dot_var) => {
-                        if scope.is_from_same_module(&info.ty().name().get_self_scope()) {
-                            Some(dot_var.clone().into())
-                        } else {
-                            None
-                        }
-                    },
-                    None => Some(SingleVariable::new(&info.name(), &info.ty()).into()),
-                }
+                Some(match info.dot_var {
+                    Some(ref dot_var) => dot_var.clone().into(),
+                    None => SingleVariable::new(&info.name(), &info.ty()).into(),
+                })
             })
             .collect::<Vec<Variable>>()
     }
