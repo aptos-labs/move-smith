@@ -15,6 +15,7 @@ pub mod utils;
 
 use codegen::CodeGenerator;
 use generators::*;
+use log::trace;
 use move_ast::MoveAST;
 
 pub struct MoveSmith {
@@ -116,6 +117,7 @@ impl MoveSmith {
         let prog = self
             .framework
             .generate(u, &ProgramGenerator::label(), &AnyConstraint::new())?;
+        trace!("Done generating MoveAST");
         Ok(prog.emit_code())
     }
 }

@@ -500,9 +500,11 @@ impl CodeGenerator for EnumMatch {
 impl CodeGenerator for MatchArm {
     fn emit_code_lines(&self) -> Vec<String> {
         let mut code = vec![];
+        set_ignore_module(true);
         if !self.pattern.is_wildcard() {
             code.push(self.variant_type.name().inline());
         }
+        set_ignore_module(false);
         let pat_lines = self.pattern.emit_code_lines();
         adaptive_append_inline(&mut code, pat_lines, NO_INDENTATION, LINE_WRAP_LIMIT, true);
         code.last_mut().unwrap().push_str(" =>");
@@ -622,7 +624,11 @@ impl CodeGenerator for Statement {
                 } else {
                     let names = vs
                         .iter()
-                        .map(|v| v.name().inline())
+                        .map(|v| {
+                            let mut vp = v.clone();
+                            vp.show_type = false;
+                            vp.inline()
+                        })
                         .collect::<Vec<String>>();
                     let types = vs.iter().map(|v| v.ty().inline()).collect::<Vec<String>>();
                     code.push('(');
@@ -771,7 +777,11 @@ impl CodeGenerator for Variable {
 
 impl CodeGenerator for SingleVariable {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = self.name.emit_code();
+        let mut code = if self.name.is_func() || self.name.is_struct() || self.name.is_enum() {
+            self.name.emit_code()
+        } else {
+            self.name.name.clone()
+        };
         if self.show_type {
             code.push_str(": ");
             code.push_str(&self.typ.emit_code());
