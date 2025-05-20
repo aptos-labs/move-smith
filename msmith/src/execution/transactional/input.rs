@@ -16,8 +16,15 @@ use move_transactional_test_runner::vm_test_harness::TestRunConfig;
 use move_transactional_test_runner_legacy::vm_test_harness::TestRunConfig;
 #[cfg(feature = "local_deps")]
 use move_transactional_test_runner_local::vm_test_harness::TestRunConfig;
+#[cfg(feature = "git_deps")]
+use move_vm_runtime::config::VMConfig;
+#[cfg(feature = "local_deps")]
+use move_vm_runtime::config::VMConfig;
 use std::path::PathBuf;
 use tempfile::TempDir;
+
+#[cfg(feature = "legacy_deps")]
+pub struct VMConfig;
 
 #[derive(Default, Clone)]
 pub enum ExecutionMode {
@@ -60,6 +67,7 @@ impl V2Setting {
 pub struct RunConfig {
     pub mode: ExecutionMode,
     pub v2_setting: Option<V2Setting>,
+    pub vm_config: Option<VMConfig>,
 }
 
 impl RunConfig {
@@ -75,10 +83,12 @@ impl RunConfig {
                 ExecutionMode::V2Only => TestRunConfig::CompilerV2 {
                     language_version: LanguageVersion::V2_2,
                     v2_experiments: experiments,
+                    vm_config: None,
                 },
                 ExecutionMode::V1V2Comparison => TestRunConfig::ComparisonV1V2 {
                     language_version: LanguageVersion::V2_1,
                     v2_experiments: experiments,
+                    vm_config: None,
                 },
             }
         }
@@ -95,6 +105,7 @@ impl RunConfig {
             TestRunConfig::CompilerV2 {
                 language_version: LanguageVersion::V2_2,
                 experiments,
+                vm_config: self.vm_config.clone().unwrap_or_default(),
             }
         }
     }
@@ -117,51 +128,62 @@ impl CommonRunConfig {
             V2Only => vec![RunConfig {
                 mode: ExecutionMode::V2Only,
                 v2_setting: Some(V2Setting::Optimization),
+                vm_config: None,
             }],
             V1V2Comparison => vec![RunConfig {
                 mode: ExecutionMode::V1V2Comparison,
                 v2_setting: Some(V2Setting::Optimization),
+                vm_config: None,
             }],
             V2OptLevels => vec![
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::NoOptimization),
+                    vm_config: None,
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::Optimization),
+                    vm_config: None,
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::ExtraOptimization),
+                    vm_config: None,
                 },
             ],
             V2Extra => vec![
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::NoOptimization),
+                    vm_config: None,
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::ExtraOptimization),
+                    vm_config: None,
                 },
             ],
             All => vec![
                 RunConfig {
                     mode: ExecutionMode::V1Only,
                     v2_setting: None,
+                    vm_config: None,
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::Optimization),
+                    vm_config: None,
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::NoOptimization),
+                    vm_config: None,
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::OptNoSimp),
+                    vm_config: None,
                 },
             ],
         }
@@ -210,7 +232,11 @@ impl TransactionalInputBuilder {
     }
 
     pub fn add_run(&mut self, mode: ExecutionMode, v2_setting: Option<V2Setting>) -> &mut Self {
-        self.runs.push(RunConfig { mode, v2_setting });
+        self.runs.push(RunConfig {
+            mode,
+            v2_setting,
+            vm_config: None,
+        });
         self
     }
 
