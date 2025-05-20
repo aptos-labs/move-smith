@@ -295,7 +295,7 @@ impl Named for StructType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Eq, Ord, PartialOrd)]
 pub struct EnumType {
     pub name: Id,
     pub type_params: Vec<TypeParameter>,
@@ -371,12 +371,25 @@ impl Named for EnumType {
         if self.variant_pos.is_some() {
             let variant = self.variants[self.variant_pos.unwrap()].0.clone();
             let name = format!("{}::{}", self.name, variant);
-            Id::new_without_scopes(&name, IdKind::Var)
+            Id::new(
+                name,
+                IdKind::Var,
+                self.name.get_parent_scope(),
+                self.name.get_self_scope(),
+            )
         } else {
             self.name.clone()
         }
     }
 }
+
+impl PartialEq for EnumType {
+    fn eq(&self, other: &Self) -> bool {
+        // Ignore variant when comparing just the type
+        self.name == other.name
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct EnumVariantType {
     pub name: Id,

@@ -287,10 +287,15 @@ pub fn get_complete_patterns_for_enum(
 
 pub fn random_type_from_curr_scope(
     u: &mut Unstructured,
-    env: &StatePool<MoveAST>,
+    env: &mut StatePool<MoveAST>,
     selectors: Vec<TypeSelector>,
 ) -> Result<Type> {
     let curr_scope = get_curr_scope(env);
     let named_infos = get_named_infos(env);
-    named_infos.random_type(&curr_scope, u, selectors)
+    let mut chosen_type = named_infos.random_type(&curr_scope, u, selectors);
+    if let Ok(Type::Generic(GenericType::Function(func_type))) = &mut chosen_type {
+        let (func_name, _) = new_id_from_curr_scope(env, IdKind::Function);
+        func_type.name = func_name;
+    }
+    chosen_type
 }

@@ -67,6 +67,10 @@ impl Id {
         }
     }
 
+    pub fn full_name(&self) -> String {
+        self.self_scope.get_name()
+    }
+
     /// Merge a list of Ids into a dot separated name.
     /// The scopes and kind of the first Id in the list are used.
     pub fn merge_into_dot_name(ids: &[Self]) -> Self {
@@ -198,6 +202,20 @@ impl Scope {
     /// Return if the scope is the root scope.
     pub fn is_root(&self) -> bool {
         self.0.is_none()
+    }
+
+    pub fn is_from_same_module(&self, other: &Scope) -> bool {
+        if self.is_root() || other.is_root() {
+            return false;
+        }
+        let self_pieces = self.to_pieces();
+        let other_pieces = other.to_pieces();
+        if self_pieces.len() < 2 || other_pieces.len() < 2 {
+            return false;
+        }
+
+        // Scopes have format of Address::Module
+        self_pieces[1] == other_pieces[1]
     }
 
     /// Returns true if `self` is the same as or within `scope`.

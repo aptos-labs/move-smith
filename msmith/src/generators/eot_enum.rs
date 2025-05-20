@@ -1,7 +1,7 @@
 use crate::{
     generators::ExprOfTypeGenerator,
     move_ast::{EnumInstantiation, Expression, MoveAST, SingleVariable},
-    states::{ConcreteType, EnumVariantType, GenericType, Type},
+    states::{get_curr_scope, ConcreteType, EnumVariantType, GenericType, Named, Type},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -27,10 +27,16 @@ impl Register<GeneratorEntry> for EOTEnumGenerator {
 }
 
 impl Generator<MoveAST, AnyConstraint> for EOTEnumGenerator {
-    fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+    fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         warn!("EOTEnumGenerator::check_constraint not implemented, need to check if type parameters and abilities can be created");
         let typ = constraint.get::<Type>("type").unwrap();
-        typ.as_enum().and_then(|e| e.variant_pos.as_ref()).is_some()
+        let Some(enum_typ) = typ.as_enum() else {
+            return false;
+        };
+
+        let has_pos = enum_typ.variant_pos.as_ref().is_some();
+        let same_module = get_curr_scope(env).is_from_same_module(&enum_typ.self_scope());
+        has_pos && same_module
     }
 
     fn subtrees(

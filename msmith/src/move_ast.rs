@@ -73,6 +73,7 @@ pub struct Program {
 pub struct MoveModule {
     pub address: Address,
     pub name: Id,
+    pub uses: Vec<Use>,
     pub structs: Vec<Struct>,
     pub enums: Vec<Enum>,
     pub functions: Vec<Function>,
@@ -85,6 +86,13 @@ pub struct Runners(pub Vec<Function>);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Producers(pub Vec<Function>);
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Use {
+    pub name: Id,
+    // pub use_all: bool,
+    // pub alias: Option<Id>,
+    // pub elements: Vec<Id>,
+}
 /// Currently only support the `//# run` command for a function with no arguments
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Command {
@@ -142,6 +150,12 @@ pub struct Enum {
     pub type_params: TypeParameters,
     pub abilities: Vec<Ability>,
     pub variants: Vec<EnumVariant>,
+}
+
+impl Named for Enum {
+    fn name(&self) -> Id {
+        self.name.clone()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -761,6 +775,7 @@ impl Default for Program {
                     Scope::default(),
                     Scope::default(),
                 ),
+                uses: vec![],
                 structs: vec![],
                 enums: vec![],
                 functions: vec![],

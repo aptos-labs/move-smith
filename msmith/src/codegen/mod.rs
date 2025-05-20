@@ -4,11 +4,13 @@
 use crate::{
     move_ast::*,
     states::{
-        ids::{Id, Named},
+        ids::{Id, Named, Scope, ROOT_SCOPE},
         types::{Type, Typed},
         Ability, FunctionType, GenericType, NumberType, Primitive, ReferenceType,
     },
 };
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
 /// The code put before each generated Move source code.
 static PROLOGUE: &str = include_str!("prologue.move");
@@ -19,6 +21,23 @@ static EPILOGUE: &str = include_str!("epilogue.move");
 const NO_INDENTATION: usize = 0;
 const INDENTATION_SIZE: usize = 4;
 const LINE_WRAP_LIMIT: usize = 120;
+
+static CURRENT_MODULE: Lazy<Mutex<Scope>> = Lazy::new(|| Mutex::new(ROOT_SCOPE.clone()));
+static IGNORE_MODULE: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
+
+fn set_ignore_module(ignore: bool) {
+    *IGNORE_MODULE.lock().unwrap() = ignore;
+}
+
+fn is_cross_module(name: &Id) -> bool {
+    if *IGNORE_MODULE.lock().unwrap() {
+        return false;
+    }
+    !CURRENT_MODULE
+        .lock()
+        .unwrap()
+        .is_from_same_module(&name.get_self_scope())
+}
 
 /// Generates Move source code from an AST.
 /// `emit_code_lines` should be implemented for each AST node.
@@ -184,7 +203,11 @@ impl CodeGenerator for MoveAST {
 
 impl CodeGenerator for Id {
     fn emit_code_lines(&self) -> Vec<String> {
-        vec![self.name.clone()]
+        if is_cross_module(self) {
+            vec![self.full_name()]
+        } else {
+            vec![self.name.clone()]
+        }
     }
 }
 
@@ -206,6 +229,8 @@ impl CodeGenerator for Program {
 
 impl CodeGenerator for MoveModule {
     fn emit_code_lines(&self) -> Vec<String> {
+        *CURRENT_MODULE.lock().unwrap() = self.name.get_self_scope();
+
         // The `//# publish` is for the transactional test
         let mut code = vec![
             "//# publish".to_string(),
@@ -215,6 +240,9 @@ impl CodeGenerator for MoveModule {
                 self.name.emit_code()
             ),
         ];
+        for u in &self.uses {
+            append_code_lines_with_indentation(&mut code, u.emit_code_lines(), INDENTATION_SIZE);
+        }
 
         for s in &self.structs {
             append_code_lines_with_indentation(&mut code, s.emit_code_lines(), INDENTATION_SIZE);
@@ -734,7 +762,7 @@ impl CodeGenerator for Variable {
 
 impl CodeGenerator for SingleVariable {
     fn emit_code_lines(&self) -> Vec<String> {
-        let mut code = format!("{}", self.name);
+        let mut code = self.name.emit_code();
         if self.show_type {
             code.push_str(": ");
             code.push_str(&self.typ.emit_code());
@@ -745,11 +773,13 @@ impl CodeGenerator for SingleVariable {
 
 impl CodeGenerator for DotVariable {
     fn emit_code_lines(&self) -> Vec<String> {
+        set_ignore_module(true);
         let ids = self
             .vars
             .iter()
             .map(|(id, _)| id.emit_code())
             .collect::<Vec<String>>();
+        set_ignore_module(false);
         vec![ids.join(".")]
     }
 }
@@ -878,7 +908,7 @@ impl CodeGenerator for GenericType {
     fn emit_code_lines(&self) -> Vec<String> {
         use GenericType as G;
         vec![match self {
-            G::Struct(st) => st.name.name.clone(),
+            G::Struct(st) => st.name().emit_code(),
             G::Tuple(t) => {
                 let mut code = vec![];
                 for ty in &t.types {
@@ -886,7 +916,7 @@ impl CodeGenerator for GenericType {
                 }
                 format!("({})", code.join(", "))
             },
-            G::Enum(e) => e.name.name.clone(),
+            G::Enum(e) => e.name.emit_code(),
             G::Function(f) => f.emit_code(),
             G::Reference(r) => r.emit_code(),
             _ => unimplemented!(),
@@ -997,6 +1027,12 @@ impl CodeGenerator for Dereference {
     fn emit_code_lines(&self) -> Vec<String> {
         let expr_lines = self.get_expr().emit_code_lines();
         put_inside_pair_of("*(", ")", expr_lines, NO_INDENTATION)
+    }
+}
+
+impl CodeGenerator for Use {
+    fn emit_code_lines(&self) -> Vec<String> {
+        vec![format!("use {};", self.name.full_name())]
     }
 }
 

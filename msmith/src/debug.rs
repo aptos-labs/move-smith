@@ -14,7 +14,7 @@ use msmith::{
     MoveSmith, Variant,
 };
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::sync::Arc;
+use std::{fs, sync::Arc};
 
 pub fn main() {
     env_logger::init();
@@ -25,6 +25,8 @@ pub fn main() {
     // let ms = MoveSmith::variant(Variant::FlushWrites);
     let code = ms.generate(&buffer).unwrap();
     println!("{code}");
+    fs::write("debug.move", &code).expect("Unable to write file");
+
     if log::max_level() == LevelFilter::Trace {
         warn!("Trace level logging is enabled, skipping compilation & execution.");
         return;

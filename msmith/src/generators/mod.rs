@@ -35,6 +35,7 @@ export_all!(
     eot_number_ops,
     eot_reference,
     eot_deref,
+    eot_producer_call,
     enums,
     pattern,
     enum_match,

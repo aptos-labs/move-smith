@@ -1,7 +1,7 @@
 use crate::{
     generators::ExprOfTypeGenerator,
     move_ast::{Expression, MoveAST, SingleVariable, StructInstantiation},
-    states::{ConcreteType, GenericType, StructType, Type},
+    states::{get_curr_scope, ConcreteType, GenericType, Named, StructType, Type},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -27,10 +27,13 @@ impl Register<GeneratorEntry> for EOTStructGenerator {
 }
 
 impl Generator<MoveAST, AnyConstraint> for EOTStructGenerator {
-    fn check_constraint(&self, _env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
+    fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         warn!("EOTStructGenerator::check_constraint not implemented, need to check if type parameters and abilities can be created");
         let typ = constraint.get::<Type>("type").unwrap();
-        matches!(typ, Type::Generic(GenericType::Struct(_)))
+        let Some(struct_type) = typ.as_struct() else {
+            return false;
+        };
+        get_curr_scope(env).is_from_same_module(&struct_type.self_scope())
     }
 
     fn subtrees(

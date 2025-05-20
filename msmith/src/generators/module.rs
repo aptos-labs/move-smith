@@ -132,6 +132,7 @@ impl Generator<MoveAST, AnyConstraint> for ModuleGenerator {
         Ok(MoveModule {
             address: constraint.get::<Address>("address").unwrap().clone(),
             name: constraint.get::<Id>("name").unwrap().clone(),
+            uses: vec![],
             structs,
             enums,
             functions,

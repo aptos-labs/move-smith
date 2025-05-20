@@ -1,16 +1,17 @@
 use crate::{
     generators::{
-        AssignPatternGenerator, EnumGenerator, LetAssignGenerator, LetDeclGenerator,
-        SignatureGenerator, StructGenerator,
+        AssignPatternGenerator, EnumGenerator, FunctionGenerator, LetAssignGenerator,
+        LetDeclGenerator, ModuleGenerator, ProducerGenerator, SignatureGenerator, StructGenerator,
     },
     move_ast::{
         Assignment, DotVariable, MatchArm, MoveAST, Pattern, PatternKind, SingleVariable,
-        Statement, Variable,
+        Statement, Variable, Visibility,
     },
     states::{
         get_defined_vars_from_pattern,
         types::{Primitive, TupleType, Type, Typed},
         Ability, FunctionType, GenericType, Id, IdKind, Named, ReferenceType, Scope, TypeSelector,
+        ROOT_SCOPE,
     },
 };
 use anyhow::Result;
@@ -101,6 +102,7 @@ impl NamedInfo {
 
 #[derive(Debug, Default)]
 pub struct NamedInfoPool {
+    modules: Vec<Id>,
     map: BTreeMap<Id, NamedInfoIdx>,
     arena: Arena<NamedInfo>,
     type_selection_depth: RefCell<usize>,
@@ -174,6 +176,11 @@ impl NamedInfoPool {
         }
     }
 
+    /// Return all defined modules defined so far
+    pub fn get_all_modules(&self) -> Vec<Id> {
+        self.modules.clone()
+    }
+
     /// Return all defined struct types that is accessible with in `scope`
     pub fn get_all_struct_types(&self, scope: &Scope) -> Vec<Type> {
         self.arena
@@ -183,7 +190,7 @@ impl NamedInfoPool {
                     return None;
                 }
 
-                if !scope.is_in_scope(&info.parent_scope()) {
+                if !scope.is_from_same_module(&info.self_scope()) {
                     return None;
                 }
 
@@ -201,7 +208,7 @@ impl NamedInfoPool {
                     return None;
                 }
 
-                if !scope.is_in_scope(&info.parent_scope()) {
+                if !scope.is_from_same_module(&info.self_scope()) {
                     return None;
                 }
 
@@ -216,6 +223,10 @@ impl NamedInfoPool {
             .iter()
             .filter_map(|(_, info)| {
                 if !info.typ.is_function() {
+                    return None;
+                }
+
+                if info.parent_scope().is_root() {
                     return None;
                 }
 
@@ -476,11 +487,11 @@ impl NamedInfoPool {
                 .into_iter()
                 .filter_map(|info| {
                     let typ = info.ty();
-                    if typ.is_function() {
-                        Some((typ, 1))
-                    } else {
-                        None
+                    let func_type = typ.as_function().unwrap();
+                    if !scope.is_from_same_module(&func_type.return_type.name().get_self_scope()) {
+                        return None;
                     }
+                    Some((typ, 1))
                 })
                 .collect::<Vec<(Type, u32)>>();
 
@@ -556,11 +567,22 @@ impl NamedInfoPool {
     pub fn save_type_info_from_ast(&mut self, new_ast: &MoveAST, generator: &GenLabel) {
         use MoveAST as M;
         match &new_ast {
+            M::MoveModule(m) => {
+                self.modules.push(m.name.clone());
+            },
             M::Struct(s) => {
                 self.add_new_type(s.name.clone(), s.ty());
             },
             M::Enum(e) => {
-                self.add_new_type(e.name.clone(), e.ty());
+                self.add_new_type(e.name(), e.ty());
+            },
+            M::Function(f) => {
+                // Allow other modules & scripts to call normal functions
+                if matches!(f.visibility, Visibility::Public) && !f.signature.is_func_value {
+                    let mut name_copy = f.name();
+                    name_copy.parent_scope = ROOT_SCOPE.clone();
+                    self.add_new_initialized_variable(name_copy, f.signature.ty());
+                }
             },
             M::Signature(s) => {
                 // Treat function as a variable
@@ -656,12 +678,15 @@ impl Register<StateEntry> for NamedInfoPool {
         StateEntry {
             label: Self::label(),
             generators: vec![
+                ModuleGenerator::label(),
                 StructGenerator::label(),
                 EnumGenerator::label(),
                 SignatureGenerator::label(),
                 LetAssignGenerator::label(),
                 LetDeclGenerator::label(),
                 AssignPatternGenerator::label(),
+                FunctionGenerator::label(),
+                ProducerGenerator::label(),
             ],
         }
     }

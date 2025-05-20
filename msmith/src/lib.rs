@@ -88,6 +88,7 @@ impl MoveSmith {
             .add_generator::<EOTNumberOpsGenerator>()
             .add_generator::<EOTReferenceGenerator>()
             .add_generator::<EOTDereferenceGenerator>()
+            .add_generator::<EOTProducerCallGenerator>()
             .add_state::<states::config::GenerationConfig>()
             .add_state::<states::IdPool>()
             .add_state::<states::CurrScope>()
