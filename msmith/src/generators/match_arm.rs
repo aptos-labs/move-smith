@@ -50,8 +50,11 @@ impl Generator<MoveAST, AnyConstraint> for MatchArmGenerator {
             // TODO: add config number for number seq in arm
             subtrees.push(Subtree::new_generator_subtree(
                 BlockGenerator::label(),
-                AnyConstraint::new()
-                    .with("type", typ.clone())
+                constraint
+                    .clone()
+                    .without("variant_type")
+                    .without("pattern")
+                    .without("scope")
                     .with("num_sequences", 2)
                     .with("is_function_body", false),
             ));

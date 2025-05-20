@@ -1,5 +1,5 @@
 use crate::{
-    generators::{ExprOfTypeGenerator, BlockGenerator},
+    generators::{BlockGenerator, ExprOfTypeGenerator},
     move_ast::{
         Block, Expression, FunctionValue, MoveAST, Signature, SingleVariable, TypeParameters,
     },
@@ -36,7 +36,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncValGenerator {
         matches!(
             constraint.get::<Type>("type").unwrap(),
             Type::Generic(GenericType::Function(_))
-        )
+        ) && !constraint.get_or("will_drop", false)
     }
 
     fn subtrees(
@@ -117,7 +117,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncValGenerator {
                 Block {
                     name,
                     sequences: vec![],
-                    return_expr: Some(expr),
+                    return_expr: Some(Box::new(expr)),
                 }
             },
             _ => panic!("FuncVal compose should only have block or expression"),

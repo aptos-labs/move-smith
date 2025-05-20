@@ -321,7 +321,17 @@ impl Typed for Signature {
 pub struct Block {
     pub name: Id,
     pub sequences: Vec<Sequence>,
-    pub return_expr: Option<Expression>,
+    pub return_expr: Option<Box<Expression>>,
+}
+
+impl Typed for Block {
+    fn ty(&self) -> Type {
+        if let Some(expr) = &self.return_expr {
+            expr.ty()
+        } else {
+            Type::Unit
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -353,6 +363,7 @@ pub enum Expression {
     Unit(Unit),
     Reference(Reference),
     Dereference(Dereference),
+    Block(Block),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -376,6 +387,7 @@ impl Typed for Expression {
             Expression::Unit(_) => Type::Unit,
             Expression::Reference(r) => r.ty(),
             Expression::Dereference(d) => d.ty(),
+            Expression::Block(b) => b.ty(),
         }
     }
 }

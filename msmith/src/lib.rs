@@ -85,6 +85,7 @@ impl MoveSmith {
             .add_generator::<EOTMatchGenerator>()
             .add_generator::<EOTBoolGenerator>()
             .add_generator::<EOTFuncValGenerator>()
+            .add_generator::<EOTDroppableInlineFuncGenerator>()
             .add_generator::<EOTUnitGenerator>()
             .add_generator::<EOTNumberOpsGenerator>()
             .add_generator::<EOTReferenceGenerator>()

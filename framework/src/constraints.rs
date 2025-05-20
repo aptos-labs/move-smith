@@ -38,6 +38,11 @@ impl AnyConstraint {
         self
     }
 
+    pub fn without(mut self, key: &str) -> Self {
+        let _ = self.map.remove(key);
+        self
+    }
+
     pub fn with_constraint(mut self, another: &Self) -> Self {
         self.update(another);
         self

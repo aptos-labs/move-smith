@@ -89,7 +89,7 @@ impl Generator<MoveAST, AnyConstraint> for CallableGenerator {
 
             subtrees.push(Subtree::new_generator_subtree(
                 ExprOfTypeGenerator::label(),
-                AnyConstraint::new().with("type", new_func_typ),
+                constraint.clone().with("type", new_func_typ),
             ));
         } else {
             let chosen = u.choose(&callables)?.clone();

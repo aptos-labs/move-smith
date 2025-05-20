@@ -106,7 +106,11 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
             compose_constraint.insert("has_return", true);
             trace!("Block {name} has return type: {return_type:?}");
 
-            let expr_constraint = AnyConstraint::new().with("type", return_type);
+            let expr_constraint = constraint
+                .clone()
+                .without("num_sequences")
+                .without("is_function_body")
+                .with("type", return_type);
             subtrees.push(Subtree::new_generator_subtree(
                 ExpressionGenerator::label(),
                 expr_constraint,
@@ -139,7 +143,7 @@ impl Generator<MoveAST, AnyConstraint> for BlockGenerator {
             true => {
                 let node = asts.remove(0);
                 let expr: Expression = node.try_into().unwrap();
-                Some(expr)
+                Some(Box::new(expr))
             },
             false => None,
         };

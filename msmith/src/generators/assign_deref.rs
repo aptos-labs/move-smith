@@ -56,7 +56,9 @@ impl Generator<MoveAST, AnyConstraint> for AssignDerefGenerator {
         let subtrees = vec![
             Subtree::new_generator_subtree(
                 ExprOfTypeGenerator::label(),
-                AnyConstraint::new().with("type", lhs_type.clone()),
+                AnyConstraint::new()
+                    .with("type", lhs_type.clone())
+                    .with("will_drop", true),
             ),
             Subtree::new_generator_subtree(
                 ExprOfTypeGenerator::label(),

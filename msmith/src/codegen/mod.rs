@@ -667,6 +667,7 @@ impl CodeGenerator for Expression {
             E::Unit(u) => u.emit_code_lines(),
             E::Reference(r) => r.emit_code_lines(),
             E::Dereference(d) => d.emit_code_lines(),
+            E::Block(b) => b.emit_code_lines(),
         }
     }
 }

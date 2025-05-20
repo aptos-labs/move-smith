@@ -77,7 +77,7 @@ impl Generator<MoveAST, AnyConstraint> for ProducerGenerator {
             body: Block {
                 name: block_id,
                 sequences: vec![],
-                return_expr: Some(return_expr),
+                return_expr: Some(Box::new(return_expr)),
             },
         };
         Ok(func.into())

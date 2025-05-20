@@ -93,7 +93,8 @@ impl Generator<MoveAST, AnyConstraint> for EnumMatchGenerator {
             let (pattern, variant, scope) = pat_scopes[*i].clone();
             let subtree = Subtree::new_generator_subtree(
                 MatchArmGenerator::label(),
-                AnyConstraint::new()
+                constraint
+                    .clone()
                     .with("variant_type", variant)
                     .with("pattern", pattern)
                     .with("scope", scope)

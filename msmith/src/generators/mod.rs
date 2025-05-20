@@ -31,6 +31,7 @@ export_all!(
     eot_match,
     eot_bool,
     eot_func_val,
+    eot_drop_func,
     eot_unit,
     eot_number_ops,
     eot_reference,
