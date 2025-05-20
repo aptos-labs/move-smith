@@ -9,8 +9,7 @@ use crate::{
         Ability, FunctionType, GenericType, NumberType, Primitive, ReferenceType,
     },
 };
-use once_cell::sync::Lazy;
-use std::sync::Mutex;
+use std::cell::RefCell;
 
 /// The code put before each generated Move source code.
 static PROLOGUE: &str = include_str!("prologue.move");
@@ -22,21 +21,29 @@ const NO_INDENTATION: usize = 0;
 const INDENTATION_SIZE: usize = 4;
 const LINE_WRAP_LIMIT: usize = 120;
 
-static CURRENT_MODULE: Lazy<Mutex<Scope>> = Lazy::new(|| Mutex::new(ROOT_SCOPE.clone()));
-static IGNORE_MODULE: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
+thread_local! {
+    static CURRENT_MODULE: RefCell<Scope> = RefCell::new(ROOT_SCOPE.clone());
+    static IGNORE_MODULE: RefCell<bool> = RefCell::new(false);
+}
 
 fn set_ignore_module(ignore: bool) {
-    *IGNORE_MODULE.lock().unwrap() = ignore;
+    IGNORE_MODULE.with(|flag| {
+        *flag.borrow_mut() = ignore;
+    });
 }
 
 fn is_cross_module(name: &Id) -> bool {
-    if *IGNORE_MODULE.lock().unwrap() {
-        return false;
-    }
-    !CURRENT_MODULE
-        .lock()
-        .unwrap()
-        .is_from_same_module(&name.get_self_scope())
+    IGNORE_MODULE.with(|ignore_flag| {
+        if *ignore_flag.borrow() {
+            return false;
+        }
+
+        CURRENT_MODULE.with(|current_scope| {
+            !current_scope
+                .borrow()
+                .is_from_same_module(&name.get_self_scope())
+        })
+    })
 }
 
 /// Generates Move source code from an AST.
@@ -229,7 +236,9 @@ impl CodeGenerator for Program {
 
 impl CodeGenerator for MoveModule {
     fn emit_code_lines(&self) -> Vec<String> {
-        *CURRENT_MODULE.lock().unwrap() = self.name.get_self_scope();
+        CURRENT_MODULE.with(|current| {
+            *current.borrow_mut() = self.name.get_self_scope();
+        });
 
         // The `//# publish` is for the transactional test
         let mut code = vec![
