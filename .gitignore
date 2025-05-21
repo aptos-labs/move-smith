@@ -14,7 +14,7 @@ fuzz/afl*/
 report.toml
 MoveSmith.toml
 test/
-debug.move
+debug.*
 
 # Rust specific ignores
 # Please follow https://help.github.com/en/articles/ignoring-files to create a global
