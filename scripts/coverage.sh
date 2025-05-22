@@ -20,13 +20,16 @@ function generate_coverage() {
     # Check if fuzz target start with afl
     if [[ $fuzz_target == "afl"* ]]; then
         local corpus_dir="$base_dir/fuzz/afl/${fuzz_target}_out/fuzzer0/queue"
+    elif [[ $fuzz_target == "hfuzz"* ]]; then
+        local corpus_dir="$base_dir/fuzz/hfuzz_workspace/$fuzz_target/input"
     else
         local corpus_dir="$base_dir/fuzz/corpus/$fuzz_target"
     fi
 
     # Use libfuzzer target to collect coverage data
-    # Remove the afl- prefix
+    # Remove the afl- or hfuzz- prefix
     fuzz_target=${fuzz_target#afl-}
+    fuzz_target=${fuzz_target#hfuzz-}
 
     local target_dir="$base_dir/coverage"
 
@@ -59,7 +62,7 @@ function generate_coverage() {
         --output-dir=$target_dir \
         -Xdemangler=rustfilt \
         --show-branches=count \
-        --ignore-filename-regex='.rustup|.cargo/registry|.cargo/git/checkouts/bcs*'
+        --ignore-filename-regex='.rustup|.cargo/registry|.cargo/git/checkouts/bcs*|rustc'
     echo "Generated coverage report in $target_dir/index.html"
 }
 

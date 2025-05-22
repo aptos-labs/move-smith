@@ -70,3 +70,10 @@ path = "fuzz_targets/hfuzz_v2_extra.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "v2-extra"
+path = "fuzz_targets/v2_extra.rs"
+test = false
+doc = false
+bench = false

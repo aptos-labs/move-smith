@@ -117,6 +117,7 @@ pub enum CommonRunConfig {
     V2Only,
     V1V2Comparison,
     V2OptLevels,
+    V2NoOptExtra,
     V2Extra,
     All,
 }
@@ -152,7 +153,7 @@ impl CommonRunConfig {
                     vm_config: None,
                 },
             ],
-            V2Extra => vec![
+            V2NoOptExtra => vec![
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::NoOptimization),
@@ -164,6 +165,11 @@ impl CommonRunConfig {
                     vm_config: None,
                 },
             ],
+            V2Extra => vec![RunConfig {
+                mode: ExecutionMode::V2Only,
+                v2_setting: Some(V2Setting::ExtraOptimization),
+                vm_config: None,
+            }],
             All => vec![
                 RunConfig {
                     mode: ExecutionMode::V1Only,

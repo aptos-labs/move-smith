@@ -2097,6 +2097,7 @@ dependencies = [
  "move-model",
  "move-package",
  "move-transactional-test-runner",
+ "move-vm-runtime",
  "num-bigint 0.4.6",
  "num_cpus",
  "once_cell",
