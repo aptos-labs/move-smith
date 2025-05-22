@@ -5,7 +5,7 @@ use crate::{
     states::{
         types::{EnumType, EnumVariantType, GenericType, Type},
         CurrScope, Depth, GenerationConfig, Id, IdKind, IdPool, Named, NamedInfoPool, PerFuncInfo,
-        PerModuleInfo, Scope, TypeSelector,
+        PerModuleInfo, PerTestInfo, Scope, TypeSelector,
     },
 };
 use anyhow::Result;
@@ -56,6 +56,11 @@ pub fn get_current_info(env: &StatePool<MoveAST>) -> &PerFuncInfo {
 #[inline]
 pub fn get_per_module_info(env: &StatePool<MoveAST>) -> &PerModuleInfo {
     env.get::<PerModuleInfo>().unwrap()
+}
+
+#[inline]
+pub fn is_generating_script(env: &StatePool<MoveAST>) -> bool {
+    env.get::<PerTestInfo>().unwrap().generating_script
 }
 
 #[inline]

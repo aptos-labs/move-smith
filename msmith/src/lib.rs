@@ -98,6 +98,7 @@ impl MoveSmith {
             .add_state::<states::Depth>()
             .add_state::<states::PerFuncInfo>()
             .add_state::<states::PerModuleInfo>()
+            .add_state::<states::PerTestInfo>()
             .add_state::<states::NamedInfoPool>()
             .set_priorities(&config.priorities);
 

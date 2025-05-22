@@ -1,7 +1,9 @@
 use crate::{
     generators::{ExprOfTypeGenerator, PatternGenerator},
     move_ast::{Assignment, MoveAST},
-    states::{get_config, random_type_from_curr_scope, Type, TypeSelectorBuilder},
+    states::{
+        get_config, is_generating_script, random_type_from_curr_scope, Type, TypeSelectorBuilder,
+    },
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -39,14 +41,15 @@ impl Generator<MoveAST, AnyConstraint> for AssignPatternGenerator {
         let wanted_type = match constraint.get::<Type>("type") {
             Some(t) => t.clone(),
             None => {
+                let func_weight = if is_generating_script(env) { 0 } else { 1 };
                 let type_selector = TypeSelectorBuilder::all_no(get_config(env))
                     .number(1)
                     .bool(1)
                     .func_return(5)
                     .structs(1)
                     .enums(1)
-                    .defined_func_type(1)
-                    .new_func_type(1)
+                    .defined_func_type(func_weight)
+                    .new_func_type(func_weight)
                     .build();
                 random_type_from_curr_scope(u, env, vec![type_selector])?
             },

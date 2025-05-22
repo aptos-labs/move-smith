@@ -2,8 +2,8 @@ use crate::{
     generators::StatementGenerator,
     move_ast::{MoveAST, SingleVariable, Statement},
     states::{
-        get_config, new_id_from_curr_scope, random_type_from_curr_scope, IdKind, Type,
-        TypeSelectorBuilder,
+        get_config, is_generating_script, new_id_from_curr_scope, random_type_from_curr_scope,
+        IdKind, Type, TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -43,12 +43,13 @@ impl Generator<MoveAST, AnyConstraint> for LetDeclGenerator {
             Some(types) => types.clone(),
             None => {
                 let num_new_vars = u.int_in_range(1..=4)?;
+                let func_weight = if is_generating_script(env) { 0 } else { 1 };
                 let selector = TypeSelectorBuilder::all_no(get_config(env))
                     .bool(1)
                     .number(1)
                     .structs(1)
                     .enums(1)
-                    .new_func_type(1)
+                    .new_func_type(func_weight)
                     .reference(1)
                     .mut_reference(1)
                     .build();

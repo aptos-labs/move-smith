@@ -278,6 +278,9 @@ impl CodeGenerator for MoveModule {
 
 impl CodeGenerator for Script {
     fn emit_code_lines(&self) -> Vec<String> {
+        CURRENT_MODULE.with(|current| {
+            *current.borrow_mut() = Scope(Some("NOT_A_MODULE_SCOPE".to_string()));
+        });
         let mut code = vec!["//# run".to_string(), "script {".to_string()];
         let func_lines = self.main.emit_code_lines();
         append_code_lines_with_indentation(&mut code, func_lines, INDENTATION_SIZE);

@@ -10,5 +10,6 @@ export_all!(
     per_func,
     named_info,
     type_selector,
-    per_module
+    per_module,
+    per_test
 );

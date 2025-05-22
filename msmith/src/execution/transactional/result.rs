@@ -10,7 +10,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 26] = [
+const TO_IGNORE: [&str; 27] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     // "infer",
     "MAX_",
@@ -50,6 +50,7 @@ const TO_IGNORE: [&str; 26] = [
     "bug: Unpacking a reference to a struct must return the references of fields",
     "error: undeclared",
     "borrowed",
+    "error: lambda lifting is not allowed in scripts",
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
