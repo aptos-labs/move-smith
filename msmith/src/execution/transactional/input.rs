@@ -105,7 +105,11 @@ impl RunConfig {
             TestRunConfig::CompilerV2 {
                 language_version: LanguageVersion::V2_2,
                 experiments,
-                vm_config: self.vm_config.clone().unwrap_or_default(),
+                vm_config: self.vm_config.clone().unwrap_or({
+                    let mut vm_config = VMConfig::default();
+                    vm_config.paranoid_type_checks = true;
+                    vm_config
+                }),
             }
         }
     }
