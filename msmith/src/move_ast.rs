@@ -258,6 +258,7 @@ pub struct TypeParameters {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
     pub visibility: Visibility,
+    pub inline: bool,
     pub signature: Signature,
     pub body: Block,
 }

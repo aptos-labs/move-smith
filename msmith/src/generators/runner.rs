@@ -78,6 +78,7 @@ impl Generator<MoveAST, AnyConstraint> for RunnerGenerator {
             .unwrap();
 
         let func = Function {
+            inline: false,
             visibility: Visibility::Public,
             signature: Signature {
                 name: runner_name.clone(),

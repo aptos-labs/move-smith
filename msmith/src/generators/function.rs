@@ -56,7 +56,7 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
 
     fn compose(
         &self,
-        _u: &mut Unstructured,
+        u: &mut Unstructured,
         env: &mut StatePool<MoveAST>,
         _constraint: AnyConstraint,
         mut asts: Vec<MoveAST>,
@@ -64,8 +64,15 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
         pop_scope(env);
         let signature = asts.remove(0).into_signature().unwrap();
         let body = asts.remove(0).into_block().unwrap();
+
+        let has_func_arg = signature
+            .parameters
+            .iter()
+            .any(|param| param.typ.is_function());
+        let inline = !has_func_arg && u.ratio(1, 10)?;
         Ok(Function {
             visibility: Visibility::Public,
+            inline,
             signature,
             body,
         }

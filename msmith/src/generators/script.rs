@@ -70,6 +70,7 @@ impl Generator<MoveAST, AnyConstraint> for ScriptGenerator {
         let signature = constraint.get::<Signature>("signature").unwrap().clone();
         let func = Function {
             visibility: Visibility::Private,
+            inline: false,
             signature,
             body,
         };

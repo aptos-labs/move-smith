@@ -65,6 +65,7 @@ impl Generator<MoveAST, AnyConstraint> for ProducerGenerator {
         let return_type = constraint.get::<Type>("type").unwrap().clone();
         let return_expr = asts.into_iter().next().unwrap().into_expression().unwrap();
         let func = Function {
+            inline: false,
             visibility: Visibility::Public,
             signature: Signature {
                 name,

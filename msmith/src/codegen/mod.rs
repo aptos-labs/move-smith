@@ -531,9 +531,14 @@ impl CodeGenerator for Ability {
 
 impl CodeGenerator for Function {
     fn emit_code_lines(&self) -> Vec<String> {
+        let inline_code = match self.inline {
+            true => "inline ".to_string(),
+            false => "".to_string(),
+        };
         let mut code = vec![format!(
-            "{}{}",
+            "{}{}{}",
             self.visibility.emit_code(),
+            inline_code,
             self.signature.emit_code()
         )];
         append_block(&mut code, self.body.emit_code_lines(), 0);
