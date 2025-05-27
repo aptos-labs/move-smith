@@ -27,7 +27,7 @@ fuzz_target!(|data: &[u8]| {
     let mut input_builder = TransactionalInputBuilder::new();
     let input = input_builder
         .set_code(&code)
-        .with_common_runs(&CommonRunConfig::V2NoOptExtra)
+        .with_common_runs(&CommonRunConfig::Default)
         .build();
 
     let bug = RUNNER.lock().unwrap().execute_check_new_bug(&input);

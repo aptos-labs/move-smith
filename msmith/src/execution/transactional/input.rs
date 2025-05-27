@@ -102,14 +102,13 @@ impl RunConfig {
                 error!("V1 is not supported in the new test framework");
                 panic!();
             }
+
+            let mut vm_config = self.vm_config.clone().unwrap_or(VMConfig::default());
+            vm_config.paranoid_type_checks = true;
             TestRunConfig::CompilerV2 {
                 language_version: LanguageVersion::V2_2,
                 experiments,
-                vm_config: self.vm_config.clone().unwrap_or({
-                    let mut vm_config = VMConfig::default();
-                    vm_config.paranoid_type_checks = true;
-                    vm_config
-                }),
+                vm_config,
             }
         }
     }
@@ -118,6 +117,7 @@ impl RunConfig {
 #[derive(ValueEnum, Debug, Clone, Default)]
 pub enum CommonRunConfig {
     #[default]
+    Default,
     V2Only,
     V1V2Comparison,
     V2OptLevels,
@@ -130,6 +130,26 @@ impl CommonRunConfig {
     pub fn to_run_configs(&self) -> Vec<RunConfig> {
         use CommonRunConfig::*;
         match self {
+            Default => vec![
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::Optimization),
+                    vm_config: {
+                        let mut config = VMConfig::default();
+                        config.use_call_tree_and_instruction_cache = false;
+                        Some(config)
+                    },
+                },
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::ExtraOptimization),
+                    vm_config: {
+                        let mut config = VMConfig::default();
+                        config.use_call_tree_and_instruction_cache = true;
+                        Some(config)
+                    },
+                },
+            ],
             V2Only => vec![RunConfig {
                 mode: ExecutionMode::V2Only,
                 v2_setting: Some(V2Setting::Optimization),

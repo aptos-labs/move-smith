@@ -65,15 +65,15 @@ doc = false
 bench = false
 
 [[bin]]
-name = "hfuzz-v2-extra"
-path = "fuzz_targets/hfuzz_v2_extra.rs"
+name = "hfuzz-default"
+path = "fuzz_targets/hfuzz_default.rs"
 test = false
 doc = false
 bench = false
 
 [[bin]]
-name = "v2-extra"
-path = "fuzz_targets/v2_extra.rs"
+name = "default"
+path = "fuzz_targets/default.rs"
 test = false
 doc = false
 bench = false
