@@ -76,6 +76,13 @@ def main(base_path):
             if result:
                 failed.append(result)
 
+    subprocess.run("cat *.error > combined.error", shell=True, cwd=base_dir)
+    subprocess.run('grep "bug" combined.error | sort | uniq > bugs.txt', shell=True, cwd=base_dir)
+    subprocess.run('grep "error" combined.error | sort | uniq > errors.txt', shell=True, cwd=base_dir)
+    print(f"Combined errors written to {base_dir / 'combined.error'}")
+    print(f"Bugs written to {base_dir / 'bugs.txt'}")
+    print(f"Errors written to {base_dir / 'errors.txt'}")
+
     if failed:
         print("The following files failed to compile:")
         for f in failed:

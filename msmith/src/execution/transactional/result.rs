@@ -10,7 +10,7 @@ use std::{
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 27] = [
+const TO_IGNORE: [&str; 28] = [
     // "EXTRANEOUS_ACQUIRES_ANNOTATION",
     // "infer",
     "MAX_",
@@ -51,6 +51,7 @@ const TO_IGNORE: [&str; 27] = [
     "error: undeclared",
     "borrowed",
     "error: lambda lifting is not allowed in scripts",
+    "error: inline function cannot be used as a function value",
 ];
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]

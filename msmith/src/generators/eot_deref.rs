@@ -32,7 +32,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTDereferenceGenerator {
     fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
         !almost_reached_max_expr_depth(env, 1) && {
             let inner_type = constraint.get::<Type>("type").unwrap();
-            !inner_type.is_reference() && !inner_type.is_function()
+            !inner_type.is_reference() && !inner_type.is_function() && !inner_type.is_tuple()
         }
     }
 

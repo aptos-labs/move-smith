@@ -60,7 +60,7 @@ pub struct GenerationConfig {
     pub num_type_params_in_func: RandomNumber,
 
     /// The number of functions that can have `inline`
-    pub num_inline_funcs: RandomNumber,
+    pub num_inline_funcs: RandomCounter,
 
     /// The number of functions that can have `inline`
     pub num_nested_calls: RandomNumber,

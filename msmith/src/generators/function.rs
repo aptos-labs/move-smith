@@ -1,6 +1,6 @@
 use crate::{
     move_ast::{Function, MoveAST, Visibility},
-    states::{new_id_from_curr_scope_and_push_scope, pop_scope, IdKind, Type},
+    states::{get_config_mut, new_id_from_curr_scope_and_push_scope, pop_scope, IdKind, Type},
     BlockGenerator, SignatureGenerator,
 };
 use anyhow::Result;
@@ -65,11 +65,12 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
         let signature = asts.remove(0).into_signature().unwrap();
         let body = asts.remove(0).into_block().unwrap();
 
-        let has_func_arg = signature
-            .parameters
-            .iter()
-            .any(|param| param.typ.is_function());
-        let inline = !has_func_arg && u.ratio(1, 10)?;
+        let inline = if u.ratio(1, 30)? {
+            get_config_mut(env).num_inline_funcs.incr(u)
+        } else {
+            false
+        };
+
         Ok(Function {
             visibility: Visibility::Public,
             inline,
