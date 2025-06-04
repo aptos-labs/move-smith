@@ -11,7 +11,6 @@ checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 [[package]]
 name = "abstract-domain-derive"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1332,7 +1331,6 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 [[package]]
 name = "legacy-move-compiler"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1462,7 +1460,6 @@ dependencies = [
 [[package]]
 name = "move-abigen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1479,7 +1476,6 @@ dependencies = [
 [[package]]
 name = "move-binary-format"
 version = "0.0.3"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "backtrace",
@@ -1494,12 +1490,10 @@ dependencies = [
 [[package]]
 name = "move-borrow-graph"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 
 [[package]]
 name = "move-bytecode-source-map"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1514,7 +1508,6 @@ dependencies = [
 [[package]]
 name = "move-bytecode-spec"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "once_cell",
  "quote",
@@ -1524,7 +1517,6 @@ dependencies = [
 [[package]]
 name = "move-bytecode-utils"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "move-binary-format",
@@ -1536,7 +1528,6 @@ dependencies = [
 [[package]]
 name = "move-bytecode-verifier"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "fail",
  "move-binary-format",
@@ -1550,7 +1541,6 @@ dependencies = [
 [[package]]
 name = "move-command-line-common"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "difference",
@@ -1567,7 +1557,6 @@ dependencies = [
 [[package]]
 name = "move-compiler-v2"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "abstract-domain-derive",
  "anyhow",
@@ -1601,7 +1590,6 @@ dependencies = [
 [[package]]
 name = "move-core-types"
 version = "0.0.4"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1623,7 +1611,6 @@ dependencies = [
 [[package]]
 name = "move-coverage"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1642,7 +1629,6 @@ dependencies = [
 [[package]]
 name = "move-disassembler"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "clap",
@@ -1659,7 +1645,6 @@ dependencies = [
 [[package]]
 name = "move-docgen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "clap",
@@ -1678,7 +1663,6 @@ dependencies = [
 [[package]]
 name = "move-errmapgen"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "move-command-line-common",
@@ -1690,7 +1674,6 @@ dependencies = [
 [[package]]
 name = "move-ir-compiler"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1706,7 +1689,6 @@ dependencies = [
 [[package]]
 name = "move-ir-to-bytecode"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "codespan-reporting",
@@ -1724,7 +1706,6 @@ dependencies = [
 [[package]]
 name = "move-ir-to-bytecode-syntax"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "hex",
@@ -1737,7 +1718,6 @@ dependencies = [
 [[package]]
 name = "move-ir-types"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "hex",
  "move-command-line-common",
@@ -1750,7 +1730,6 @@ dependencies = [
 [[package]]
 name = "move-model"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "codespan",
@@ -1777,7 +1756,6 @@ dependencies = [
 [[package]]
 name = "move-package"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "clap",
@@ -1811,7 +1789,6 @@ dependencies = [
 [[package]]
 name = "move-prover"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "atty",
@@ -1838,7 +1815,6 @@ dependencies = [
 [[package]]
 name = "move-prover-boogie-backend"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1867,7 +1843,6 @@ dependencies = [
 [[package]]
 name = "move-prover-bytecode-pipeline"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "abstract-domain-derive",
  "anyhow",
@@ -1883,7 +1858,6 @@ dependencies = [
 [[package]]
 name = "move-resource-viewer"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "hex",
@@ -1908,7 +1882,6 @@ dependencies = [
 [[package]]
 name = "move-stackless-bytecode"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "abstract-domain-derive",
  "anyhow",
@@ -1930,7 +1903,6 @@ dependencies = [
 [[package]]
 name = "move-stdlib"
 version = "0.1.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "hex",
@@ -1953,7 +1925,6 @@ dependencies = [
 [[package]]
 name = "move-symbol-pool"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "once_cell",
  "serde",
@@ -1962,12 +1933,12 @@ dependencies = [
 [[package]]
 name = "move-table-extension"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "better_any",
  "bytes",
  "move-binary-format",
  "move-core-types",
+ "move-stdlib",
  "move-vm-runtime",
  "move-vm-types",
  "sha3",
@@ -1977,7 +1948,6 @@ dependencies = [
 [[package]]
 name = "move-transactional-test-runner"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "clap",
@@ -2007,7 +1977,6 @@ dependencies = [
 [[package]]
 name = "move-vm-metrics"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "once_cell",
  "prometheus",
@@ -2016,7 +1985,6 @@ dependencies = [
 [[package]]
 name = "move-vm-runtime"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "ambassador",
  "better_any",
@@ -2041,7 +2009,6 @@ dependencies = [
 [[package]]
 name = "move-vm-test-utils"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2058,7 +2025,6 @@ dependencies = [
 [[package]]
 name = "move-vm-types"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?branch=main#933eb5c8faabfb6caf38f5ffda2bc8c43e10bfba"
 dependencies = [
  "ambassador",
  "bcs",

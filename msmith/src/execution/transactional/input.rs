@@ -19,12 +19,12 @@ use move_transactional_test_runner_local::vm_test_harness::TestRunConfig;
 #[cfg(feature = "git_deps")]
 use move_vm_runtime::config::VMConfig;
 #[cfg(feature = "local_deps")]
-use move_vm_runtime::config::VMConfig;
+use move_vm_runtime_local::config::VMConfig;
+#[cfg(feature = "legacy_deps")]
+use move_vm_runtime_legacy::config::VMConfig;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
-#[cfg(feature = "legacy_deps")]
-pub struct VMConfig;
 
 #[derive(Default, Clone)]
 pub enum ExecutionMode {
@@ -137,6 +137,7 @@ impl CommonRunConfig {
                     vm_config: {
                         let mut config = VMConfig::default();
                         config.use_call_tree_and_instruction_cache = false;
+                        config.enable_lazy_loading = false;
                         Some(config)
                     },
                 },
@@ -146,6 +147,7 @@ impl CommonRunConfig {
                     vm_config: {
                         let mut config = VMConfig::default();
                         config.use_call_tree_and_instruction_cache = true;
+                        config.enable_lazy_loading = true;
                         Some(config)
                     },
                 },

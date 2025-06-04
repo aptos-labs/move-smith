@@ -17,7 +17,7 @@ local_deps = [
     "move-model-local",
     "move-package-local",
     "move-transactional-test-runner-local",
-    "move-vm-runtime",
+    "move-vm-runtime-local",
     # "aptos-transactional-test-harness-local",
 ]
 legacy_deps = [
@@ -25,7 +25,7 @@ legacy_deps = [
     "move-model-legacy",
     "move-package-legacy",
     "move-transactional-test-runner-legacy",
-    "move-vm-runtime",
+    "move-vm-runtime-legacy",
     # "aptos-transactional-test-harness-legacy",
 ]
 
