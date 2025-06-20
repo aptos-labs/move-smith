@@ -1,0 +1,219 @@
+from __future__ import annotations
+
+import json
+import multiprocessing
+import random
+from pathlib import Path
+from typing import TypeAlias
+
+from deap import base, creator, tools
+from loguru import logger
+
+from .config import cfg
+from .coverage import Coverage
+from .generate_test import generate_new_tests
+from .llm import cosine_sim, get_content_hash
+from .runner import run_one_test
+from .store import FeatureStore, Monitor
+
+# Fuzzing statistics keys
+NUM_FEATURES_KEY = "num_features"
+NUM_TESTS_KEY = "num_tests"
+NUM_UNIQUE_TESTS_KEY = "num_unique_tests"
+NUM_COMPILABLE_TESTS_KEY = "num_compilable_tests"
+CURRENT_GENERATION_KEY = "current_generation"
+TOTAL_GENERATION_KEY = "total_generation"
+NUM_MUTATIONS_KEY = "num_mutations"
+NUM_CROSSOVERS_KEY = "num_crossovers"
+
+CUMULATIVE_COVERAGE_KEY = "cumulative_coverage"
+CUMULATIVE_COVERAGE_LOCK = "lock:cumulative_coverage"
+CUMULATIVE_COVERAGE_FILE_NAME = "cumulative_coverage.json"
+
+# Type Definitions
+Individual: TypeAlias = list[str]
+FitnessValue: TypeAlias = tuple[float, float, float, float]
+# (unique_coverage, code_similarity, interesting_coverage, feature_similarity)
+
+
+def run_test_and_calculate_coverages(test_code: str) -> tuple[Coverage, Coverage, Coverage]:
+    """
+    Returns:
+        tuple[Coverage, Coverage]: Test Coverage, Unique Coverage, Interesting Coverage
+    """
+    monitor = Monitor()
+    test_coverage = run_one_test(test_code)
+    monitor.record_coverage(test_coverage.total_cov())
+
+    with monitor.store.client.lock(CUMULATIVE_COVERAGE_LOCK, timeout=10):
+        total_coverage = monitor.store.get(CUMULATIVE_COVERAGE_KEY, Coverage)
+        uniq_cov = test_coverage.unique_cov(total_coverage)
+        uniq_cov_aggregated = uniq_cov.total_cov()
+
+        if not uniq_cov_aggregated.is_empty():
+            logger.success(f"Found unique coverage: {uniq_cov_aggregated}")
+            save_unique_test(test_code)
+            total_coverage.merge(test_coverage)
+            monitor.store.set_pickle(CUMULATIVE_COVERAGE_KEY, total_coverage)
+            monitor.record_unique_coverage(total_coverage.total_cov())
+            cov_file = cfg.work_dir / CUMULATIVE_COVERAGE_FILE_NAME
+            cov_file.write_text(json.dumps(total_coverage, indent=2, default=lambda x: x.__dict__))
+        else:
+            logger.trace("No unique coverage found.")
+
+    # TODO: implement interesting coverage logic
+    return test_coverage, uniq_cov, Coverage.new_empty()
+
+
+def evaluate(individual: Individual) -> FitnessValue:
+    monitor = Monitor()
+    feature_store = FeatureStore()
+    # Generate tests
+    features = [feature_store.get_feature(id) for id in individual]
+    tests_code = generate_new_tests(features)
+    monitor.incr_counter(NUM_TESTS_KEY, len(tests_code))
+
+    # Evaluate each test
+    score_list = [evaluate_test(test_code) for test_code in tests_code]
+    (obj1, obj2, obj3) = [sum(x) for x in zip(*score_list)]
+
+    # Objective 4: Similarity to the feature combo
+    feature_sim = 0.0
+    for desc in cfg.task.descriptions:
+        for feat in features:
+            feature_sim += cosine_sim(desc, feat.description)
+
+    return (obj1, obj2, obj3, feature_sim)
+
+
+def evaluate_test(test_code: str) -> tuple[float, float, float]:
+    _test_coverage, uniq_cov, interesting_cov = run_test_and_calculate_coverages(test_code)
+
+    # Objective 1: general coverage improvement
+    uniq_branch_cov = uniq_cov.total_cov().branches_covered()
+
+    # Objective 2: code similarity to task descriptions
+    code_similarity = 0.0
+    for desc in cfg.task.descriptions:
+        code_similarity += cosine_sim(desc, test_code)
+
+    # Objective 3: coverage on interesting files
+    covered_interesting_branches = interesting_cov.total_cov().branches_covered()
+    return (uniq_branch_cov, code_similarity, covered_interesting_branches)
+
+
+def save_unique_test(test_code: str) -> None:
+    monitor = Monitor()
+    unique_tests_dir = cfg.work_dir / "unique_tests"
+    unique_tests_dir.mkdir(parents=True, exist_ok=True)
+    file_hash = get_content_hash(test_code)
+    (unique_tests_dir / f"{file_hash}.move").write_text(test_code, encoding="utf-8")
+    monitor.incr_counter(NUM_UNIQUE_TESTS_KEY)
+
+
+def mutate(individual: Individual) -> Individual:
+    RM_PB = 0.1
+    if len(individual) > 1 and random.random() < RM_PB:
+        idx = random.randint(0, len(individual) - 1)
+        individual.pop(idx)
+
+    num_new_features = random.randint(1, 3)
+    new_features = random.sample(FeatureStore().get_all_keys(), num_new_features)
+    for new_feature in new_features:
+        if new_feature not in individual:
+            individual.append(new_feature)
+    logger.trace(f"Mutated individual {individual} to ==> {new_features}")
+    return individual
+
+
+def fuzzing_loop() -> None:
+    monitor = Monitor()
+    monitor.store.set_pickle(CUMULATIVE_COVERAGE_KEY, Coverage.new_empty())
+    monitor.store.set(TOTAL_GENERATION_KEY, cfg.fuzz.generations)
+
+    feature_store = FeatureStore()
+    for feat_file in cfg.fuzz.features:
+        feature_store.load_features_from_file(feat_file)
+
+    # Positive weights meaning we want to maximize these objectives
+    creator.create("FitnessMin", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0))
+    creator.create("Individual", list, fitness=creator.FitnessMin)
+    toolbox = base.Toolbox()
+    pop = [
+        creator.Individual(random.sample(feature_store.get_all_keys(), 3))
+        for _ in range(cfg.fuzz.feature_combination.init)
+    ]
+
+    pool = multiprocessing.Pool(processes=cfg.fuzz.jobs)
+    toolbox.register("map", pool.map)
+    toolbox.register("mate", tools.cxUniform, indpb=0.5)
+    toolbox.register("mutate", mutate)
+    toolbox.register("select", tools.selTournament, tournsize=3)
+    toolbox.register("evaluate", evaluate)
+
+    fitnesses = toolbox.map(toolbox.evaluate, pop)
+    for ind, fit in zip(pop, fitnesses):
+        ind.fitness.values = fit
+
+    for g in range(cfg.fuzz.generations):
+        logger.trace(f"Generation {g + 1}/{cfg.fuzz.generations}")
+        monitor.incr_counter(CURRENT_GENERATION_KEY)
+        if monitor.reached_total_cost_limit():
+            logger.info("Reached total cost limit, stopping fuzzing loop.")
+            break
+
+        parents = toolbox.select(pop, cfg.fuzz.feature_combination.mu)
+        offspring = []
+
+        while len(offspring) < cfg.fuzz.feature_combination.lam:
+            p1, p2 = random.sample(parents, 2)
+            child1, child2 = toolbox.clone(p1), toolbox.clone(p2)
+
+            if random.random() < cfg.fuzz.feature_combination.cross_over_rate:
+                logger.trace(f"Crossover between {child1} and {child2}")
+                toolbox.mate(child1, child2)
+                del child1.fitness.values
+                del child2.fitness.values
+                monitor.incr_counter(NUM_CROSSOVERS_KEY)
+
+            for child in (child1, child2):
+                if random.random() < cfg.fuzz.feature_combination.mutation_rate:
+                    logger.trace(f"Mutating {child}")
+                    toolbox.mutate(child)
+                    del child.fitness.values
+                    monitor.incr_counter(NUM_MUTATIONS_KEY)
+                offspring.append(child)
+
+        offspring = offspring[: cfg.fuzz.feature_combination.lam]
+        fitnesses = toolbox.map(toolbox.evaluate, offspring)
+        for ind, fit in zip(offspring, fitnesses):
+            ind.fitness.values = fit
+
+        pop = toolbox.select(pop + offspring, cfg.fuzz.feature_combination.mu)
+
+    save_states()
+    show_fuzzing_stat()
+
+
+def save_states() -> None:
+    feature_store = FeatureStore()
+    feature_store.save_local(cfg.work_dir / "feature_store.json", overwrite=True)
+    monitor = Monitor()
+    monitor.store.dump_to_local(cfg.work_dir / "dump.rdb")
+
+
+def show_fuzzing_stat(save_unique_lines: bool = True) -> None:
+    monitor = Monitor()
+    total_cov = monitor.store.get(CUMULATIVE_COVERAGE_KEY, Coverage)
+    logger.info(f"Total coverage after evolution: {total_cov.total_cov()}")
+
+    num_unique_tests = monitor.store.get(NUM_UNIQUE_TESTS_KEY, int)
+    logger.info(f"Number of unique tests generated: {num_unique_tests}")
+
+    original_total_lcov = Path("/scratch/zijie-data/move-smith/llm/bench2/original_transactional/total_coverage.lcov")
+    if original_total_lcov.exists():
+        original_cov = Coverage.parse(original_total_lcov)
+        uniq = total_cov.unique_cov(original_cov)
+        print(f"Unique coverage compared to original: {uniq.total_cov()}")
+        if save_unique_lines:
+            (cfg.work_dir / "unique_lines.txt").write_text(uniq.dump_lines())

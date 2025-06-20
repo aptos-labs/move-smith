@@ -1,0 +1,29 @@
+[fuzz]
+jobs = 8
+cost_usd_limit = 1.0
+generations = 50
+features = ["data/feature_rust.json", "data/feature_transactional.json"]
+
+[fuzz.feature_combination]
+init = 20             # Initial population size
+mu = 100              # Population size
+lam = 30              # Offspring size
+cross_over_rate = 0.4
+mutation_rate = 0.5
+tests_per_combo = 1
+
+[fuzz.feature]
+init = 10
+mu = 10             # Population size
+lam = 10            # Offspring size
+mutation_rate = 0.1
+
+[models.default]
+name = "gpt-4.1-nano"
+# name = "gpt-4.1-mini"
+# name = "gpt-4.1"
+temperature = 0.5
+
+[models.extract]
+name = "gpt-4.1"
+temperature = 0.5

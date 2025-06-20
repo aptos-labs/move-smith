@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis/redis-stack:latest
+    container_name: move_redis
+    ports:
+      - "6379:6379"
+      - "8001:8001"  # Optional RedisInsight UI
+    networks:
+      - llmnet
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: move_grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - llmnet
+    depends_on:
+      - redis
+    environment:
+      - GF_INSTALL_PLUGINS=redis-datasource
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./dashboard.json:/etc/grafana/provisioning/dashboards/my_dashboard.json
+
+
+networks:
+  llmnet:
+    driver: bridge

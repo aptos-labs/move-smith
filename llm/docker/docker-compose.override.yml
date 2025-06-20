@@ -1,0 +1,6 @@
+version: '3.8'
+
+services:
+  redis:
+    volumes:
+      - ${DUMP_PATH}:/data/dump.rdb
