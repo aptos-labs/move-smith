@@ -78,3 +78,10 @@ path = "fuzz_targets/default.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "coverage"
+path = "fuzz_targets/coverage.rs"
+test = false
+doc = false
+bench = false

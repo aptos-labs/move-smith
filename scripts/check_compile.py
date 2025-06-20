@@ -21,24 +21,22 @@ def run_move_file(base_dir: Path, file: Path, total: int):
     print(f"Processing: {file}")
     try:
         result = subprocess.run(
-            [
-                MSMITH.as_posix(),
-                "compile",
-                file.absolute().as_posix(),
-            ],
+            [MSMITH.as_posix(), "--run", "v2-only", "run", file.absolute().as_posix(), "-o", "raw"],
             cwd=base_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
         )
-        output_file = base_dir / (f"{file.stem}.success" if result.returncode == 0 else f"{file.stem}.error")
+        ok = "Failure" not in result.stdout
+
+        output_file = base_dir / (f"{file.stem}.success" if ok else f"{file.stem}.error")
         output_file.write_text(result.stdout)
 
         with done_lock:
             done_count += 1
             print(f"\033[92mDone {done_count}/{total}:\033[0m {file}")
 
-        count_as_failed = result.returncode != 0
+        count_as_failed = not ok
         for ignore_pat in TO_IGNORE:
             if ignore_pat in result.stdout:
                 count_as_failed = False
@@ -69,14 +67,14 @@ def main(base_path):
     total = len(subdirs)
     failed = []
 
-    with ThreadPoolExecutor(max_workers=24) as executor:
+    with ThreadPoolExecutor(max_workers=32) as executor:
         future_to_dir = {executor.submit(run_move_file, base_dir, d, total): d for d in subdirs}
         for future in as_completed(future_to_dir):
             result = future.result()
             if result:
                 failed.append(result)
 
-    subprocess.run("cat *.error > combined.error", shell=True, cwd=base_dir)
+    subprocess.run("cat *.error> combined.error", shell=True, cwd=base_dir)
     subprocess.run('grep "bug" combined.error | sort | uniq > bugs.txt', shell=True, cwd=base_dir)
     subprocess.run('grep "error" combined.error | sort | uniq > errors.txt', shell=True, cwd=base_dir)
     print(f"Combined errors written to {base_dir / 'combined.error'}")

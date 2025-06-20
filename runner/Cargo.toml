@@ -1,0 +1,10 @@
+[package]
+name = "coverage-tool"
+edition = "2021"
+
+[dependencies]
+lcov = "0.8.1"
+
+[[bin]]
+name = "coverage-tool"
+path = "coverage/main.rs"

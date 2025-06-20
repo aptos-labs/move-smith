@@ -2905,7 +2905,6 @@ dependencies = [
  "bytes",
  "move-binary-format 0.0.3",
  "move-core-types 0.0.4",
- "move-stdlib 0.1.1",
  "move-vm-runtime 0.1.0",
  "move-vm-types 0.1.0",
  "sha3",
