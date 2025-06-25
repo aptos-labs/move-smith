@@ -111,11 +111,11 @@ where
     A: ASTNode + 'static,
     C: Constraint,
 {
-    pub fn states(&self) -> Ref<StatePool<A>> {
+    pub fn states(&self) -> Ref<'_, StatePool<A>> {
         self.states.borrow()
     }
 
-    pub fn states_mut(&self) -> RefMut<StatePool<A>> {
+    pub fn states_mut(&self) -> RefMut<'_, StatePool<A>> {
         self.states.borrow_mut()
     }
 

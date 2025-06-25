@@ -120,6 +120,9 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
     executor.set_save_input(true);
 
     let loaded_num = Mutex::new(0usize);
+    let fully_successful = Mutex::new(vec![]);
+    let has_errors = Mutex::new(vec![]);
+
     let run_config = env.cli.global_options.run.clone().unwrap_or_default();
     let mut to_execute: Vec<(PathBuf, TransactionalInput)> = all_moves
         .par_iter()
@@ -135,6 +138,11 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
                 Some((move_file.clone(), input))
             } else {
                 let mut result = executor.load_result_from_disk(&output_file);
+                if result.has_error_chunk() {
+                    has_errors.lock().unwrap().push(move_file.clone());
+                } else {
+                    fully_successful.lock().unwrap().push(move_file.clone());
+                }
                 if result.is_bug() {
                     result.clean();
                     executor.add_result(&result, Some(&input));
@@ -161,6 +169,11 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
         input.clean();
         match result {
             Ok(mut result) => {
+                if result.has_error_chunk() {
+                    has_errors.lock().unwrap().push(move_file.clone());
+                } else {
+                    fully_successful.lock().unwrap().push(move_file.clone());
+                }
                 executor.save_result_to_disk(&result, &output_file);
                 if result.is_bug() {
                     result.clean();
@@ -186,6 +199,22 @@ pub fn handle_check(env: &MoveSmithEnv, cmd: &Check) {
         *loaded_num.lock().unwrap() + to_execute.len(),
         num_clusters,
     );
+
+    // Save fully successful file names to a file
+    let successful_file = cmd.output_dir.join("fully_successful.txt");
+    let mut successful_file_content = String::new();
+    for path in fully_successful.lock().unwrap().iter() {
+        successful_file_content.push_str(&format!("{}\n", path.display()));
+    }
+    fs::write(&successful_file, successful_file_content).unwrap();
+
+    // Save files with errors to a file
+    let error_file = cmd.output_dir.join("has_errors.txt");
+    let mut error_file_content = String::new();
+    for path in has_errors.lock().unwrap().iter() {
+        error_file_content.push_str(&format!("{}\n", path.display()));
+    }
+    fs::write(&error_file, error_file_content).unwrap();
 
     println!("[5/5] Saved report to: {to_open:?}");
     println!("Done checking in {}", HumanDuration(timer.elapsed()));

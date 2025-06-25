@@ -5,54 +5,42 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeSet, error::Error, fmt::Display, hash::Hash, panic::PanicHookInfo,
-    time::Duration,
+    collections::BTreeSet, env, error::Error, fmt::Display, fs, hash::Hash, panic::PanicHookInfo,
+    path::PathBuf, time::Duration,
 };
 
 const SUCCESS_MSG: &str = "Success";
-const TO_IGNORE: [&str; 28] = [
-    // "EXTRANEOUS_ACQUIRES_ANNOTATION",
-    // "infer",
-    "MAX_",
-    "TOO_MANY",
-    "exceeded maximal",
-    // "EQUALITY_OP_TYPE_MISMATCH_ERROR",
-    // "unbound",
-    // "dangling",
-    // "OUT_OF_GAS",
-    // V1 vector bugs
-    // "READREF_EXISTS_MUTABLE_BORROW_ERROR",
-    // "CALL_BORROWED_MUTABLE_REFERENCE_ERRO",
-    // "VEC_UPDATE_EXISTS_MUTABLE_BORROW_ERROR",
-    // "BORROWLOC_EXISTS_BORROW_ERROR",
-    // "VEC_BORROW_ELEMENT_EXISTS_MUTABLE_BORROW_ERROR",
-    // end V1 vector bugs
-    "too many arguments captured in lambda",
-    "CONSTRAINT_NOT_SATISFIED",
-    "ARITHMETIC_ERROR",
-    "still mutably borrowed",
-    "POSITIVE_STACK_SIZE_AT_BLOCK_END",
-    "INDEX_OUT_OF_BOUNDS",
-    "NUMBER_OF_ARGUMENTS_MISMATCH",
-    "cannot be modified inside of a lambda",
-    "does not have the `drop` ability",
-    "bug: inconsistent tuple arity",
-    "cannot drop",
-    "captured value cannot be a reference",
-    "STLOC_TYPE_MISMATCH_ERROR",
-    "BORROWFIELD_EXISTS_MUTABLE_BORROW_ERROR",
-    "BORROWLOC_EXISTS_BORROW_ERROR",
-    "MOVELOC_EXISTS_BORROW_ERROR",
-    "COPYLOC_EXISTS_BORROW_ERROR",
-    "WRITEREF_TYPE_MISMATCH_ERROR",
-    "bug: unexpected tuple type Tuple",
-    "CLOSURE_CALL_REQUIRES_FUNCTION",
-    "bug: Unpacking a reference to a struct must return the references of fields",
-    "error: undeclared",
-    "borrowed",
-    "error: lambda lifting is not allowed in scripts",
-    "error: inline function cannot be used as a function value",
-];
+static TO_IGNORE: Lazy<Vec<String>> = Lazy::new(|| {
+    let env_path = env::var("TO_IGNORE_PATH");
+
+    let content = match env_path {
+        Ok(path) => {
+            if path.to_uppercase() == "NONE" {
+                return vec![];
+            }
+            let path = PathBuf::from(path);
+            match fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!(
+                        "Failed to read ignore list from '{}': {} — falling back to built-in list.",
+                        path.display(),
+                        e
+                    );
+                    include_str!("to_ignore.txt").to_string()
+                },
+            }
+        },
+        Err(_) => include_str!("to_ignore.txt").to_string(),
+    };
+
+    content
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#') && !line.starts_with("//"))
+        .map(String::from)
+        .collect()
+});
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct TransactionalResult {
@@ -236,6 +224,14 @@ impl TransactionalResult {
             status: ResultStatus::Success,
             ..Default::default()
         }
+    }
+
+    pub fn has_error_chunk(&self) -> bool {
+        self.chunks.iter().any(|run| {
+            run.iter().any(|chunk| {
+                chunk.kind == ResultChunkKind::Error || chunk.kind == ResultChunkKind::VMError
+            })
+        })
     }
 
     // Initialize the status and hashes fields after the chunks are set
