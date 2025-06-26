@@ -80,6 +80,8 @@ def run_test_and_calculate_coverages(test_code: str) -> ExecutionResult:
         else:
             if cfg.fuzz.save_all_tests:
                 save_unique_test(test_code)
+            elif cfg.fuzz.save_all_compilable and not run_result.has_error:
+                save_unique_test(test_code)
             logger.trace("No unique coverage found.")
 
     # TODO: implement interesting coverage logic

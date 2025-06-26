@@ -1,10 +1,13 @@
 [fuzz]
 jobs = 16
 cost_usd_limit = 5.0
-generations = 1000
+generations = 500
 features = ["data/feature_rust.json", "data/feature_transactional.json"]
 save_all_tests = false
-fix_attempt_limit = 1
+save_all_compilable = true
+fix_attempt_limit = 2
+enable_static_fixer = true
+enable_dynamic_fixer_hint = true
 
 [prompt]
 generation_system = ["prompts/common_error_fix_short.md"]
@@ -14,7 +17,7 @@ fixer_prefix = []
 
 [fuzz.feature_combination]
 init = 20             # Initial population size
-mu = 100              # Population size
+mu = 200              # Population size
 lam = 30              # Offspring size
 cross_over_rate = 0.4
 mutation_rate = 0.5
@@ -27,8 +30,8 @@ lam = 10            # Offspring size
 mutation_rate = 0.1
 
 [models.default]
-name = "gpt-4.1-nano"
-# name = "gpt-4.1-mini"
+# name = "gpt-4.1-nano"
+name = "gpt-4.1-mini"
 # name = "gpt-4.1"
 temperature = 0.8
 
