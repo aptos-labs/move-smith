@@ -2,6 +2,7 @@
 .langchain
 .github_token
 log*.txt
+logs/
 test/
 **/work*/
 bench*/

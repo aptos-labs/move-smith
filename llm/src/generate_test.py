@@ -2,7 +2,7 @@ from loguru import logger
 
 from .config import cfg
 from .feature import Feature
-from .llm import LLMManager
+from .llm import LLMManager, load_extra_promts_from_files
 
 
 def generate_new_tests(features: list[Feature], num_tests: int = 1) -> list[str]:
@@ -14,21 +14,13 @@ def generate_new_tests(features: list[Feature], num_tests: int = 1) -> list[str]
         features_str_list.append(f"{i+1}: {feat.description}")
     features_str = "\n".join(features_str_list)
 
+    system_msg = load_extra_promts_from_files(cfg.prompt.generation_system)
+    prefix = load_extra_promts_from_files(cfg.prompt.generation_prefix)
+    prefix = f"You should follow the following guidelines and example:\n{prefix}" if prefix else ""
+
     msg = f""" As an Aptos Move developer, you are tasked with writing a new transactional test case to thoroughly test the Move compiler and virtual machine.
 
-The transactional test has the following format:
-1. Above each new module, you should write `//# publish` to compile and publish the module.
-    This will exercise the compiler to compile the module.
-    The publish command must be at the beginning of the immediate line above the module definition.
-2. Above each script, you should write `//# run` to indicate that the script should be run.
-    This will exervcise both the compiler and the virtual machine.
-    The run command must be at the beginning of the immediate line above the script definition.
-3. If some functions defined in a module should be run, you should add `//# run <address>::<module name>::<function_name>` after the module definition.
-    * If a signer is needed, you should add `--signers <address>` after the run command.
-    * If other arguments are needed, you should add `--args <args>` after the run command where args are the arguments to the function.
-    * You should try to implement some "runner" function inside the module that can be called without arguments.
-    * An example run command: `//# run 0xCAFE::Module0::some_function --signers 0xBEEF --args 123u8 789u64`
-4. You can ignore adding assertions.
+{prefix}
 
 Please reply with the transactional test code within a markdown code block.
 
@@ -38,5 +30,5 @@ The test should test the following features:
 
     model = llm_mgr.get_model_by_name(cfg.models.default.name, cfg.models.default.temperature)
     # TODO: support multiple samples
-    (_, code) = model.invoke_code(msg)
+    (_, code) = model.invoke_code(msg, system_message=system_msg)
     return [code]

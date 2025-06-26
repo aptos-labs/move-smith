@@ -111,6 +111,8 @@ impl ResultChunkKind {
             Some(Self::VMError)
         } else if msg.contains("0xcafe::FuzzStore::AccumulatedHash") {
             Some(Self::Hash)
+        } else if msg.contains("No initial command") {
+            Some(Self::Error)
         } else if msg.starts_with("error") {
             Some(Self::Error)
         } else if msg.starts_with("bug") {

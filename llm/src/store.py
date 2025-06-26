@@ -151,7 +151,7 @@ class RedisStore:
     def dump_to_local(self, local_dump_path: str | Path) -> None:
         self.client.save()
         local_dump_path = Path(local_dump_path)
-        subprocess.run(["docker", "cp", "redis:/data/dump.rdb", local_dump_path.as_posix()], check=True)
+        subprocess.run(["docker", "cp", "move_redis:/data/dump.rdb", local_dump_path.as_posix()], check=True)
         if local_dump_path.exists():
             logger.info(f"Dumped Redis data to {local_dump_path.as_posix()}")
         else:
@@ -165,8 +165,17 @@ class Monitor:
     TOTAL_COST_KEY = "total_cost_usd"
     COST_LIMIT_KEY = "cost_usd_limit"
 
+    TIME_HASH_KEY = "time_tracking"
+    LLM_TIME_KEY = "time:llm"
+    EXECUTION_TIME_KEY = "time:execution"
+    COVERAGE_TIME_KEY = "time:coverage"
+    GENETIC_TIME_KEY = "time:genetic"
+
     def __init__(self) -> None:
         self.store = RedisStore()
+
+    def record_time(self, key: str, start: float) -> None:
+        self.store.client.hincrbyfloat(self.TIME_HASH_KEY, key, time.perf_counter() - start)
 
     def record_llm(self, llm_record) -> None:
         file_created_time = llm_record.local_path.stat().st_ctime
@@ -220,6 +229,9 @@ class Monitor:
 
     def incr_counter(self, key: str, amount: int = 1) -> None:
         self.store.client.incrby(key, amount)
+
+    def incr_counter_in_hash(self, hash_key: str, field: str, amount: int = 1) -> None:
+        self.store.client.hincrby(hash_key, field, amount)
 
 
 class FeatureStore:

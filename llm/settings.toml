@@ -1,8 +1,16 @@
 [fuzz]
-jobs = 8
-cost_usd_limit = 1.0
-generations = 50
+jobs = 16
+cost_usd_limit = 5.0
+generations = 1000
 features = ["data/feature_rust.json", "data/feature_transactional.json"]
+save_all_tests = false
+fix_attempt_limit = 1
+
+[prompt]
+generation_system = ["prompts/common_error_fix_short.md"]
+generation_prefix = ["prompts/transactional_format.md", "prompts/example.move"]
+fixer_system = []
+fixer_prefix = []
 
 [fuzz.feature_combination]
 init = 20             # Initial population size
@@ -22,7 +30,7 @@ mutation_rate = 0.1
 name = "gpt-4.1-nano"
 # name = "gpt-4.1-mini"
 # name = "gpt-4.1"
-temperature = 0.5
+temperature = 0.8
 
 [models.extract]
 name = "gpt-4.1"

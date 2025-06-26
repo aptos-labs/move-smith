@@ -9,6 +9,7 @@ from typing import Any, Literal, Optional
 
 import tiktoken
 from jinja2 import Template
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.messages.ai import AIMessage
 from langchain_core.messages.tool import ToolMessage
 from langchain_core.tools import tool
@@ -88,6 +89,15 @@ def load_prompt(prompt_file: str | Path, replacement: dict) -> str:
     template = Template(content)
     populated_prompt = template.render(replacement)
     return populated_prompt
+
+
+def load_extra_promts_from_files(files: list[str | Path]) -> str:
+    prompts = []
+    for file in files:
+        file_path = Path(file)
+        content = file_path.read_text(encoding="utf-8")
+        prompts.append(content)
+    return "\n".join(prompts)
 
 
 def get_llm(model, temperature, _server, base_url=None) -> ChatOpenAI:
@@ -415,11 +425,17 @@ class ModelWrapper:
             retry_cnt -= 1
         return (raw_content, code)
 
-    def invoke(self, message: str) -> tuple[Any, str]:
+    def invoke(self, message: str, system_message: Optional[str] = None) -> tuple[Any, str]:
         """Return (response, extracted message)"""
         if self.mgr:
             self.mgr.record_prompt(message)
-        response = self.llm.invoke(message)
+
+        chat_messages = []
+        if system_message:
+            chat_messages.append(SystemMessage(content=system_message))
+        chat_messages.append(HumanMessage(content=message))
+
+        response = self.llm.invoke(chat_messages)
         content = response.content
         usage = response.response_metadata["token_usage"]
         if not isinstance(content, str):
@@ -435,13 +451,13 @@ class ModelWrapper:
             )
         return (response, content)
 
-    def invoke_code(self, message) -> tuple[str, str]:
+    def invoke_code(self, message, system_message: Optional[str] = None) -> tuple[str, str]:
         """Return (raw message, extracted code)"""
         raw_content = ""
         code = ""
         retry_cnt = self.code_retry_limit
         while retry_cnt > 0:
-            _, raw_content = self.invoke(message)
+            _, raw_content = self.invoke(message, system_message=system_message)
             (r, code) = extract_last_markdown_code_block(raw_content)
             if r:
                 return (raw_content, code)

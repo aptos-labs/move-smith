@@ -41,12 +41,12 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 3,
+                "h": 4,
                 "w": 8,
                 "x": 0,
                 "y": 0
             },
-            "id": 7,
+            "id": 4,
             "options": {
                 "colorMode": "value",
                 "graphMode": "area",
@@ -67,10 +67,37 @@
             "pluginVersion": "12.0.2",
             "targets": [
                 {
-                    "command": "hlen",
-                    "keyName": "feature_store",
+                    "command": "get",
+                    "keyName": "num_tests",
                     "query": "",
                     "refId": "A",
+                    "type": "command"
+                },
+                {
+                    "command": "get",
+                    "datasource": "redis-datasource",
+                    "hide": false,
+                    "keyName": "num_unique_tests",
+                    "query": "",
+                    "refId": "B",
+                    "type": "command"
+                },
+                {
+                    "command": "get",
+                    "datasource": "redis-datasource",
+                    "hide": false,
+                    "keyName": "num_compilable_tests",
+                    "query": "",
+                    "refId": "C",
+                    "type": "command"
+                },
+                {
+                    "command": "get",
+                    "datasource": "redis-datasource",
+                    "hide": false,
+                    "keyName": "num_fix_attempts",
+                    "query": "",
+                    "refId": "D",
                     "type": "command"
                 }
             ],
@@ -239,71 +266,6 @@
                         "steps": [
                             {
                                 "color": "green"
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 3,
-                "w": 8,
-                "x": 0,
-                "y": 3
-            },
-            "id": 4,
-            "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                    "calcs": [
-                        "lastNotNull"
-                    ],
-                    "fields": "",
-                    "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-            },
-            "pluginVersion": "12.0.2",
-            "targets": [
-                {
-                    "command": "get",
-                    "keyName": "num_tests",
-                    "query": "",
-                    "refId": "A",
-                    "type": "command"
-                },
-                {
-                    "command": "get",
-                    "datasource": "redis-datasource",
-                    "hide": false,
-                    "keyName": "num_unique_tests",
-                    "query": "",
-                    "refId": "B",
-                    "type": "command"
-                }
-            ],
-            "title": "",
-            "type": "stat"
-        },
-        {
-            "datasource": "redis-datasource",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "green"
                             },
                             {
                                 "color": "red",
@@ -315,10 +277,10 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 3,
-                "w": 8,
+                "h": 2,
+                "w": 4,
                 "x": 0,
-                "y": 6
+                "y": 4
             },
             "id": 3,
             "options": {
@@ -373,6 +335,62 @@
                         "steps": [
                             {
                                 "color": "green"
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 2,
+                "w": 4,
+                "x": 4,
+                "y": 4
+            },
+            "id": 7,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.0.2",
+            "targets": [
+                {
+                    "command": "hlen",
+                    "keyName": "feature_store",
+                    "query": "",
+                    "refId": "A",
+                    "type": "command"
+                }
+            ],
+            "title": "",
+            "type": "stat"
+        },
+        {
+            "datasource": "redis-datasource",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green"
                             },
                             {
                                 "color": "red",
@@ -385,10 +403,10 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 3,
+                "h": 2,
                 "w": 8,
                 "x": 0,
-                "y": 9
+                "y": 6
             },
             "id": 2,
             "options": {
@@ -429,6 +447,70 @@
             ],
             "title": "",
             "type": "stat"
+        },
+        {
+            "datasource": "redis-datasource",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        }
+                    },
+                    "mappings": []
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 8,
+                "x": 0,
+                "y": 8
+            },
+            "id": 8,
+            "options": {
+                "displayLabels": [
+                    "percent"
+                ],
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true,
+                    "values": [
+                        "percent"
+                    ]
+                },
+                "pieType": "pie",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "12.0.2",
+            "targets": [
+                {
+                    "command": "hgetall",
+                    "keyName": "time_tracking",
+                    "query": "",
+                    "refId": "A",
+                    "type": "command"
+                }
+            ],
+            "title": "New panel",
+            "type": "piechart"
         },
         {
             "datasource": "redis-datasource",
@@ -487,10 +569,10 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 14,
+                "h": 9,
                 "w": 8,
                 "x": 0,
-                "y": 12
+                "y": 15
             },
             "id": 1,
             "options": {
@@ -643,7 +725,7 @@
                 "overrides": []
             },
             "gridPos": {
-                "h": 11,
+                "h": 9,
                 "w": 16,
                 "x": 8,
                 "y": 15
@@ -768,12 +850,12 @@
         "list": []
     },
     "time": {
-        "from": "now-1h",
+        "from": "now-5m",
         "to": "now"
     },
     "timepicker": {},
     "timezone": "browser",
     "title": "New dashboard",
     "uid": "0d5b7d31-e34e-47a7-9e01-6df8464d423c",
-    "version": 1
+    "version": 3
 }

@@ -34,3 +34,9 @@ class Feature(BaseModel):
         to_hash = f"{description}{content}{type}"
         id = hashlib.md5(to_hash.encode("utf-8")).hexdigest()
         return cls(id=id, description=description, content=content, type=type)
+
+    def short_repr(self) -> str:
+        if len(self.description) < 50:
+            return f"{self.id} ({self.type}): {self.description}"
+        else:
+            return f"{self.id} ({self.type}): {self.description[:50]}..."

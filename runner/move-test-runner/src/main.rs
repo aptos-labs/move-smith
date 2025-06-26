@@ -16,7 +16,11 @@ fn execute_one(path: &Path) {
             ..VMConfig::default()
         },
     };
-    let _ = vm_test_harness::run_test_with_config_and_exp_suffix(test_config, &path, &None);
+    let result = vm_test_harness::run_test_with_config_and_exp_suffix(test_config, &path, &None);
+    match result {
+        Ok(_) => println!("move-test-runner:all-passed"),
+        Err(e) => println!("{e:?}"),
+    }
 }
 
 fn main() {

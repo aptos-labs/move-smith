@@ -3,14 +3,18 @@ from __future__ import annotations
 import json
 import multiprocessing
 import random
+import time
 from pathlib import Path
 from typing import TypeAlias
 
 from deap import base, creator, tools
 from loguru import logger
+from pydantic import BaseModel
 
 from .config import cfg
 from .coverage import Coverage
+from .feature import Feature
+from .fixer import fix_test, static_fix_syntax
 from .generate_test import generate_new_tests
 from .llm import cosine_sim, get_content_hash
 from .runner import run_one_test
@@ -21,6 +25,7 @@ NUM_FEATURES_KEY = "num_features"
 NUM_TESTS_KEY = "num_tests"
 NUM_UNIQUE_TESTS_KEY = "num_unique_tests"
 NUM_COMPILABLE_TESTS_KEY = "num_compilable_tests"
+NUM_FIX_ATTEMPTS_KEY = "num_fix_attempts"
 CURRENT_GENERATION_KEY = "current_generation"
 TOTAL_GENERATION_KEY = "total_generation"
 NUM_MUTATIONS_KEY = "num_mutations"
@@ -36,33 +41,63 @@ FitnessValue: TypeAlias = tuple[float, float, float, float]
 # (unique_coverage, code_similarity, interesting_coverage, feature_similarity)
 
 
-def run_test_and_calculate_coverages(test_code: str) -> tuple[Coverage, Coverage, Coverage]:
+class ExecutionResult(BaseModel):
+    test_coverage: Coverage
+    unique_coverage: Coverage
+    interesting_coverage: Coverage
+    has_error: bool
+    error_message: str
+
+
+def run_test_and_calculate_coverages(test_code: str) -> ExecutionResult:
     """
     Returns:
         tuple[Coverage, Coverage]: Test Coverage, Unique Coverage, Interesting Coverage
     """
     monitor = Monitor()
-    test_coverage = run_one_test(test_code)
-    monitor.record_coverage(test_coverage.total_cov())
+    run_result = run_one_test(test_code)
+    monitor.record_coverage(run_result.coverage.total_cov())
 
     with monitor.store.client.lock(CUMULATIVE_COVERAGE_LOCK, timeout=10):
+        start = time.perf_counter()
         total_coverage = monitor.store.get(CUMULATIVE_COVERAGE_KEY, Coverage)
-        uniq_cov = test_coverage.unique_cov(total_coverage)
+        uniq_cov = run_result.coverage.unique_cov(total_coverage)
         uniq_cov_aggregated = uniq_cov.total_cov()
+        monitor.record_time(Monitor.COVERAGE_TIME_KEY, start)
 
         if not uniq_cov_aggregated.is_empty():
             logger.success(f"Found unique coverage: {uniq_cov_aggregated}")
             save_unique_test(test_code)
-            total_coverage.merge(test_coverage)
+
+            start = time.perf_counter()
+            total_coverage.merge(run_result.coverage)
             monitor.store.set_pickle(CUMULATIVE_COVERAGE_KEY, total_coverage)
             monitor.record_unique_coverage(total_coverage.total_cov())
+            monitor.record_time(Monitor.COVERAGE_TIME_KEY, start)
+
             cov_file = cfg.work_dir / CUMULATIVE_COVERAGE_FILE_NAME
             cov_file.write_text(json.dumps(total_coverage, indent=2, default=lambda x: x.__dict__))
         else:
+            if cfg.fuzz.save_all_tests:
+                save_unique_test(test_code)
             logger.trace("No unique coverage found.")
 
     # TODO: implement interesting coverage logic
-    return test_coverage, uniq_cov, Coverage.new_empty()
+    return ExecutionResult(
+        test_coverage=run_result.coverage,
+        unique_coverage=uniq_cov,
+        interesting_coverage=Coverage.new_empty(),  # Placeholder for interesting coverage
+        has_error=run_result.has_error,
+        error_message=run_result.error_message,
+    )
+
+
+def append_features_to_code(features: list[Feature], code: str) -> str:
+    features_str_list = []
+    for feat in features:
+        features_str_list.append(f"// {feat.id}: {feat.description}")
+    features_str = "\n".join(features_str_list)
+    return f"{code}\n\n// Featurres:\n{features_str}\n"
 
 
 def evaluate(individual: Individual) -> FitnessValue:
@@ -70,27 +105,57 @@ def evaluate(individual: Individual) -> FitnessValue:
     feature_store = FeatureStore()
     # Generate tests
     features = [feature_store.get_feature(id) for id in individual]
+
+    start = time.perf_counter()
     tests_code = generate_new_tests(features)
+    tests_code = [static_fix_syntax(code) for code in tests_code]
+    monitor.record_time(Monitor.LLM_TIME_KEY, start)
     monitor.incr_counter(NUM_TESTS_KEY, len(tests_code))
+
+    tests_code = [append_features_to_code(features, code) for code in tests_code]
 
     # Evaluate each test
     score_list = [evaluate_test(test_code) for test_code in tests_code]
     (obj1, obj2, obj3) = [sum(x) for x in zip(*score_list)]
 
     # Objective 4: Similarity to the feature combo
+    start = time.perf_counter()
     feature_sim = 0.0
     for desc in cfg.task.descriptions:
         for feat in features:
             feature_sim += cosine_sim(desc, feat.description)
+    monitor.record_time(Monitor.GENETIC_TIME_KEY, start)
 
     return (obj1, obj2, obj3, feature_sim)
 
 
 def evaluate_test(test_code: str) -> tuple[float, float, float]:
-    _test_coverage, uniq_cov, interesting_cov = run_test_and_calculate_coverages(test_code)
+    monitor = Monitor()
+    # _test_coverage, uniq_cov, interesting_cov = run_test_and_calculate_coverages(test_code)
+    result = run_test_and_calculate_coverages(test_code)
+    fix_cnt = 0
+    while fix_cnt < cfg.fuzz.fix_attempt_limit and result.has_error:
+        logger.warning("Test failed with error, attempting to fix...")
+        start = time.perf_counter()
+        fixed_code = fix_test(test_code, result.error_message)
+        fixed_code = static_fix_syntax(fixed_code)
+        monitor.record_time(Monitor.LLM_TIME_KEY, start)
+        monitor.incr_counter(NUM_TESTS_KEY)
+        monitor.incr_counter(NUM_FIX_ATTEMPTS_KEY)
+        test_code = fixed_code
+        result = run_test_and_calculate_coverages(test_code)
+        fix_cnt += 1
 
+    if not result.has_error:
+        monitor.incr_counter(NUM_COMPILABLE_TESTS_KEY)
+        logger.info("Generated a compilable test.")
+    else:
+        logger.warning("Generated a non-compilable test...")
+
+    monitor = Monitor()
+    start = time.perf_counter()
     # Objective 1: general coverage improvement
-    uniq_branch_cov = uniq_cov.total_cov().branches_covered()
+    uniq_branch_cov = result.unique_coverage.total_cov().branches_covered()
 
     # Objective 2: code similarity to task descriptions
     code_similarity = 0.0
@@ -98,7 +163,9 @@ def evaluate_test(test_code: str) -> tuple[float, float, float]:
         code_similarity += cosine_sim(desc, test_code)
 
     # Objective 3: coverage on interesting files
-    covered_interesting_branches = interesting_cov.total_cov().branches_covered()
+    covered_interesting_branches = result.interesting_coverage.total_cov().branches_covered()
+    monitor.record_time(Monitor.GENETIC_TIME_KEY, start)
+
     return (uniq_branch_cov, code_similarity, covered_interesting_branches)
 
 
@@ -162,10 +229,13 @@ def fuzzing_loop() -> None:
             logger.info("Reached total cost limit, stopping fuzzing loop.")
             break
 
+        start = time.perf_counter()
         parents = toolbox.select(pop, cfg.fuzz.feature_combination.mu)
+        monitor.record_time(Monitor.GENETIC_TIME_KEY, start)
         offspring = []
 
         while len(offspring) < cfg.fuzz.feature_combination.lam:
+            start = time.perf_counter()
             p1, p2 = random.sample(parents, 2)
             child1, child2 = toolbox.clone(p1), toolbox.clone(p2)
 
@@ -185,19 +255,26 @@ def fuzzing_loop() -> None:
                 offspring.append(child)
 
         offspring = offspring[: cfg.fuzz.feature_combination.lam]
+        monitor.record_time(Monitor.GENETIC_TIME_KEY, start)
+
         fitnesses = toolbox.map(toolbox.evaluate, offspring)
         for ind, fit in zip(offspring, fitnesses):
             ind.fitness.values = fit
 
         pop = toolbox.select(pop + offspring, cfg.fuzz.feature_combination.mu)
+        save_redis()
 
-    save_states()
+    save_features()
+    save_redis()
     show_fuzzing_stat()
 
 
-def save_states() -> None:
+def save_features() -> None:
     feature_store = FeatureStore()
     feature_store.save_local(cfg.work_dir / "feature_store.json", overwrite=True)
+
+
+def save_redis() -> None:
     monitor = Monitor()
     monitor.store.dump_to_local(cfg.work_dir / "dump.rdb")
 

@@ -1,12 +1,21 @@
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 from loguru import logger
+from pydantic import BaseModel
 from rich.progress import track
 
 from .coverage import Coverage
 from .llm import run_in_parallel
+from .store import Monitor
+
+
+class RunResult(BaseModel):
+    has_error: bool
+    error_message: str
+    coverage: Coverage
 
 
 def build_test_runner(msmith_path: str | Path) -> Path:
@@ -20,38 +29,81 @@ def build_test_runner(msmith_path: str | Path) -> Path:
         Path: the path to the test runner executable.
     """
     msmith_path = Path(msmith_path).resolve()
-    return msmith_path / "runner/move-test-runner/target/debug/move-test-runner"
+    runner = msmith_path / "runner/move-test-runner/target/debug/move-test-runner"
+    if not runner.exists():
+        logger.info(f"Building test runner at {runner}")
+        subprocess.run(
+            ["cargo", "build"],
+            check=True,
+            cwd=msmith_path / "runner/move-test-runner",
+            env={
+                "RUSTFLAGS": "-C instrument-coverage -Zcoverage-options=branch",
+            },
+        )
+    if not runner.exists():
+        raise FileNotFoundError(f"Test runner not found at {runner}. Please check the build process.")
+    return runner
 
 
-def run_one_test(test_code: str) -> Coverage:
+def run_one_test(test_code: str) -> RunResult:
     runner_path = build_test_runner("/home/zijie/move-smith")
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         test_file = temp_path / "test.move"
         test_file.write_text(test_code)
-        coverage = generate_lcov_for_one(runner_path, test_file)
+        result = generate_lcov_for_one(runner_path, test_file)
         logger.success(f"Generated coverage for test: {test_file}")
-    return coverage
+    return result
 
 
-def generate_lcov_for_one(runner_path: Path, test_path: Path) -> Coverage:
+def extract_output(text: str) -> str:
+    start_marker = "Expected errors differ from actual errors:"
+    end_marker = (
+        "Run with `env UB=1` (or `env UPDATE_BASELINE=1`) to save the current output as the new expected output"
+    )
+
+    start = text.find(start_marker)
+    if start == -1:
+        return f"error parsing output: {text}"
+    start += len(start_marker)
+
+    end = text.find(end_marker, start)
+    if end == -1:
+        return f"error parsing output: {text}"
+
+    return text[start:end].strip()
+
+
+def generate_lcov_for_one(runner_path: Path, test_path: Path) -> RunResult:
     runner_path = runner_path.resolve()
     test_path = test_path.resolve()
     test_dir = test_path.parent
 
+    # TODO: dump error message and status as well to allow fast rerun
     # check if coverage files already exist
-    if (test_dir / f"{test_path.stem}.lcov").exists():
-        logger.info(f"Coverage files for {test_path.name} already exist, skipping generation.")
-        return Coverage.parse(test_dir / f"{test_path.stem}.lcov")
+    # if (test_dir / f"{test_path.stem}.lcov").exists():
+    #     logger.info(f"Coverage files for {test_path.name} already exist, skipping generation.")
+    #     return Coverage.parse(test_dir / f"{test_path.stem}.lcov")
 
-    subprocess.run(
+    monitor = Monitor()
+    start = time.perf_counter()
+    r = subprocess.run(
         [
             runner_path.as_posix(),
             test_path.as_posix(),
         ],
         env={"LLVM_PROFILE_FILE": test_dir / f"{test_path.stem}.profraw"},
         text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
+    monitor.record_time(Monitor.EXECUTION_TIME_KEY, start)
+
+    output = extract_output(r.stdout)
+    has_error = "error" in output or "Error" in output or "ERROR" in output
+    error_message = output
+
+    start = time.perf_counter()
     logger.trace(f"Generated raw coverage for {test_path.name}")
     subprocess.run(
         [
@@ -83,7 +135,13 @@ def generate_lcov_for_one(runner_path: Path, test_path: Path) -> Coverage:
     )
     (test_dir / f"{test_path.stem}.lcov").write_text(r.stdout)
     logger.trace(f"Generated lcov for {test_path.name}")
-    return Coverage.parse(test_dir / f"{test_path.stem}.lcov")
+    cov = Coverage.parse(test_dir / f"{test_path.stem}.lcov")
+    monitor.record_time(Monitor.COVERAGE_TIME_KEY, start)
+    return RunResult(
+        has_error=has_error,
+        error_message=error_message,
+        coverage=cov,
+    )
 
 
 def generate_all_coverage(
