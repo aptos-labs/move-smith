@@ -8,6 +8,7 @@ save_all_compilable = true
 fix_attempt_limit = 2
 enable_static_fixer = true
 enable_dynamic_fixer_hint = true
+enable_feature_rewriter = true
 
 [prompt]
 generation_system = ["prompts/common_error_fix_short.md"]

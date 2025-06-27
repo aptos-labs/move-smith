@@ -289,7 +289,7 @@ class File:
             if label == "SF":
                 move_parts = data.split("third_party/", 1)
                 if len(move_parts) > 1:
-                    file.file_name = move_parts[1]
+                    file.file_name = "third_party/" + move_parts[1]
                     logger.trace(f"Processing file {data}")
                 else:
                     logger.trace(f"Skipping file {data}")

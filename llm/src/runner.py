@@ -87,16 +87,25 @@ def generate_lcov_for_one(runner_path: Path, test_path: Path) -> RunResult:
 
     monitor = Monitor()
     start = time.perf_counter()
-    r = subprocess.run(
-        [
-            runner_path.as_posix(),
-            test_path.as_posix(),
-        ],
-        env={"LLVM_PROFILE_FILE": test_dir / f"{test_path.stem}.profraw"},
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
+    try:
+        r = subprocess.run(
+            [
+                runner_path.as_posix(),
+                test_path.as_posix(),
+            ],
+            env={"LLVM_PROFILE_FILE": test_dir / f"{test_path.stem}.profraw"},
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=10,
+        )
+    except subprocess.TimeoutExpired as e:
+        return RunResult(
+            has_error=True,
+            error_message=f"Test {test_path.name} timed out: {e}",
+            coverage=Coverage.new_empty(),
+        )
+
     monitor.record_time(Monitor.EXECUTION_TIME_KEY, start)
 
     output = extract_output(r.stdout)
