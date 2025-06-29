@@ -4,15 +4,15 @@ import json
 import multiprocessing
 import random
 import time
-from pathlib import Path
+from dataclasses import dataclass
 from typing import TypeAlias
 
 from deap import base, creator, tools
 from loguru import logger
-from pydantic import BaseModel
 
-from .config import cfg
+from .config import DATA_DIR, cfg
 from .coverage import Coverage
+from .fast_coverage import FastCoverage
 from .feature import Feature
 from .fixer import fix_test, static_fix_syntax
 from .generate_test import generate_new_tests
@@ -34,6 +34,7 @@ NUM_CROSSOVERS_KEY = "num_crossovers"
 CUMULATIVE_COVERAGE_KEY = "cumulative_coverage"
 CUMULATIVE_COVERAGE_LOCK = "lock:cumulative_coverage"
 CUMULATIVE_COVERAGE_FILE_NAME = "cumulative_coverage.json"
+FAST_COVERAGE_WITH_MAPPINGS_KEY = "fast_coverage_with_mappings"
 
 # Type Definitions
 Individual: TypeAlias = list[str]
@@ -41,26 +42,23 @@ FitnessValue: TypeAlias = tuple[float, float, float, float]
 # (unique_coverage, code_similarity, interesting_coverage, feature_similarity)
 
 
-class ExecutionResult(BaseModel):
-    test_coverage: Coverage
-    unique_coverage: Coverage
-    interesting_coverage: Coverage
+@dataclass
+class ExecutionResult:
+    test_coverage: FastCoverage
+    unique_coverage: FastCoverage
+    interesting_coverage: FastCoverage
     has_error: bool
     error_message: str
 
 
 def run_test_and_calculate_coverages(test_code: str) -> ExecutionResult:
-    """
-    Returns:
-        tuple[Coverage, Coverage]: Test Coverage, Unique Coverage, Interesting Coverage
-    """
     monitor = Monitor()
     run_result = run_one_test(test_code)
     monitor.record_coverage(run_result.coverage.total_cov())
 
     with monitor.store.client.lock(CUMULATIVE_COVERAGE_LOCK, timeout=10):
         start = time.perf_counter()
-        total_coverage = monitor.store.get(CUMULATIVE_COVERAGE_KEY, Coverage)
+        total_coverage = monitor.store.get(CUMULATIVE_COVERAGE_KEY, FastCoverage)
         uniq_cov = run_result.coverage.unique_cov(total_coverage)
         uniq_cov_aggregated = uniq_cov.total_cov()
         monitor.record_time(Monitor.COVERAGE_TIME_KEY, start)
@@ -70,13 +68,13 @@ def run_test_and_calculate_coverages(test_code: str) -> ExecutionResult:
             save_unique_test(test_code)
 
             start = time.perf_counter()
-            total_coverage.merge(run_result.coverage)
+            total_coverage = total_coverage.merge(run_result.coverage)
             monitor.store.set_pickle(CUMULATIVE_COVERAGE_KEY, total_coverage)
             monitor.record_unique_coverage(total_coverage.total_cov())
             monitor.record_time(Monitor.COVERAGE_TIME_KEY, start)
 
             cov_file = cfg.work_dir / CUMULATIVE_COVERAGE_FILE_NAME
-            cov_file.write_text(json.dumps(total_coverage, indent=2, default=lambda x: x.__dict__))
+            cov_file.write_text(json.dumps(total_coverage.to_dict(), indent=2))
         else:
             if cfg.fuzz.save_all_tests:
                 save_unique_test(test_code)
@@ -84,11 +82,12 @@ def run_test_and_calculate_coverages(test_code: str) -> ExecutionResult:
                 save_unique_test(test_code)
             logger.trace("No unique coverage found.")
 
-    # TODO: implement interesting coverage logic
+    interesting_cov = run_result.coverage.keep_only(cfg.task.interesting_files)
+
     return ExecutionResult(
         test_coverage=run_result.coverage,
         unique_coverage=uniq_cov,
-        interesting_coverage=Coverage.new_empty(),  # Placeholder for interesting coverage
+        interesting_coverage=interesting_cov,
         has_error=run_result.has_error,
         error_message=run_result.error_message,
     )
@@ -123,7 +122,7 @@ def evaluate(individual: Individual) -> FitnessValue:
     # Objective 4: Similarity to the feature combo
     start = time.perf_counter()
     feature_sim = 0.0
-    for desc in cfg.task.descriptions:
+    for desc in cfg.task.goals:
         for feat in features:
             feature_sim += cosine_sim(desc, feat.description)
     monitor.record_time(Monitor.GENETIC_TIME_KEY, start)
@@ -133,7 +132,6 @@ def evaluate(individual: Individual) -> FitnessValue:
 
 def evaluate_test(test_code: str) -> tuple[float, float, float]:
     monitor = Monitor()
-    # _test_coverage, uniq_cov, interesting_cov = run_test_and_calculate_coverages(test_code)
     result = run_test_and_calculate_coverages(test_code)
     fix_cnt = 0
     while fix_cnt < cfg.fuzz.fix_attempt_limit and result.has_error:
@@ -157,15 +155,20 @@ def evaluate_test(test_code: str) -> tuple[float, float, float]:
     monitor = Monitor()
     start = time.perf_counter()
     # Objective 1: general coverage improvement
-    uniq_branch_cov = result.unique_coverage.total_cov().branches_covered()
+    uniq_branch_cov = (
+        result.unique_coverage.total_cov().lines_covered() + result.unique_coverage.total_cov().branches_covered()
+    )
 
-    # Objective 2: code similarity to task descriptions
+    # Objective 2: code similarity to task goals
     code_similarity = 0.0
-    for desc in cfg.task.descriptions:
+    for desc in cfg.task.goals:
         code_similarity += cosine_sim(desc, test_code)
 
     # Objective 3: coverage on interesting files
-    covered_interesting_branches = result.interesting_coverage.total_cov().branches_covered()
+    covered_interesting_branches = (
+        result.interesting_coverage.total_cov().lines_covered()
+        + result.interesting_coverage.total_cov().branches_covered()
+    )
     monitor.record_time(Monitor.GENETIC_TIME_KEY, start)
 
     return (uniq_branch_cov, code_similarity, covered_interesting_branches)
@@ -197,7 +200,13 @@ def mutate(individual: Individual) -> Individual:
 
 def fuzzing_loop() -> None:
     monitor = Monitor()
-    monitor.store.set_pickle(CUMULATIVE_COVERAGE_KEY, Coverage.new_empty())
+    result = run_one_test("", keep_mapping=True)
+
+    mapping_json = json.dumps(result.coverage.mappings, indent=2, default=lambda x: x.__dict__)
+    (cfg.work_dir / "file_mapping.json").write_text(mapping_json, encoding="utf-8")
+
+    monitor.store.set_pickle(FAST_COVERAGE_WITH_MAPPINGS_KEY, result.coverage)
+    monitor.store.set_pickle(CUMULATIVE_COVERAGE_KEY, FastCoverage.empty())
     monitor.store.set(TOTAL_GENERATION_KEY, cfg.fuzz.generations)
 
     feature_store = FeatureStore()
@@ -283,16 +292,25 @@ def save_redis() -> None:
 
 def show_fuzzing_stat(save_unique_lines: bool = True) -> None:
     monitor = Monitor()
-    total_cov = monitor.store.get(CUMULATIVE_COVERAGE_KEY, Coverage)
+    total_cov = monitor.store.get(CUMULATIVE_COVERAGE_KEY, FastCoverage)
+    cov_with_mapping = monitor.store.get(FAST_COVERAGE_WITH_MAPPINGS_KEY, FastCoverage)
+    total_cov.mappings = cov_with_mapping.mappings
+
     logger.info(f"Total coverage after evolution: {total_cov.total_cov()}")
 
     num_unique_tests = monitor.store.get(NUM_UNIQUE_TESTS_KEY, int)
     logger.info(f"Number of unique tests generated: {num_unique_tests}")
 
-    original_total_lcov = Path("/scratch/zijie-data/move-smith/llm/bench2/original_transactional/total_coverage.lcov")
+    original_total_lcov = DATA_DIR / "baseline.lcov"
     if original_total_lcov.exists():
         original_cov = Coverage.parse(original_total_lcov)
-        uniq = total_cov.unique_cov(original_cov)
-        print(f"Unique coverage compared to original: {uniq.total_cov()}")
+        logger.info(f"Transactional tests coverage: {original_cov.total_cov()}")
+        fuzz_total = Coverage.parse_str(total_cov.convert_to_lcov())
+        uniq = fuzz_total.unique_cov(original_cov)
+        logger.info(f"Unique coverage compared to original: {uniq.total_cov()}")
         if save_unique_lines:
             (cfg.work_dir / "unique_lines.txt").write_text(uniq.dump_lines())
+        uncovered = original_cov.unique_cov(fuzz_total)
+        logger.info(f"Uncovered lines compared to original: {uncovered.total_cov()}")
+        if save_unique_lines:
+            (cfg.work_dir / "uncovered_lines.txt").write_text(uncovered.dump_lines())

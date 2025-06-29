@@ -1,21 +1,23 @@
 import subprocess
 import tempfile
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from loguru import logger
-from pydantic import BaseModel
 from rich.progress import track
 
 from .coverage import Coverage
+from .fast_coverage import FastCoverage
 from .llm import run_in_parallel
 from .store import Monitor
 
 
-class RunResult(BaseModel):
+@dataclass
+class RunResult:
     has_error: bool
     error_message: str
-    coverage: Coverage
+    coverage: FastCoverage
 
 
 def build_test_runner(msmith_path: str | Path) -> Path:
@@ -45,13 +47,13 @@ def build_test_runner(msmith_path: str | Path) -> Path:
     return runner
 
 
-def run_one_test(test_code: str) -> RunResult:
+def run_one_test(test_code: str, keep_mapping: bool = False) -> RunResult:
     runner_path = build_test_runner("/home/zijie/move-smith")
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         test_file = temp_path / "test.move"
         test_file.write_text(test_code)
-        result = generate_lcov_for_one(runner_path, test_file)
+        result = generate_lcov_for_one(runner_path, test_file, keep_mapping=keep_mapping)
         logger.success(f"Generated coverage for test: {test_file}")
     return result
 
@@ -74,7 +76,7 @@ def extract_output(text: str) -> str:
     return text[start:end].strip()
 
 
-def generate_lcov_for_one(runner_path: Path, test_path: Path) -> RunResult:
+def generate_lcov_for_one(runner_path: Path, test_path: Path, keep_mapping: bool) -> RunResult:
     runner_path = runner_path.resolve()
     test_path = test_path.resolve()
     test_dir = test_path.parent
@@ -103,7 +105,7 @@ def generate_lcov_for_one(runner_path: Path, test_path: Path) -> RunResult:
         return RunResult(
             has_error=True,
             error_message=f"Test {test_path.name} timed out: {e}",
-            coverage=Coverage.new_empty(),
+            coverage=FastCoverage.empty(),
         )
 
     monitor.record_time(Monitor.EXECUTION_TIME_KEY, start)
@@ -144,7 +146,12 @@ def generate_lcov_for_one(runner_path: Path, test_path: Path) -> RunResult:
     )
     (test_dir / f"{test_path.stem}.lcov").write_text(r.stdout)
     logger.trace(f"Generated lcov for {test_path.name}")
-    cov = Coverage.parse(test_dir / f"{test_path.stem}.lcov")
+    cov = FastCoverage.parse_lcov(
+        test_dir / f"{test_path.stem}.lcov",
+        root="third_party",
+        keep_only=["third_party"],
+        generate_file_mappings=keep_mapping,
+    )
     monitor.record_time(Monitor.COVERAGE_TIME_KEY, start)
     return RunResult(
         has_error=has_error,

@@ -1,8 +1,15 @@
 {
-    "descriptions": [
+    "goals": [],
+    "features": [
         "Compilable Move code that serves as a transactional test for the Move compiler",
         "Exercise Move's type and ability system by using data structures, references, type parameters, abilities",
         "Correctly utilizing Move's global storage system to store, access, and modify data"
     ],
-    "code": []
+    "interesting_files": [
+        "move-compiler-v2/src/bytecode_generator.rs",
+        "move-compiler-v2/src/env_pipeline",
+        "move-compiler-v2/src/file_format_generator",
+        "move-compiler-v2/src/lib.rs",
+        "move-compiler-v2/src/pipeline"
+    ]
 }

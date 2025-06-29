@@ -151,10 +151,14 @@ class Coverage:
         return Coverage(from_info=[], files={})
 
     @staticmethod
-    def parse(info_file) -> Coverage:
+    def parse(info_file: str | Path) -> Coverage:
         info_file = Path(info_file)
-        logger.info(f"Parsing coverage file {info_file}")
-        lines = info_file.read_text().splitlines()
+        logger.trace(f"Parsing coverage file {info_file}")
+        return Coverage.parse_str(info_file.read_text(), from_info=[str(info_file)])
+
+    @staticmethod
+    def parse_str(data: str, from_info: list[str] = []) -> Coverage:
+        lines = data.splitlines()
         file_lines = [[]]
         for line in lines:
             if line.startswith("end_of_record"):
@@ -169,7 +173,7 @@ class Coverage:
             file = File.parse_lines(fl)
             if file is not None:
                 files[file.file_name] = file
-        return Coverage(files=files, from_info=[str(info_file)])
+        return Coverage(files=files, from_info=from_info)
 
     def total_cov(self) -> AggregatedCoverage:
         cov = AggregatedCoverage.new_stat()

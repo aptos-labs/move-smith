@@ -107,6 +107,8 @@ def main() -> None:
     os.environ["OPENAI_API_KEY"] = cfg.openai_api_key
     logger.debug(f"Current configuration: {cfg.to_dict()}")
 
+    cfg.work_dir.mkdir(parents=True, exist_ok=True)
+
     if args.command == "fuzz":
         handle_fuzz(args)
     elif args.command == "inspect":
