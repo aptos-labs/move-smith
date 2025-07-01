@@ -59,21 +59,7 @@ def run_one_test(test_code: str, keep_mapping: bool = False) -> RunResult:
 
 
 def extract_output(text: str) -> str:
-    start_marker = "Expected errors differ from actual errors:"
-    end_marker = (
-        "Run with `env UB=1` (or `env UPDATE_BASELINE=1`) to save the current output as the new expected output"
-    )
-
-    start = text.find(start_marker)
-    if start == -1:
-        return f"error parsing output: {text}"
-    start += len(start_marker)
-
-    end = text.find(end_marker, start)
-    if end == -1:
-        return f"error parsing output: {text}"
-
-    return text[start:end].strip()
+    return text.replace("Expected errors differ from actual errors:", "", 1)
 
 
 def generate_lcov_for_one(runner_path: Path, test_path: Path, keep_mapping: bool) -> RunResult:
@@ -146,12 +132,18 @@ def generate_lcov_for_one(runner_path: Path, test_path: Path, keep_mapping: bool
     )
     (test_dir / f"{test_path.stem}.lcov").write_text(r.stdout)
     logger.trace(f"Generated lcov for {test_path.name}")
-    cov = FastCoverage.parse_lcov(
-        test_dir / f"{test_path.stem}.lcov",
-        root="third_party",
-        keep_only=["third_party"],
-        generate_file_mappings=keep_mapping,
-    )
+    if keep_mapping:
+        cov = FastCoverage.parse_lcov_with_mapping(
+            test_dir / f"{test_path.stem}.lcov",
+            root="third_party",
+            keep_only=["third_party"],
+        )
+    else:
+        cov = FastCoverage.parse_lcov(
+            test_dir / f"{test_path.stem}.lcov",
+            root="third_party",
+            keep_only=["third_party"],
+        )
     monitor.record_time(Monitor.COVERAGE_TIME_KEY, start)
     return RunResult(
         has_error=has_error,

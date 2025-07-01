@@ -146,6 +146,8 @@ module 0xCAFE::StorageUsage {
     public fun store_at_signer_address(s: signer, x: u8, y: u8) {
         let obj = Obj {x, y};
         move_to<Obj>(&s, obj);
+        let a = 1;
+        let b = a;
     }
 
     public fun inspect_value(s: signer): (u8, u8) {
@@ -161,7 +163,8 @@ module 0xCAFE::StorageUsage {
 
     public fun remove_at_signer_address(s: signer) {
         let obj = move_from<Obj>(signer::address_of(&s));
-        let Obj {x: _x, y: _y} = obj;
+        // let Obj {x: _x, y: _y} = obj;
+        let Obj { .. } = obj;
     }
 
     public fun cross_module_call() {

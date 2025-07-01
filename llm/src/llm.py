@@ -57,9 +57,15 @@ def get_content_hash(content) -> str:
     return hashlib.md5(content.encode("utf-8")).hexdigest()
 
 
+def apply_func(args):
+    func, real_args = args
+    return func(*real_args)
+
+
 def run_in_parallel(jobs, function, args) -> list[Any]:
     with Pool(jobs) as p:
-        results = p.starmap(function, args)
+        job_args = [(function, a) for a in args]
+        results = list(p.imap(apply_func, job_args))
     return results
 
 

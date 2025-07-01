@@ -8,6 +8,7 @@ from pathlib import Path
 from loguru import logger
 
 from .config import cfg
+from .cov_report import report_coverage_for_dir
 from .feature_rust import extract_features_from_rust
 from .feature_transactional import extract_features_from_transactional_tests
 from .genetic import fuzzing_loop, show_fuzzing_stat
@@ -56,6 +57,14 @@ def handle_extract(args) -> None:
         extract_features_from_transactional_tests(args.regenerate)
 
 
+def handle_coverage(args) -> None:
+    report_coverage_for_dir(
+        dir_path=args.work_dir,
+        base_coverage_path=args.baseline,
+        output_dir=args.output_dir,
+    )
+
+
 def handle_flush() -> None:
     docker_down("redis")
     docker_down("grafana")
@@ -86,11 +95,19 @@ def main() -> None:
         "--transactional-test", action="store_true", help="Extract features from transactional tests"
     )
 
+    # === Coverage subcommand ===
+    coverage_parser = subparsers.add_parser(
+        "coverage", help="Report coverage of a corpus of Move tests against a baseline coverage"
+    )
+    coverage_parser.add_argument("-b", "--baseline", type=Path, required=True, help="Base coverage file in LCOV format")
+    coverage_parser.add_argument("-o", "--output-dir", type=Path, required=True, help="Output directory for reports")
+
     # === Flush subcommand ===
     subparsers.add_parser("flush", help="Flush Redis store")
 
-    for subparser in [fuzz_parser, inspect_parser, extract_parser]:
+    for subparser in [fuzz_parser, inspect_parser, extract_parser, coverage_parser]:
         subparser.add_argument(
+            "-d",
             "--work-dir",
             type=Path,
             default=Path("work"),
@@ -115,6 +132,8 @@ def main() -> None:
         handle_inspect(args)
     elif args.command == "extract":
         handle_extract(args)
+    elif args.command == "coverage":
+        handle_coverage(args)
 
 
 if __name__ == "__main__":
