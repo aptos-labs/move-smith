@@ -1,0 +1,1 @@
+0xCAFE::GenericRegistry::create_registry --type-args u64

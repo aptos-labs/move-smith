@@ -1,0 +1,1 @@
+--type-args u8,bool

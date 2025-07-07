@@ -1,0 +1,53 @@
+
+//# publish
+module 0xCAFE::LoopTest {
+    use std::vector;
+
+    /// This function takes a vector of u64 and returns the sum of all elements using a for-each style loop.
+    public fun foreach_sum(v: vector<u64>): u64 {
+        let sum = 0u64;
+        for (elem in &v) {
+            sum = sum + *elem;
+        };
+        sum
+    }
+
+    /// This function increments `start` by 1 until it reaches `limit`.
+    /// It uses continue to skip when the counter is 5 (so 5 is not added to the total).
+    /// The loop breaks when the counter is greater than or equal to the limit.
+    public fun while_loop_with_break_continue(start: u64, limit: u64): u64 {
+        let count = start;
+        let total = 0u64;
+        while (true) {
+            if (count >= limit) {
+                break;
+            };
+            if (count == 5) {
+                count = count + 1;
+                continue;
+            };
+            total = total + count;
+            count = count + 1;
+        };
+        total
+    }
+
+    /// This function triggers an arithmetic error by overflowing u8.
+    // expected_failure(arithmetic_error)]
+    public fun overflow_u8() {
+        let x: u8 = 255;
+        let _ = x + 1;
+    }
+}
+
+
+
+//# run 0xCAFE::LoopTest::foreach_sum --args 1 2 3 4
+
+
+
+//# run 0xCAFE::LoopTest::while_loop_with_break_continue --args 0 10
+
+
+
+//# run 0xCAFE::LoopTest::overflow_u8

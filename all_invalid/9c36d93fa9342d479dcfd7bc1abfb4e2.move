@@ -1,0 +1,1 @@
+Operation::Add => { left + right },

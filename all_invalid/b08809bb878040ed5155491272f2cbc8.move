@@ -1,0 +1,1 @@
+--args (0xCAFE::PatternStructTest::Outer { x: 0xCAFE::PatternStructTest::Inner { a: 7u8, b: 42u16 }, y: 3u8 })

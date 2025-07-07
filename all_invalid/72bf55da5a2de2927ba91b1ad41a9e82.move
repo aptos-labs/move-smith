@@ -1,0 +1,1 @@
+error parsing output: Invalid command. Got error error: invalid value '0xCAFE::TestClosureAndTypeArgsScript' for '[NAME]': Invalid module access. Expected 3 distinct parts, address, module, and struct.

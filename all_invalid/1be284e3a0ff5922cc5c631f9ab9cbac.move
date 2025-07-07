@@ -1,0 +1,73 @@
+//# publish
+module 0xCAFE::TestModule {
+
+    // Specification blocks are comments starting with spec
+    // We will define a simple assert-like Spec for demonstration
+    
+    // Function to set up a global counter
+    public fun initialize_counter() {
+        move_to<Counter>(@0xCAFE, Counter { count: 0 });
+    }
+
+    // Function to increment counter
+    public fun increment() {
+        let counter_ref = borrow_global_mut<Counter>(@0xCAFE);
+        counter_ref.count = counter_ref.count + 1;
+    }
+
+    // Function to get current counter value
+    public fun get_counter(): u64 {
+        let counter_ref = borrow_global<Counter>(@0xCAFE);
+        counter_ref.count
+    }
+
+    // Spec to check whether the counter increases
+    // This is a conceptual placeholder: in real move tests, specs are comments or annotations in tooling
+    // For illustration, assume we annotate expected behavior
+    // spec
+    // members
+    // [Counter { count: 0 }] => after increment, count should be 1
+    // This test will verify counter behavior at runtime
+
+    //# run 0xCAFE::TestModule::initialize_counter --signers 0xCAFE
+    //# run 0xCAFE::TestModule::increment --signers 0xCAFE
+    //# run 0xCAFE::TestModule::get_counter --signers 0xCAFE
+
+    // Additional test with types and arguments
+    public fun generic_increment<T>(): T acquires T {
+        // This is an intentionally generic function
+        // For test, just returning default value
+        // Expected to be called with T as u64
+        let val: T = move(1 as T);
+        val
+    }
+
+    //# run 0xCAFE::TestModule::generic_increment<u64> --signers 0xCAFE
+
+    // Struct to test multiple members and resource capabilities
+    struct DataHolder {
+        value: u64,
+        flag: bool,
+    }
+
+    public fun initialize_data_holder(): () {
+        move_to<DataHolder>(@0xCAFE, DataHolder { value: 42, flag: true });
+    }
+
+    //# run 0xCAFE::TestModule::initialize_data_holder --signers 0xCAFE
+
+    // Test to verify unpacking and member access
+    public fun read_data_holder(): u64 {
+        let dh_ref = borrow_global<DataHolder>(@0xCAFE);
+        let val = dh_ref.value; // access member
+        val
+    }
+
+    //# run 0xCAFE::TestModule::read_data_holder --signers 0xCAFE
+
+}
+
+// Featurres:
+// 4667c6e4970f7873a6506af7015cf8a4: Write specification blocks (specs) for scripts to describe formal properties or assertions.
+// 0e12a1b2edb5efe353962ad8146a7927: Pass an optional vector of types to functions to handle cases where type information might be absent, enabling flexible type assignments in your code.
+// 4760b5303eec78392fef07521b1ead67: Declare members within specification blocks to define specific behaviors or properties.

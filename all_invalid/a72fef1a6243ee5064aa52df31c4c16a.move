@@ -1,0 +1,1 @@
+public fun test_lambda_equals<T: drop + copy + store + partial_eq>(input: T, other: T): bool {

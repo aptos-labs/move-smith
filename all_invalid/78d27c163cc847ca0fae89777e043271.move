@@ -1,0 +1,1 @@
+//# run 0xCAFE::EnumPattern::test_abort_on_error --args 2u8 --signers 0xCAFE

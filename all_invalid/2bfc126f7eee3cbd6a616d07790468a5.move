@@ -1,0 +1,1 @@
+//# run 0xCAFE::ResourceTester::publish_resources --signers 0xCAFE

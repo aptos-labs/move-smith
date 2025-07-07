@@ -1,0 +1,1 @@
+//# run 0xCAFE::SequentialAssign::sum_nums_fields --args 0xCAFE::SequentialAssign::create_nums(20u64, 30u64)

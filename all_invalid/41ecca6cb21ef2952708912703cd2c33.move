@@ -1,0 +1,2 @@
+#[inline(always)]
+fun main() {

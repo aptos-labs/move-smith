@@ -1,0 +1,1 @@
+//# run 0xCAFE::DependencyTracker::test_dependencies --args 0xCAFE::DependencyTracker::no_arg_runner

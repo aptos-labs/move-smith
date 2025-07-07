@@ -1,0 +1,1 @@
+forall(o: Outer) ::

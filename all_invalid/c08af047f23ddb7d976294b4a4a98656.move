@@ -1,0 +1,1 @@
+--args `0xCAFE::MyModule::E::V2(5u8, 10u8)`

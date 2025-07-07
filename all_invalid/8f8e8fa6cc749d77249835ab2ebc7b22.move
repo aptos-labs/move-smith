@@ -1,0 +1,128 @@
+
+//# publish
+module 0xDEAD::CombinedFeaturesTest {
+    use std::vector;
+
+    struct ResourceA has key {
+        value: u8,
+    }
+
+    struct ResourceB has key {
+        flag: bool,
+    }
+
+    // Internal function for access testing
+    fun internal_function(a: u8): u8 {
+        a + 5
+    }
+
+    public fun init_resources(signer: signer) {
+        move_to<ResourceA>(&signer, ResourceA { value: 10 });
+        move_to<ResourceB>(&signer, ResourceB { flag: true });
+    }
+
+    public fun get_resource_a(address: address): u8 {
+        let res_ref: &ResourceA = borrow_global<ResourceA>(address);
+        res_ref.value
+    }
+
+    public fun get_resource_b(address: address): bool {
+        let res_ref: &ResourceB = borrow_global<ResourceB>(address);
+        res_ref.flag
+    }
+
+    // Wrapper to call internal function without args
+    public fun call_internal(addr: address): u8 {
+        internal_function(20)
+    }
+}
+
+
+//# run 0xDEAD::CombinedFeaturesTest::init_resources --signers 0xB0B --args
+
+
+//# run 0xDEAD::CombinedFeaturesTest::get_resource_a --args 0xB0B
+
+
+//# run 0xDEAD::CombinedFeaturesTest::get_resource_b --args 0xB0B
+
+
+//# run 0xDEAD::CombinedFeaturesTest::call_internal --args 0xB0B
+
+//# run
+script {
+    // Local variables outside loops with varied types
+    let local_u8: u8 = 123;
+    let local_bool: bool = true;
+    let local_vector: vector<u8> = vector::empty<u8>();
+    vector::push_back(&mut local_vector, 1);
+    vector::push_back(&mut local_vector, 2);
+
+    // Variable bindings to literals and expressions
+    let bound_u8 = local_u8;
+    let bound_bool = local_bool;
+    let bound_vector = copy local_vector;
+
+    // Using literals directly
+    let lit_u8: u8 = 255;
+    let lit_bool: bool = false;
+
+    // Shadowing within a loop
+    let i: u64 = 0;
+    while (i < 3) {
+        let i_shadow = i;
+        // Assignments inside loop
+        let _ = i_shadow + 2;
+        // Shadowing local
+        let i = i_shadow + 1;
+        i = i;
+        i = i;
+        i = i;
+        i = i;
+        i = i + 1;
+        i = i;
+        i = i;
+        // Update outer variable
+        i = i + 1;
+        i = i;
+        i = i + 1;
+        // Variable shadowing doesn't interfere outside
+        i = i + 1;
+        i = i;
+
+        // Call an internal function to verify no interference
+        let _value = 0xDEAD::CombinedFeaturesTest::call_internal(@0xB0B);
+        i = i + 1;
+    };
+    // After loop, verify outer variable
+    let _final_i = i;
+
+    // Binding function result to variable
+    let result = 0xDEAD::CombinedFeaturesTest::call_internal(@0xB0B);
+
+    // Use of multiple compiler passes: code that benefits those
+    let large_vector: vector<u8> = vector::range(0, 10);
+    let sum: u8 = {
+        let total: u8 = 0;
+        let length = vector::length(&large_vector);
+        let idx: u64 = 0;
+        while (idx < length) {
+            total = total + *vector::borrow(&large_vector, idx);
+            idx = idx + 1;
+        };
+        total
+    };
+    // Ensure correct behavior after optimization
+    assert!(sum == 45, 999);
+}
+
+
+// Featurres:
+// 5941dd503b9dcc73e363012d080654d1: Treat the entire program as a target for comprehensive analysis.
+// 0b62e2b6ef6d21801ee5807769ee6a3e: Test that local variable assignments inside and outside a while loop are handled correctly and that variable shadowing does not affect values across loop iterations.
+// 63d45d364eac9afd0006b4525c93f85c: Use 'internal' visibility to restrict access within the module or package.
+// caa4ab8a3e36141117c8c50d0a12748d: Specify global or local variables in specifications.
+// b97f161fc46919e92f4e2b88ea9444ff: Bind variables to the result of expressions
+// 82f755af6a64ca1b7520a8282c6064dc: Define scripts using the 'script' keyword in Move files.
+// 50be35204c12abb319efdf34d4e63b3d: Take advantage of multiple compiler optimization passes on Move source code and bytecode.
+// 066ffe3af6577349cb1784a721b55b3a: Use literal values, and move or copy variable expressions.

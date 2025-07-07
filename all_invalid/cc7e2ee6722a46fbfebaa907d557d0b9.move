@@ -1,0 +1,164 @@
+
+//# publish
+module 0xCAFE::AdvancedFeaturesTest {
+    use std::vector;
+    use std::signer;
+
+    // Deep nested structs
+    struct Outer has store {
+        inner: Inner,
+        value: u64,
+    }
+
+    struct Inner has store {
+        deep_field: Deep,
+        flag: bool,
+    }
+
+    struct Deep has store {
+        level1: Level1,
+        level2: u8,
+    }
+
+    struct Level1 has store {
+        inner_most: InnerMost,
+    }
+
+    struct InnerMost has store {
+        data: vector<u8>,
+        counter: u32,
+    }
+
+    // Internal function with restricted visibility
+    fun internal_modify_deep_field(o: &mut Outer, new_value: u8) {
+        // Access nested fields
+        let deep = &mut o.inner.deep_field;
+        let level1 = &mut deep.level1;
+        let inner_most = &mut level1.inner_most;
+        // Clear the data vector
+        inner_most.data = vector::empty<u8>();
+        // Push new_value into data
+        vector::push_back(&mut inner_most.data, new_value);
+    }
+
+    // Public function to create nested structure and modify deep field
+    public fun create_and_modify(): vector<u8> {
+        let deep = Deep {
+            level1: Level1 {
+                inner_most: InnerMost {
+                    data: vector::empty<u8>(),
+                    counter: 0,
+                },
+            },
+            level2: 42,
+        };
+        let inner_most = InnerMost {
+            data: vector::empty<u8>(),
+            counter: 0,
+        };
+        let inner = Inner {
+            deep_field: deep,
+            flag: true,
+        };
+        let outer = Outer {
+            inner,
+            value: 100,
+        };
+
+        // Modify deep nested field
+        internal_modify_deep_field(&mut outer, 99);
+        // Return the modified deep field data for validation
+        // Access nested data
+        let data_ref = &outer.inner.deep_field.level1.inner_most.data;
+        vector::clone(data_ref)
+    }
+
+    // Function with variable shadowing and nested loops
+    public fun variable_shadowing_loop(flag_init: bool): u64 {
+        let (mut x, mut y) = (0u64, 5u64);
+        let y_shadow = 10u64;
+
+        // Shadow 'y' inside while loop
+        while (x < 3) {
+            let y = x + y_shadow; // shadow y
+            // process inside loop if needed
+            x = x + 1;
+        };
+        // The outer y remains unchanged
+        x + y + y_shadow
+    }
+
+    // Function to test visibility restrictions (should produce compile error if uncommented)
+    // public fun illegal_access() {
+    //     internal_modify_deep_field(&mut Outer {...}, 1); // Should fail: internal function not accessible outside module
+    // }
+
+    // Specification: validate purity (simulate via a pure function)
+    public fun pure_function_example(a: u64): u64 {
+        a + 1
+    }
+
+    // Assume spec: pure functions should return consistent results
+    public fun check_pure_consistency(x: u64): bool {
+        let res1 = pure_function_example(x);
+        let res2 = pure_function_example(x);
+        res1 == res2
+    }
+
+    // Function demonstrating currying with closures
+    public fun curry_add(y: u64): |u64| u64 {
+        |x: u64| x + y
+    }
+
+    // Function with conditional evaluation involving variable shadowing
+    public fun conditional_shadowed(x: u64, condition: bool): u64 {
+        let result = if (condition) {
+            let x = x + 1; // shadow outer x
+            x * 2
+        } else {
+            x / 2
+        };
+        result
+    }
+
+    // Function calling nested functions, testing scope and deep access
+    public fun complex_interaction(flag: bool): u64 {
+        let add_five = curry_add(5);
+        let val = if (flag) {
+            let intermediate = add_five(10);
+            intermediate + 100
+        } else {
+            let inner_closure = curry_add(2);
+            inner_closure(20)
+        };
+        val
+    }
+}
+
+
+
+//# run 0xCAFE::AdvancedFeaturesTest::create_and_modify
+
+
+
+//# run 0xCAFE::AdvancedFeaturesTest::variable_shadowing_loop --args false
+
+
+
+//# run 0xCAFE::AdvancedFeaturesTest::check_pure_consistency --args 12345u64
+
+
+
+//# run 0xCAFE::AdvancedFeaturesTest::conditional_shadowed --args 4u64 true
+
+
+
+//# run 0xCAFE::AdvancedFeaturesTest::conditional_shadowed --args 4u64 false
+
+
+
+//# run 0xCAFE::AdvancedFeaturesTest::complex_interaction --args true
+
+
+
+//# run 0xCAFE::AdvancedFeaturesTest::complex_interaction --args false

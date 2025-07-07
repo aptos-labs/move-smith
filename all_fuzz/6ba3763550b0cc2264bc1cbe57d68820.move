@@ -1,0 +1,3 @@
+fun spec_complicated(x: u64): u64 {
+    ...
+}

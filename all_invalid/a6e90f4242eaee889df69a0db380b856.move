@@ -1,0 +1,1 @@
+//# run script 0xCAFE::ScriptTest

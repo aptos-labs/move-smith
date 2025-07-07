@@ -1,0 +1,1 @@
+//# run 0x1a2b::ResourceModule::retrieve_count --signers 0x1a2b

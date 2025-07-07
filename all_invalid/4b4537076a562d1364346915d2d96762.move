@@ -1,0 +1,1 @@
+# run 0xCAFE::PrivilegedUser::read_secret_from_priv_struct --args (0xCAFE::PrivilegedOps::create_priv_struct(987654321u64))

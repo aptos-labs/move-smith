@@ -1,0 +1,3 @@
+while (i < len_keys) {
+  ...
+}

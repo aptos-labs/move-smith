@@ -1,0 +1,1 @@
+//# run 0xCAFE::SpecAndCopyMove::copy_and_move_struct --args '{ val: 99u64 }'

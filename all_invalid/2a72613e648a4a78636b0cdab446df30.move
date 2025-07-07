@@ -1,0 +1,1 @@
+task run 0xCAFE::TestPatternMatching::match_enum_and_deprecated --args V2 5 10
