@@ -7,20 +7,27 @@ from pathlib import Path
 from loguru import logger
 from rich.progress import track
 
+from .config import EXECUTOR_DIR
 from .coverage import Coverage
 from .fast_coverage import FastCoverage
 from .llm import run_in_parallel
 from .store import Monitor
 
+TOTAL_NUMBER_OF_ERRORS = "total_number_of_errors"
+TOTAL_NUMBER_OF_ICES = "total_number_of_ices"
+
 
 @dataclass
 class RunResult:
     has_error: bool
+    has_bug: bool
+    num_errors: int
+    num_bugs: int
     error_message: str
     coverage: FastCoverage
 
 
-def build_test_runner(msmith_path: str | Path) -> Path:
+def build_move_transactional_test_runner() -> Path:
     """
     Builds the test runner executable if not already built.
 
@@ -30,25 +37,18 @@ def build_test_runner(msmith_path: str | Path) -> Path:
     Returns:
         Path: the path to the test runner executable.
     """
-    msmith_path = Path(msmith_path).resolve()
-    runner = msmith_path / "runner/move-test-runner/target/debug/move-test-runner"
+    runner_dir = EXECUTOR_DIR / "move_transactional"
+    runner = runner_dir / "target/debug/runner"
     if not runner.exists():
         logger.info(f"Building test runner at {runner}")
-        subprocess.run(
-            ["cargo", "build"],
-            check=True,
-            cwd=msmith_path / "runner/move-test-runner",
-            env={
-                "RUSTFLAGS": "-C instrument-coverage -Zcoverage-options=branch",
-            },
-        )
+        subprocess.run("make", cwd=runner_dir, check=True, shell=True)
     if not runner.exists():
         raise FileNotFoundError(f"Test runner not found at {runner}. Please check the build process.")
     return runner
 
 
 def run_one_test(test_code: str, keep_mapping: bool = False) -> RunResult:
-    runner_path = build_test_runner("/home/zijie/move-smith")
+    runner_path = build_move_transactional_test_runner()
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         test_file = temp_path / "test.move"
@@ -58,20 +58,19 @@ def run_one_test(test_code: str, keep_mapping: bool = False) -> RunResult:
     return result
 
 
-def extract_output(text: str) -> str:
-    return text.replace("Expected errors differ from actual errors:", "", 1)
+def process_output(output: str) -> tuple[int, int, str]:
+    parts = output.split("\n", 2)
+    num_errors = int(parts[0])
+    num_bugs = int(parts[1])
+    error_message = parts[2] if len(parts) > 2 else ""
+
+    return num_errors, num_bugs, error_message
 
 
 def generate_lcov_for_one(runner_path: Path, test_path: Path, keep_mapping: bool) -> RunResult:
     runner_path = runner_path.resolve()
     test_path = test_path.resolve()
     test_dir = test_path.parent
-
-    # TODO: dump error message and status as well to allow fast rerun
-    # check if coverage files already exist
-    # if (test_dir / f"{test_path.stem}.lcov").exists():
-    #     logger.info(f"Coverage files for {test_path.name} already exist, skipping generation.")
-    #     return Coverage.parse(test_dir / f"{test_path.stem}.lcov")
 
     monitor = Monitor()
     start = time.perf_counter()
@@ -90,15 +89,18 @@ def generate_lcov_for_one(runner_path: Path, test_path: Path, keep_mapping: bool
     except subprocess.TimeoutExpired as e:
         return RunResult(
             has_error=True,
+            num_errors=1,
+            num_bugs=0,
+            has_bug=False,
             error_message=f"Test {test_path.name} timed out: {e}",
             coverage=FastCoverage.empty(),
         )
 
     monitor.record_time(Monitor.EXECUTION_TIME_KEY, start)
 
-    output = extract_output(r.stdout)
-    has_error = "error" in output or "Error" in output or "ERROR" in output
-    error_message = output
+    num_errors, num_bugs, error_message = process_output(r.stdout)
+    monitor.incr_counter(TOTAL_NUMBER_OF_ERRORS, num_errors)
+    monitor.incr_counter(TOTAL_NUMBER_OF_ICES, num_bugs)
 
     start = time.perf_counter()
     logger.trace(f"Generated raw coverage for {test_path.name}")
@@ -146,7 +148,10 @@ def generate_lcov_for_one(runner_path: Path, test_path: Path, keep_mapping: bool
         )
     monitor.record_time(Monitor.COVERAGE_TIME_KEY, start)
     return RunResult(
-        has_error=has_error,
+        has_error=num_errors > 0,
+        num_errors=num_errors,
+        has_bug=num_bugs > 0,
+        num_bugs=num_bugs,
         error_message=error_message,
         coverage=cov,
     )
@@ -268,32 +273,9 @@ def find_unique_tests(
 
 
 if __name__ == "__main__":
-    runner_path = build_test_runner("/home/zijie/move-smith")
-    (original_total, original_singles) = generate_all_coverage(
-        runner_path, Path("/home/zijie/move-smith/llm/bench2/original_transactional"), False
-    )
-
-    # (generated_total, generated_singles) = generate_all_coverage(
-    #     runner_path, Path("/home/zijie/move-smith/llm/bench2/generated_480"), False
-    # )
-
-    # print(original_total.total_cov())
-    # print(generated_total.total_cov())
-
-    # find_unique_tests(
-    #     original_total, generated_singles, Path("all_unique_tests.txt"), Path("smallest_unique_tests.txt")
-    # )
-
-    # original_total = Coverage.parse("/home/zijie/move-smith/llm/bench2/original_transactional/total_coverage.lcov")
-    (generated_total, generated_singles) = generate_all_coverage(
-        runner_path, Path("/home/zijie/move-smith/llm/work/test/unique_tests"), False
-    )
-
-    find_unique_tests(
-        original_total,
-        generated_singles,
-        Path("all_unique_tests2.txt"),
-        Path("smallest_unique_tests2.txt"),
-    )
-    uniqe = generated_total.unique_cov(original_total)
-    print(uniqe.total_cov())
+    r = run_one_test(Path("all_invalid/00bde779b9cd08cce98d085ccb60aa6c.move").read_text())
+    print(f"{r.error_message}")
+    print(f"{r.has_error}")
+    print(f"{r.num_errors}")
+    print(f"{r.has_bug}")
+    print(f"{r.num_bugs}")

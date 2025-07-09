@@ -1,7 +1,0 @@
-[package]
-name = "utils"
-edition = "2021"
-
-[lib]
-name = "utils"
-path = "src/lib.rs"

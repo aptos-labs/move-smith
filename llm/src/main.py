@@ -44,7 +44,8 @@ def handle_inspect(args) -> None:
 
     docker_up("grafana")
     redis_up_with_override(dump_path)
-    show_fuzzing_stat(save_unique_lines=False)
+    if not args.skip_report:
+        show_fuzzing_stat(save_unique_lines=False)
 
 
 def handle_extract(args) -> None:
@@ -84,6 +85,7 @@ def main() -> None:
 
     # === Inspect subcommand ===
     inspect_parser = subparsers.add_parser("inspect", help="Inspect a previous run")
+    inspect_parser.add_argument("--skip-report", action="store_true", help="Skip reporting unique lines")
 
     # === Extract subcommand ===
     extract_parser = subparsers.add_parser("extract", help="Extract features")

@@ -294,23 +294,27 @@ def show_fuzzing_stat(save_unique_lines: bool = True) -> None:
     monitor = Monitor()
     total_cov = monitor.store.get(CUMULATIVE_COVERAGE_KEY, FastCoverage)
     cov_with_mapping = monitor.store.get(FAST_COVERAGE_WITH_MAPPINGS_KEY, FastCoverage)
-    total_cov.mappings = cov_with_mapping.mappings
+    total_cov.copy_mappings(cov_with_mapping)
 
     logger.info(f"Total coverage after evolution: {total_cov.total_cov()}")
 
     num_unique_tests = monitor.store.get(NUM_UNIQUE_TESTS_KEY, int)
     logger.info(f"Number of unique tests generated: {num_unique_tests}")
 
-    original_total_lcov = DATA_DIR / "baseline.lcov"
-    if original_total_lcov.exists():
-        original_cov = Coverage.parse(original_total_lcov)
-        logger.info(f"Transactional tests coverage: {original_cov.total_cov()}")
-        fuzz_total = Coverage.parse_str(total_cov.convert_to_lcov())
-        uniq = fuzz_total.unique_cov(original_cov)
-        logger.info(f"Unique coverage compared to original: {uniq.total_cov()}")
+    baseline_lcov = DATA_DIR / "baseline.lcov"
+    if baseline_lcov.exists():
+        baseline_cov = FastCoverage.parse_lcov_with_mapping(
+            baseline_lcov, root="third_party", keep_only=["third_party"]
+        )
+        logger.info(f"Transactional tests coverage: {baseline_cov.total_cov()}")
+        baseline_cov.convert_to_other_mapping(cov_with_mapping)
+
+        uniq = total_cov.unique_cov(baseline_cov)
+        logger.info(f"Unique coverage compared to baseline: {uniq.total_cov()}")
         if save_unique_lines:
             (cfg.work_dir / "unique_lines.txt").write_text(uniq.dump_lines())
-        uncovered = original_cov.unique_cov(fuzz_total)
-        logger.info(f"Uncovered lines compared to original: {uncovered.total_cov()}")
+
+        uncovered = baseline_cov.unique_cov(total_cov)
+        logger.info(f"Uncovered lines compared to baseline: {uncovered.total_cov()}")
         if save_unique_lines:
             (cfg.work_dir / "uncovered_lines.txt").write_text(uncovered.dump_lines())

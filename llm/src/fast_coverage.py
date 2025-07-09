@@ -557,6 +557,11 @@ class FastFileCov:
         for line_number, hit in zip(self.mapping.line_numbers, self.lines):
             if hit == 1:
                 lines.append(f"{self.mapping.file_name}:{line_number}")
+
+        if len(lines) == 0:
+            for branch_number, hit in zip(self.mapping.branch_numbers, self.branches):
+                if hit == 1:
+                    lines.append(f"branch: {self.mapping.file_name}:{branch_number}")
         return lines
 
 
@@ -565,7 +570,12 @@ if __name__ == "__main__":
     import time
 
     from .config import APTOS_CORE_DIR, MOVE_SMITH_DIR
-    from .runner import generate_lcov_for_one
+    from .runner import generate_lcov_for_one, run_one_test
+
+    code = Path("bench_fixer/all_on_3_attempt/unique_tests/0d1a9b07e2e31c523c67ec8140edb535.move").read_text()
+    result = run_one_test(code)
+    print(result.has_error)
+    exit()
 
     rep = 20
 
@@ -660,5 +670,4 @@ if __name__ == "__main__":
     start = time.perf_counter()
     for _ in range(rep):
         cov3 = cov1.unique_cov(cov2)
-    print("FastCoverage.unique_cov: ", time.perf_counter() - start)
     print("FastCoverage.unique_cov: ", time.perf_counter() - start)

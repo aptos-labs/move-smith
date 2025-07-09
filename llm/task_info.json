@@ -1,9 +1,12 @@
 {
-    "goals": [],
-    "features": [
+    "goals": [
         "Compilable Move code that serves as a transactional test for the Move compiler",
         "Exercise Move's type and ability system by using data structures, references, type parameters, abilities",
         "Correctly utilizing Move's global storage system to store, access, and modify data"
+    ],
+    "features": [
+        "Add a comment using weird utf-8 characters",
+        "Try to use a lambda function that returns a reference to a local variable"
     ],
     "interesting_files": [
         "move-compiler-v2/src/bytecode_generator.rs",

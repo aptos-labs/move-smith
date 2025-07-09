@@ -12,27 +12,36 @@ use std::{
 const SUCCESS_MSG: &str = "Success";
 static TO_IGNORE: Lazy<Vec<String>> = Lazy::new(|| {
     let env_path = env::var("TO_IGNORE_PATH");
+    let env_lines = env::var("TO_IGNORE_LINES");
 
-    let content = match env_path {
+    let mut content = match env_path {
         Ok(path) => {
             if path.to_uppercase() == "NONE" {
-                return vec![];
-            }
-            let path = PathBuf::from(path);
-            match fs::read_to_string(&path) {
-                Ok(c) => c,
-                Err(e) => {
-                    eprintln!(
-                        "Failed to read ignore list from '{}': {} — falling back to built-in list.",
-                        path.display(),
-                        e
-                    );
-                    include_str!("to_ignore.txt").to_string()
-                },
+                String::new()
+            } else {
+                let path = PathBuf::from(path);
+                match fs::read_to_string(&path) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        eprintln!(
+                            "Failed to read ignore list from '{}': {} — falling back to built-in list.",
+                            path.display(),
+                            e
+                        );
+                        include_str!("to_ignore.txt").to_string()
+                    },
+                }
             }
         },
         Err(_) => include_str!("to_ignore.txt").to_string(),
     };
+    match env_lines {
+        Ok(lines) => {
+            content.push('\n');
+            content.push_str(&lines);
+        },
+        Err(_) => (),
+    }
 
     content
         .lines()
@@ -97,10 +106,12 @@ pub enum ResultChunkKind {
     Warning,
     Hash,
     Return,
+    Ignored,
 }
 
 impl ResultChunkKind {
     pub fn try_from_str(msg: &str) -> Option<Self> {
+        let msg = msg.trim();
         if msg.contains(SUCCESS_MSG) {
             Some(Self::Success)
         } else if msg.contains("warning") {
@@ -163,13 +174,6 @@ impl TransactionalResultBuilder {
                 Ok(_) => "Success\n".to_string(),
                 Err(e) => format!("{e:?}"),
             };
-            for ignore in TO_IGNORE.iter() {
-                if run_log.contains(ignore) {
-                    let mut succ_result = TransactionalResult::success();
-                    succ_result.log = format!("Ignored error\n{}", run_log.clone());
-                    return succ_result;
-                }
-            }
             if is_diff {
                 let (v1_log, v2_log) = Self::split_diff_log(&run_log);
                 log_strings.push(v1_log);
@@ -180,11 +184,16 @@ impl TransactionalResultBuilder {
         }
 
         for log in log_strings {
-            let lines = log
-                .lines()
-                .map(|l| l.trim().to_string())
-                .collect::<Vec<String>>();
-            let chunks = ResultChunk::log_to_chunck(&lines);
+            let lines = log.lines().map(|l| l.to_string()).collect::<Vec<String>>();
+            let mut chunks = ResultChunk::log_to_chunck(&lines);
+            for chunk in chunks.iter_mut() {
+                for ignore in TO_IGNORE.iter() {
+                    if chunk.original.contains(ignore) {
+                        chunk.canonical = format!("Ignored error: {}", ignore);
+                        chunk.kind = ResultChunkKind::Ignored;
+                    }
+                }
+            }
             result.log.push_str(&log);
             result.splitted_logs.push(log.clone());
             result.chunks.push(chunks);

@@ -1,0 +1,11 @@
+[package]
+name = "move-transactional-test-runner"
+edition = "2021"
+
+[dependencies]
+msmith = { path = "../../../msmith" }
+log = "0.4.22"
+
+[[bin]]
+name = "runner"
+path = "src/main.rs"

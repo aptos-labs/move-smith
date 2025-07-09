@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 APTOS_CORE_DIR = ROOT.parent.parent / "aptos-core"
 MOVE_SMITH_DIR = ROOT.parent
+EXECUTOR_DIR = ROOT / "executors"
 
 custom_settings_file = os.getenv("SETTINGS")
 settings_files = [
