@@ -13,28 +13,15 @@ exceeded maximal
 # BORROWLOC_EXISTS_BORROW_ERROR
 # VEC_BORROW_ELEMENT_EXISTS_MUTABLE_BORROW_ERROR
 too many arguments captured in lambda
-CONSTRAINT_NOT_SATISFIED
 ARITHMETIC_ERROR
 still mutably borrowed
-POSITIVE_STACK_SIZE_AT_BLOCK_END
-INDEX_OUT_OF_BOUNDS
-NUMBER_OF_ARGUMENTS_MISMATCH
 cannot be modified inside of a lambda
 does not have the `drop` ability
-bug: inconsistent tuple arity
 cannot drop
 captured value cannot be a reference
-STLOC_TYPE_MISMATCH_ERROR
-BORROWFIELD_EXISTS_MUTABLE_BORROW_ERROR
-BORROWLOC_EXISTS_BORROW_ERROR
-MOVELOC_EXISTS_BORROW_ERROR
-COPYLOC_EXISTS_BORROW_ERROR
-WRITEREF_TYPE_MISMATCH_ERROR
-bug: unexpected tuple type Tuple
-CLOSURE_CALL_REQUIRES_FUNCTION
-bug: Unpacking a reference to a struct must return the references of fields
 error: undeclared
 borrowed
 error: lambda lifting is not allowed in scripts
 error: inline function cannot be used as a function value
 STLOC_UNSAFE_TO_DESTROY_ERROR
+MOVELOC_EXISTS_BORROW_ERROR
