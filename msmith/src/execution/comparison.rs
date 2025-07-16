@@ -5,7 +5,6 @@ use crate::execution::{
     },
     ExecutionResult, Executor, Report, ReportFormat, ResultCompareMode,
 };
-use log::warn;
 use serde::{Deserialize, Serialize};
 use std::{panic::PanicHookInfo, sync::Arc};
 
@@ -91,8 +90,19 @@ impl ExecutionResult for ComparisonOutput {
         self.is_bug
     }
 
-    fn similar(&self, _other: &Self, _mode: &ResultCompareMode) -> bool {
-        warn!("ComparisonOutput::similar is not implemented");
+    /// If any pair of underlying transactional result is similar, we consider the comparison output to be similar.
+    /// This is conservative to avoid too many duplicates.
+    fn similar(&self, other: &Self, mode: &ResultCompareMode) -> bool {
+        let left_tx_results = &self.tx_results;
+        let right_tx_results = &other.tx_results;
+        if left_tx_results.len() != right_tx_results.len() {
+            return false;
+        }
+        for (left, right) in left_tx_results.iter().zip(right_tx_results) {
+            if left.similar(right, mode) {
+                return true;
+            }
+        }
         false
     }
 }

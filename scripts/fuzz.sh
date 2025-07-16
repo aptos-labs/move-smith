@@ -65,7 +65,7 @@ function run_hfuzz() {
     echo "Running fuzz target: $fuzz_target for $total_hour hours"
 
     cd $MOVE_SMITH_DIR/fuzz
-    HFUZZ_RUN_ARGS="-u -t $timeout -n $JOBS --run_time $total_seconds" cargo hfuzz run $fuzz_target
+    HFUZZ_RUN_ARGS="-u -t $timeout -n $JOBS --run_time $total_seconds --keep_output" cargo hfuzz run $fuzz_target
 }
 
 function run_libfuzzer() {

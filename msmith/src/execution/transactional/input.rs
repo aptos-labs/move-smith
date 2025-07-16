@@ -18,13 +18,12 @@ use move_transactional_test_runner_legacy::vm_test_harness::TestRunConfig;
 use move_transactional_test_runner_local::vm_test_harness::TestRunConfig;
 #[cfg(feature = "git_deps")]
 use move_vm_runtime::config::VMConfig;
-#[cfg(feature = "local_deps")]
-use move_vm_runtime_local::config::VMConfig;
 #[cfg(feature = "legacy_deps")]
 use move_vm_runtime_legacy::config::VMConfig;
+#[cfg(feature = "local_deps")]
+use move_vm_runtime_local::config::VMConfig;
 use std::path::PathBuf;
 use tempfile::TempDir;
-
 
 #[derive(Default, Clone)]
 pub enum ExecutionMode {
@@ -41,6 +40,7 @@ pub enum V2Setting {
     NoOptimization,
     ExtraOptimization,
     OptNoSimp,
+    NoV3RefNoAbility,
 }
 
 impl V2Setting {
@@ -59,6 +59,10 @@ impl V2Setting {
                 ("optimize".to_string(), true),
                 ("ast-simplify".to_string(), false),
                 ("acquires-check".to_string(), false),
+            ],
+            Self::NoV3RefNoAbility => vec![
+                ("reference-safety-v3".to_string(), false),
+                ("ability-check".to_string(), false),
             ],
         }
     }
@@ -124,6 +128,7 @@ pub enum CommonRunConfig {
     V2NoOptExtra,
     V2Extra,
     All,
+    RefCheck,
 }
 
 impl CommonRunConfig {
@@ -215,6 +220,18 @@ impl CommonRunConfig {
                 RunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::OptNoSimp),
+                    vm_config: None,
+                },
+            ],
+            RefCheck => vec![
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::NoV3RefNoAbility),
+                    vm_config: None,
+                },
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::Optimization),
                     vm_config: None,
                 },
             ],

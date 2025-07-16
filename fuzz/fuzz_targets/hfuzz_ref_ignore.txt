@@ -1,0 +1,11 @@
+MAX_
+TOO_MANY
+exceeded maximal
+ARITHMETIC_ERROR
+cannot be modified inside of a lambda
+error: undeclared
+error: lambda lifting is not allowed in scripts
+error: inline function cannot be used as a function value
+STLOC_UNSAFE_TO_DESTROY_ERROR
+MOVELOC_EXISTS_BORROW_ERROR
+LINKER_ERROR
