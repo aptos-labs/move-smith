@@ -63,7 +63,7 @@ fn main() {
 
             let no_check_run = ComparisonOneInput {
                 code: code.clone(),
-                v2_setting: Some(V2Setting::NoV3RefNoAbility),
+                v2_setting: Some(V2Setting::NoV3Ref),
                 checker: Arc::new(one_result_checker),
             };
 

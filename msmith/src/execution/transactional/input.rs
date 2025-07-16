@@ -40,7 +40,7 @@ pub enum V2Setting {
     NoOptimization,
     ExtraOptimization,
     OptNoSimp,
-    NoV3RefNoAbility,
+    NoV3Ref,
 }
 
 impl V2Setting {
@@ -60,10 +60,7 @@ impl V2Setting {
                 ("ast-simplify".to_string(), false),
                 ("acquires-check".to_string(), false),
             ],
-            Self::NoV3RefNoAbility => vec![
-                ("reference-safety-v3".to_string(), false),
-                ("ability-check".to_string(), false),
-            ],
+            Self::NoV3Ref => vec![("reference-safety-v3".to_string(), false)],
         }
     }
 }
@@ -226,7 +223,7 @@ impl CommonRunConfig {
             RefCheck => vec![
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::NoV3RefNoAbility),
+                    v2_setting: Some(V2Setting::NoV3Ref),
                     vm_config: None,
                 },
                 RunConfig {
