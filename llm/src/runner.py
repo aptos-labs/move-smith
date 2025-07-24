@@ -67,6 +67,24 @@ def process_output(output: str) -> tuple[int, int, str]:
     return num_errors, num_bugs, error_message
 
 
+def process_panic(output: str) -> tuple[int, int, str]:
+    num_errors = 1
+    num_bugs = 0
+    lines = output.splitlines()
+    keep = False
+    msg_lines = []
+    for line in lines:
+        if "note: run with `RUST_BACKTRACE=1`" in line:
+            break
+        if keep:
+            msg_lines.append(line)
+        if "panicked at" in line:
+            keep = True
+    error_message = "\n".join(msg_lines)
+
+    return num_errors, num_bugs, error_message
+
+
 def generate_lcov_for_one(runner_path: Path, test_path: Path, keep_mapping: bool) -> RunResult:
     runner_path = runner_path.resolve()
     test_path = test_path.resolve()
@@ -97,6 +115,17 @@ def generate_lcov_for_one(runner_path: Path, test_path: Path, keep_mapping: bool
         )
 
     monitor.record_time(Monitor.EXECUTION_TIME_KEY, start)
+
+    if "panicked" in r.stdout:
+        num_errors, num_bugs, error_message = process_panic(r.stdout)
+        return RunResult(
+            has_error=True,
+            num_errors=num_errors,
+            has_bug=False,
+            num_bugs=num_bugs,
+            error_message=error_message,
+            coverage=FastCoverage.empty(),
+        )
 
     num_errors, num_bugs, error_message = process_output(r.stdout)
     monitor.incr_counter(TOTAL_NUMBER_OF_ERRORS, num_errors)
@@ -273,7 +302,11 @@ def find_unique_tests(
 
 
 if __name__ == "__main__":
-    r = run_one_test(Path("all_invalid/00bde779b9cd08cce98d085ccb60aa6c.move").read_text())
+    r = run_one_test(
+        Path(
+            "/home/zijie/move-smith/llm/bench_fixer/test/generated_tests/0be501dbc0e67c4ff67ad1b1cbc3d049.move"
+        ).read_text()
+    )
     print(f"{r.error_message}")
     print(f"{r.has_error}")
     print(f"{r.num_errors}")

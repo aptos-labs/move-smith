@@ -17,8 +17,6 @@ from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from loguru import logger
 from pydantic import BaseModel
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 from .store import Monitor
 from .utils import FileLog
@@ -45,11 +43,6 @@ def num_tokens_from_string(string, model_name) -> int:
 
     num_tokens = len(encoding.encode(string))
     return num_tokens
-
-
-def cosine_sim(str1, str2) -> float:
-    vect = TfidfVectorizer().fit_transform([str1, str2])
-    return cosine_similarity(vect[0:1], vect[1:2])[0][0]
 
 
 def get_content_hash(content) -> str:

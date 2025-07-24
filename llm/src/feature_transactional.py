@@ -2,8 +2,8 @@ from loguru import logger
 
 from .config import APTOS_CORE_DIR, DATA_DIR, cfg
 from .feature import Feature, FeatureType
+from .feature_store import FeatureStore
 from .llm import LLMManager, run_in_parallel
-from .store import FeatureStore
 
 FEATURE_TRANSACTIONAL_FILE = DATA_DIR / "feature_transactional.json"
 TXNAL_TEST_DIR = APTOS_CORE_DIR / "third_party/move/move-compiler-v2/transactional-tests"

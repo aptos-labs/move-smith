@@ -1,3 +1,6 @@
+Below are some examples of Move modules showing language features. You should NEVER directly use these module/functions.
+
+```move
 //# publish
 module 0xCAFE::MyModule {
     // You NEVER try to use this 0xCAFE::MyModule
@@ -190,3 +193,4 @@ module 0xCAFE::StorageUsage {
 //# run 0xCAFE::StorageUsage::cross_module_call
 
 //# run 0xCAFE::StorageUsage::several_args --signers 0xBEEF --signers 0xAA01 --args 5u8  6u8
+```

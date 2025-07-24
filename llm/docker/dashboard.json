@@ -369,7 +369,7 @@
             "targets": [
                 {
                     "command": "hlen",
-                    "keyName": "feature_store",
+                    "keyName": "feature_combo_good_store",
                     "query": "",
                     "refId": "A",
                     "type": "command"
@@ -857,5 +857,5 @@
     "timezone": "browser",
     "title": "New dashboard",
     "uid": "0d5b7d31-e34e-47a7-9e01-6df8464d423c",
-    "version": 3
+    "version": 1
 }

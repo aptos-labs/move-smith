@@ -9,6 +9,7 @@ from loguru import logger
 
 from .config import cfg
 from .cov_report import report_coverage_for_dir
+from .embedding import load_embedding_model
 from .feature_rust import extract_features_from_rust
 from .feature_transactional import extract_features_from_transactional_tests
 from .genetic import fuzzing_loop, show_fuzzing_stat
@@ -127,6 +128,8 @@ def main() -> None:
     logger.debug(f"Current configuration: {cfg.to_dict()}")
 
     cfg.work_dir.mkdir(parents=True, exist_ok=True)
+
+    load_embedding_model()
 
     if args.command == "fuzz":
         handle_fuzz(args)

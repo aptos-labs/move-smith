@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 import socket
 import subprocess
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Optional
 
-import filelock
 from loguru import logger
 
 
@@ -74,39 +73,25 @@ def generate_diff(left: str | Path, right: str | Path, diff_file: str | Path):
 
 
 class FileLog:
-    COUNTER_FILE = "counter.txt"
-
     def __init__(self, work_dir, extension="log") -> None:
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
         self.extension = extension
-        self.load_counter()
+        self.pid = os.getpid()
+        self.counter = Counter()
+        self.start_time = int(time.time() * 1000)
 
-    def save_counter(self) -> None:
-        with filelock.FileLock(self.work_dir / "counter.lock"):
-            counter_file = self.work_dir / self.COUNTER_FILE
-            counter_file.write_text(json.dumps(self.counter, indent=2))
+    def new_log(self, name: str, content: str, extension: str = "") -> Path:
+        """Create a new log file with process-local ordering."""
+        ext = extension if extension else self.extension
 
-    def load_counter(self) -> None:
-        with filelock.FileLock(self.work_dir / "counter.lock"):
-            counter_file = self.work_dir / self.COUNTER_FILE
-            if counter_file.exists():
-                try:
-                    self.counter = Counter(json.loads(counter_file.read_text()))
-                except json.JSONDecodeError:
-                    self.counter = Counter()
-            else:
-                logger.info(f"No counter file found at {counter_file}, starting with empty Counter.")
-                self.counter = Counter()
-
-    def new_log(self, name, content, extension="") -> Path:
-        if extension:
-            ext = extension
-        else:
-            ext = self.extension
+        # Increment process-local counter for this name
         self.counter[name] += 1
-        log_file = self.work_dir / f"{name}_{self.counter[name]}.{ext}"
+
+        # Create filename with PID and sequence number for ordering
+        filename = f"{self.pid}_{self.counter[name]:04d}_{name}.{ext}"
+        log_file = self.work_dir / filename
+
         log_file.write_text(content)
         logger.trace(f"New log file written to: {log_file}")
-        self.save_counter()
         return log_file

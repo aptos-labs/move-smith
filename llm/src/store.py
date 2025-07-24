@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import pickle
 import shutil
 import subprocess
@@ -15,7 +14,6 @@ from pydantic import BaseModel
 
 from .config import ROOT, cfg
 from .coverage import AggregatedCoverage
-from .feature import Feature
 
 T = TypeVar("T")
 
@@ -232,68 +230,3 @@ class Monitor:
 
     def incr_counter_in_hash(self, hash_key: str, field: str, amount: int = 1) -> None:
         self.store.client.hincrby(hash_key, field, amount)
-
-
-class FeatureStore:
-    FEATURE_STORE_KEY: str = "feature_store"
-
-    def __init__(self) -> None:
-        self.store = RedisStore()
-
-    def load_features_from_file(self, path: str | Path) -> None:
-        path = Path(path)
-        if not path.exists():
-            raise FileNotFoundError(f"File not found: {path}")
-
-        data = json.loads(path.read_text(encoding="utf-8"))
-        self.store.client.hset(self.FEATURE_STORE_KEY, mapping=data)
-        logger.success(f"Loaded {self.num_features()} features from {path}")
-
-    def save_local(self, path: str | Path, overwrite: bool = False) -> None:
-        path = Path(path)
-        if path.exists() and not overwrite:
-            logger.error(f"File already exists: {path}. Use overwrite=True to replace it.")
-            return None
-        raw_data = self.store.client.hgetall(self.FEATURE_STORE_KEY)
-        data = {k.decode(): v.decode() for k, v in raw_data.items()}
-        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-
-        logger.success(f"Saved {len(data)} features to {path}")
-
-    def get_all_keys(self) -> list[str]:
-        return [k.decode() for k in self.store.client.hkeys(self.FEATURE_STORE_KEY)]
-
-    def num_features(self) -> int:
-        return self.store.client.hlen(self.FEATURE_STORE_KEY)
-
-    def add_feature(self, feature: Feature) -> None:
-        logger.trace(f"Adding {feature.type} feature: {feature.description[:20]}...")
-        self.store.client.hset(self.FEATURE_STORE_KEY, feature.id, feature.model_dump_json())
-
-    def get_feature(self, feature_id: str) -> Feature:
-        feature_data = self.store.client.hget(self.FEATURE_STORE_KEY, feature_id)
-        return Feature.model_validate_json(feature_data.decode())
-
-    def remove_feature(self, feature_id: str) -> None:
-        if self.store.client.hexists(self.FEATURE_STORE_KEY, feature_id):
-            self.store.client.hdel(self.FEATURE_STORE_KEY, feature_id)
-            logger.trace(f"Removed feature with ID: {feature_id}")
-        else:
-            logger.warning(f"Feature with ID {feature_id} does not exist in the store.")
-
-    def load_from_old_json(self, path: str | Path):
-        """
-        Load the feature store from a local file.
-        """
-        path = Path(path)
-        if not path.exists():
-            raise FileNotFoundError(f"File not found: {path}")
-        if not path.is_file():
-            raise ValueError(f"Path is not a file: {path}")
-
-        feat_dict = json.loads(path.read_text(encoding="utf-8"))["features"]
-        for key, value in feat_dict.items():
-            feature = Feature(**value)
-            self.add_feature(feature)
-
-        logger.success(f"Loaded {len(feat_dict)} features from {path}")

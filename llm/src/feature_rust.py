@@ -8,8 +8,8 @@ from pydantic import BaseModel
 
 from .config import APTOS_CORE_DIR, DATA_DIR, cfg
 from .feature import Feature, FeatureType
+from .feature_store import FeatureStore
 from .llm import LLMManager, run_in_parallel
-from .store import FeatureStore
 
 FEATURE_RUST_FILE = DATA_DIR / "feature_rust.json"
 RUST_DOC_DIR = APTOS_CORE_DIR / "target/doc"
