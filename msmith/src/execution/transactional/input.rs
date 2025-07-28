@@ -110,6 +110,7 @@ impl RunConfig {
                 language_version: LanguageVersion::V2_2,
                 experiments,
                 vm_config,
+                use_masm: false,
             }
         }
     }
