@@ -14,7 +14,7 @@ fix_attempt_limit = 2
 enable_static_fixer = true
 enable_static_fixer_llm = false
 enable_dynamic_fixer_hint = true
-enable_feature_rewriter = true
+enable_feature_rewriter = false
 
 [prompt]
 generation_system = ["prompts/common_error_fix_short.md"]
@@ -42,6 +42,16 @@ semantic_mutation_rate = 0.5
 merge_mutation_rate = 0.5
 list_mutation_rate = 0.5
 
+[initial]
+soft_number_of_goals = 5
+soft_number_of_concepts_per_pr = 5
+number_of_features_per_concept = 3
+soft_final_number_of_combos = 20
+generation_attempt_limit = 3
+fix_attempt_limit = 3
+features = ["data/feature_pr.json"]
+
+
 [models.default]
 # name = "gpt-4.1-nano"
 # name = "gpt-4.1-mini"
@@ -53,4 +63,10 @@ temperature = 0.8
 # name = "gpt-4.1"
 # name = "claude-sonnet-4-20250514"
 name = "claude-3-5-haiku-20241022"
+temperature = 0.5
+
+[models.init]
+name = "gpt-4.1-mini"
+# name = "claude-sonnet-4-20250514"
+# name = "claude-3-5-haiku-20241022"
 temperature = 0.5

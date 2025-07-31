@@ -117,6 +117,12 @@ class FeatureComboStore:
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         logger.success(f"Saved {len(data)} feature combinations to {path}")
 
+    def save_local_and_readable_file(self, path: str | Path, overwrite: bool = False) -> None:
+        path = Path(path)
+        self.save_local(path, overwrite)
+        readable_path = path.with_suffix(".md")
+        self.save_as_human_readable_file(readable_path)
+
     def add_individual_feature(self, feature: Feature) -> None:
         combo = FeatureCombination.new_combination([feature])
         self.vstore.add_item(combo)
@@ -154,3 +160,32 @@ class FeatureComboStore:
                 output.append(f"Feature ID: {feat.id}, Description: {feat.description}")
             output.append("\n\n")
         path.write_text("\n".join(output), encoding="utf-8")
+
+    def dump_combos_for_llm(self, keys: list[str]) -> str:
+        output = ["<combinations>"]
+        for combo_id in keys:
+            combo = self.get_item(combo_id)
+            output.append("<features>")
+            for feat in combo.features:
+                output.append(f"* {feat.description}")
+            output.append("</features>")
+        output.append("</combinations>")
+        return "\n".join(output)
+
+    def deduplicate_combos(self, combos: list[FeatureCombination]) -> list[FeatureCombination]:
+        output = []
+        seen_ids = set()
+        for combo in combos:
+            if combo.id not in seen_ids:
+                output.append(combo)
+                seen_ids.add(combo.id)
+        return output
+
+    def deduplicate_features(self, features: list[Feature]) -> list[Feature]:
+        output = []
+        seen_ids = set()
+        for feat in features:
+            if feat.id not in seen_ids:
+                output.append(feat)
+                seen_ids.add(feat.id)
+        return output

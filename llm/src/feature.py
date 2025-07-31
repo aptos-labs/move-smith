@@ -92,6 +92,15 @@ class FeatureCombination(BaseModel, ItemWithEmbedding):
         item._calculate_embedding()
         return item
 
+    @classmethod
+    def merge_combinations(cls, combos: list[FeatureCombination]) -> FeatureCombination:
+        features = []
+        for combo in combos:
+            features.extend(combo.features)
+        if len(features) == 0:
+            raise ValueError("Cannot create a FeatureCombination with no features.")
+        return cls.new_combination(features)
+
     def _calculate_embedding(self) -> None:
         if len(self.embedding) == 0:
             self.embedding = np.mean([f.embedding for f in self.features], axis=0).tolist()
@@ -114,6 +123,9 @@ class FeatureCombination(BaseModel, ItemWithEmbedding):
 
     def to_redis_payload(self) -> str:
         return self.model_dump_json()
+
+    def dump_for_llm(self) -> str:
+        return "\n".join(f"{i+1}: {f.description}" for i, f in enumerate(self.features))
 
     @classmethod
     def from_redis_payload(cls, payload: str) -> FeatureCombination:

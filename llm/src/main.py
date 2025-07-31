@@ -18,6 +18,10 @@ from .task import Task
 
 
 def handle_pr(args) -> None:
+    docker_up("redis")
+    docker_up("grafana")
+    monitor = Monitor()
+    monitor.store.client.flushdb()
     run_from_pr(args.pr_number)
 
 

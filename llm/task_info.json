@@ -16,5 +16,6 @@
         "move-compiler-v2/src/file_format_generator",
         "move-compiler-v2/src/lib.rs",
         "move-compiler-v2/src/pipeline"
-    ]
+    ],
+    "seed_store": ""
 }

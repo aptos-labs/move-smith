@@ -9,7 +9,7 @@ from .prompt_store import PromptStore, PromptStoreName
 def generate_new_tests(combo: FeatureCombination, num_tests: int = 1) -> list[str]:
     logger.info(f"Generating new test using {combo.num_features()} features")
 
-    features_str = get_feature_prompt(combo.features)
+    features_str = get_feature_prompt(combo)
 
     system_msg = load_extra_promts_from_files(cfg.prompt.generation_system)
     prefix = load_extra_promts_from_files(cfg.prompt.generation_prefix)
@@ -51,16 +51,13 @@ Please reply with the transactional test code within a markdown code block.
     return [response] if response is not None else []
 
 
-def get_feature_prompt(features: list[Feature]) -> str:
-    if len(features) == 1:
-        return features[0].description
+def get_feature_prompt(combo: FeatureCombination) -> str:
+    if len(combo.features) == 1:
+        return combo.features[0].description
 
-    logger.info(f"Rewriting {len(features)} features into one")
+    logger.info(f"Rewriting {len(combo.features)} features into one")
 
-    features_str_list = []
-    for i, feat in enumerate(features):
-        features_str_list.append(f"{i+1}: {feat.description}")
-    features_str = "\n".join(features_str_list)
+    features_str = combo.dump_for_llm()
 
     if not cfg.fuzz.enable_feature_rewriter:
         return features_str

@@ -73,6 +73,10 @@ class PRInfo:
     files_changed: list[FileChange]
 
     @classmethod
+    def new_aptos(cls, pr_number: int) -> PRInfo:
+        return cls.new(APTOS_CORE, pr_number)
+
+    @classmethod
     def new(cls, repo_name: str, pr_number: int) -> PRInfo:
         gh = Github(auth=Auth.Token(cfg.GITHUB_TOKEN))
         repo = gh.get_repo(repo_name)
