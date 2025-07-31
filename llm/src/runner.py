@@ -10,7 +10,7 @@ from rich.progress import track
 from .config import EXECUTOR_DIR
 from .coverage import Coverage
 from .fast_coverage import FastCoverage
-from .llm import run_in_parallel
+from .helper import run_in_parallel
 from .store import Monitor
 
 TOTAL_NUMBER_OF_ERRORS = "total_number_of_errors"

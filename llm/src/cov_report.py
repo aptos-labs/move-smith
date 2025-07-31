@@ -2,7 +2,7 @@ from pathlib import Path
 
 from .config import cfg
 from .fast_coverage import FastCoverage
-from .llm import run_in_parallel
+from .helper import run_in_parallel
 from .runner import RunResult, run_one_test
 
 

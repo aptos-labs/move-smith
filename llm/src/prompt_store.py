@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from .embedding import encode_text
 from .embedding_store import EmbeddingStore, ItemWithEmbedding
-from .llm import get_content_hash
+from .helper import get_content_hash
 
 
 class PromptPiece(BaseModel, ItemWithEmbedding):

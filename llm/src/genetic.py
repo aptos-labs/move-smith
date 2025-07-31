@@ -18,13 +18,14 @@ from .feature_mutation import mate, mutate
 from .feature_store import FeatureComboStore
 from .fixer import fix_test_with_error_message, static_fix_syntax, static_fix_syntax_llm
 from .generate_test import generate_new_tests
-from .llm import get_content_hash
+from .helper import get_content_hash
 from .prompt_store import PromptStore, PromptStoreName
 from .runner import run_one_test
 from .store import Monitor
 
 # Fuzzing statistics keys
 NUM_FEATURES_KEY = "num_features"
+NUM_INDIVIDUALS_KEY = "num_individuals"
 NUM_TESTS_KEY = "num_tests"
 NUM_UNIQUE_TESTS_KEY = "num_unique_tests"
 NUM_COMPILABLE_TESTS_KEY = "num_compilable_tests"
@@ -124,6 +125,8 @@ def append_features_to_code(combo: FeatureCombination, code: str) -> str:
 
 def evaluate(individual: Individual) -> FitnessValue:
     monitor = Monitor()
+    monitor.incr_counter(NUM_INDIVIDUALS_KEY)
+
     combo_store = FeatureComboStore("running")
     # Generate tests
     logger.trace(f"Evaluating individual: {ind_to_str(individual)}")
@@ -162,10 +165,10 @@ def evaluate_test(test_code: str, combo: FeatureCombination) -> tuple[float, flo
         logger.warning("Test failed with error, attempting to fix...")
         start = time.perf_counter()
         fixed_code = fix_test_with_error_message(test_code, result.error_message)
+        monitor.incr_counter(NUM_TESTS_KEY)
         fixed_code = static_fix_syntax(fixed_code)
         save_generated_test(fixed_code)
         monitor.record_time(Monitor.LLM_TIME_KEY, start)
-        monitor.incr_counter(NUM_TESTS_KEY)
         monitor.incr_counter(NUM_FIX_ATTEMPTS_KEY)
         test_code = fixed_code
         result = run_test_and_calculate_coverages(test_code, combo)
@@ -388,6 +391,7 @@ def fuzzing_loop() -> None:
 def save_good_combos() -> None:
     good_combos = FeatureComboStore("good")
     good_combos.save_local(cfg.work_dir / "good_feature_combos.json", overwrite=True)
+    good_combos.save_as_human_readable_file(cfg.work_dir / "good_feature_combos.md")
     logger.info(f"Saved good feature combinations to {cfg.work_dir / 'good_feature_combos.json'}")
 
 

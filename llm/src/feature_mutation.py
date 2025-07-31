@@ -5,7 +5,7 @@ from loguru import logger
 from .config import cfg
 from .feature import Feature, FeatureCombination, FeatureType
 from .feature_store import FeatureComboStore
-from .llm import LLMManager
+from .llm import LLMWrapper, Message
 from .prompt_store import PromptStore, PromptStoreName
 
 
@@ -99,8 +99,6 @@ def merge_two_features(feature1: Feature, feature2: Feature) -> Feature:
     """Merge two features into a new feature."""
     logger.trace(f"Performing merge on features {feature1.id} and {feature2.id}.")
 
-    llm_mgr = LLMManager.new(cfg.logs_dir / "merge_mutation")
-
     feats_str = f"Feature 1: {feature1.description}\nFeature 2: {feature2.description}"
 
     system_msg = """You are an expert in the Aptos Move programming language. Your task is to merge two Move language features into a single, more complex feature that demonstrates their interaction.
@@ -118,15 +116,18 @@ Focus on creating realistic interactions between the features rather than just l
 {feats_str}
 
 Please provide the merged feature description in a concise manner.
-"""
 
-    model = llm_mgr.get_model_by_name(cfg.models.default.name, cfg.models.default.temperature)
-    (_, response) = model.invoke(msg, system_message=system_msg)
-    description = response.strip()
+DO NOT INCLUDE CONCRETE CODE EXAMPLES.
+"""
+    llm = LLMWrapper.new(cfg.logs_dir / "merge_mutation")
+    msgs = Message.new_sys_and_user(system_msg, msg)
+    response = llm.invoke(cfg.models.default.name, cfg.models.default.temperature, msgs)
+
+    description = response.content
 
     merged_feature = Feature.new_feature(description=description, content=feats_str, type=FeatureType.MERGE)
 
-    logger.trace(f"Created merged feature {merged_feature.id}: {description}")
+    logger.trace(f"Created merged feature {merged_feature.id}: {merged_feature.short_repr()}")
     return merged_feature
 
 
@@ -138,8 +139,6 @@ def mutate_single_feature(feature: Feature) -> Feature:
     all_mutation_prompts = prompt_store.get_all_prompts(PromptStoreName.MUTATIONS)
     selected_prompt = random.choice(all_mutation_prompts)
     logger.trace(f"Selected mutation prompt: {selected_prompt.id}")
-
-    llm_mgr = LLMManager.new(cfg.logs_dir / "single_mutation")
 
     system_msg = """You are an expert in the Aptos Move programming language. Your task is to mutate a Move language feature according to the given mutation instruction.
 
@@ -153,11 +152,15 @@ MUTATION INSTRUCTION:
 ORIGINAL FEATURE:
 {feature.description}
 
-Please provide only the mutated feature description as your response. Keep it concise and focused on the mutation applied."""
+Please provide only the mutated feature description as your response. Keep it concise and focused on the mutation applied.
+DO NOT INCLUDE CONCRETE CODE EXAMPLES.
+"""
 
-    model = llm_mgr.get_model_by_name(cfg.models.default.name, cfg.models.default.temperature)
-    (_, response) = model.invoke(msg, system_message=system_msg)
-    mutated_description = response.strip()
+    llm = LLMWrapper.new(cfg.logs_dir / "single_mutation")
+    msgs = Message.new_sys_and_user(system_msg, msg)
+    response = llm.invoke(cfg.models.default.name, cfg.models.default.temperature, msgs)
+
+    mutated_description = response.content
 
     mutated_feature = Feature.new_feature(
         description=mutated_description,
@@ -165,7 +168,7 @@ Please provide only the mutated feature description as your response. Keep it co
         type=FeatureType.MUTATION,
     )
 
-    logger.trace(f"Created mutated feature {mutated_feature.id}: {mutated_description}")
+    logger.trace(f"Created mutated feature {mutated_feature.id}: {mutated_feature.short_repr()}")
     return mutated_feature
 
 

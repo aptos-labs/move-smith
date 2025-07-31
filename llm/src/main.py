@@ -10,11 +10,15 @@ from loguru import logger
 from .config import cfg
 from .cov_report import report_coverage_for_dir
 from .embedding import load_embedding_model
-from .feature_rust import extract_features_from_rust
-from .feature_transactional import extract_features_from_transactional_tests
+from .feature_extraction import handle_extract, register_extraction_args
 from .genetic import fuzzing_loop, show_fuzzing_stat
+from .initial import run_from_pr
 from .store import Monitor, docker_down, docker_up, redis_up_with_override
 from .task import Task
+
+
+def handle_pr(args) -> None:
+    run_from_pr(args.pr_number)
 
 
 def handle_fuzz(args) -> None:
@@ -49,16 +53,6 @@ def handle_inspect(args) -> None:
         show_fuzzing_stat(save_unique_lines=False)
 
 
-def handle_extract(args) -> None:
-    if args.compiler_code:
-        logger.info("Extracting features from compiler source code...")
-        extract_features_from_rust(args.regenerate)
-
-    if args.transactional_test:
-        logger.info("Extracting features from transactional tests...")
-        extract_features_from_transactional_tests(args.regenerate)
-
-
 def handle_coverage(args) -> None:
     report_coverage_for_dir(
         dir_path=args.work_dir,
@@ -90,13 +84,7 @@ def main() -> None:
 
     # === Extract subcommand ===
     extract_parser = subparsers.add_parser("extract", help="Extract features")
-    extract_parser.add_argument("--regenerate", action="store_true", help="Regenerate even if features already exist")
-    extract_parser.add_argument(
-        "--compiler-code", action="store_true", help="Extract features from compiler source code"
-    )
-    extract_parser.add_argument(
-        "--transactional-test", action="store_true", help="Extract features from transactional tests"
-    )
+    register_extraction_args(extract_parser)
 
     # === Coverage subcommand ===
     coverage_parser = subparsers.add_parser(
@@ -105,10 +93,14 @@ def main() -> None:
     coverage_parser.add_argument("-b", "--baseline", type=Path, required=True, help="Base coverage file in LCOV format")
     coverage_parser.add_argument("-o", "--output-dir", type=Path, required=True, help="Output directory for reports")
 
+    # === PR subcommand ===
+    pr_parser = subparsers.add_parser("pr", help="Generate tests and run fuzzing for a specific PR")
+    pr_parser.add_argument("pr_number", type=int, help="Pull request number to run fuzzing for")
+
     # === Flush subcommand ===
     subparsers.add_parser("flush", help="Flush Redis store")
 
-    for subparser in [fuzz_parser, inspect_parser, extract_parser, coverage_parser]:
+    for subparser in [fuzz_parser, inspect_parser, extract_parser, coverage_parser, pr_parser]:
         subparser.add_argument(
             "-d",
             "--work-dir",
@@ -125,6 +117,7 @@ def main() -> None:
     cfg.set("work_dir", args.work_dir.absolute())
     cfg.set("logs_dir", cfg.work_dir / "logs")
     os.environ["OPENAI_API_KEY"] = cfg.openai_api_key
+    os.environ["ANTHROPIC_API_KEY"] = cfg.anthropic_api_key
     logger.debug(f"Current configuration: {cfg.to_dict()}")
 
     cfg.work_dir.mkdir(parents=True, exist_ok=True)
@@ -139,6 +132,8 @@ def main() -> None:
         handle_extract(args)
     elif args.command == "coverage":
         handle_coverage(args)
+    elif args.command == "pr":
+        handle_pr(args)
 
 
 if __name__ == "__main__":

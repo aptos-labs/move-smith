@@ -2,12 +2,11 @@ from loguru import logger
 
 from .config import cfg
 from .feature import Feature, FeatureCombination
-from .llm import LLMManager, load_extra_promts_from_files
+from .llm import LLMWrapper, Message, load_extra_promts_from_files
 from .prompt_store import PromptStore, PromptStoreName
 
 
 def generate_new_tests(combo: FeatureCombination, num_tests: int = 1) -> list[str]:
-    llm_mgr = LLMManager.new(cfg.logs_dir / "test_generation")
     logger.info(f"Generating new test using {combo.num_features()} features")
 
     features_str = get_feature_prompt(combo.features)
@@ -27,29 +26,35 @@ def generate_new_tests(combo: FeatureCombination, num_tests: int = 1) -> list[st
     # move_examples_str = "\n".join(move_examples_list)
     move_examples_str = ""
 
-    msg = f""" As an Aptos Move developer, you are tasked with writing a new transactional test case to thoroughly test the Move compiler and virtual machine.
+    msg = f"""Here are some relevant Move knowledge and examples:
 
 {prefix}
 
 {move_examples_str}
 
-Please reply with the transactional test code within a markdown code block.
-
-The test should test the following features:
+Please create a new Move transactional test that tests the following features:
 {features_str}
+
+Please reply with the transactional test code within a markdown code block.
 """
 
-    model = llm_mgr.get_model_by_name(cfg.models.default.name, cfg.models.default.temperature)
-    # TODO: support multiple samples
-    (_, code) = model.invoke_code(msg, system_message=system_msg)
-    return [code]
+    system_msg = """You are an expert Aptos Move developer with deep knowledge of Move language features.
+    Your role is to help create comprehensive transactional tests that focus on feature interactions.
+    """
+
+    llm = LLMWrapper.new(cfg.logs_dir / "test_generation")
+    msgs = Message.new_sys_and_user(system_msg, msg)
+    response = llm.invoke_and_extract_code(
+        cfg.models.default.name, cfg.models.default.temperature, msgs, retry_attempts=3
+    )
+
+    return [response] if response is not None else []
 
 
 def get_feature_prompt(features: list[Feature]) -> str:
     if len(features) == 1:
         return features[0].description
 
-    llm_mgr = LLMManager.new(cfg.logs_dir / "feature_rewriter")
     logger.info(f"Rewriting {len(features)} features into one")
 
     features_str_list = []
@@ -93,6 +98,8 @@ Now apply this approach to the given features:"""
 
 Rewrite these features into a concise test plan focusing on their interactions (not individual features). Use simple imperative sentences. Keep within 200 words.
 """
-    model = llm_mgr.get_model_by_name(cfg.models.default.name, cfg.models.default.temperature)
-    (_response, plan) = model.invoke(msg, system_message=system_msg)
-    return plan
+
+    llm = LLMWrapper.new(cfg.logs_dir / "feature_prompt")
+    msgs = Message.new_sys_and_user(system_msg, msg)
+    response = llm.invoke(cfg.models.default.name, cfg.models.default.temperature, msgs)
+    return response.content

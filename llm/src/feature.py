@@ -18,6 +18,7 @@ class FeatureType(str, Enum):
     TRANSACTIONAL_TEST = "TransactioanlTest"
     SOURCE_CODE = "SourceCode"
     DOCUMENTATION = "Documentation"
+    PR = "PullRequest"
     MUTATION = "MUTATION"
     MERGE = "MERGE"
 

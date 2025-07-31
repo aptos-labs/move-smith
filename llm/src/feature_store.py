@@ -141,3 +141,16 @@ class FeatureComboStore:
     def search_with_str(self, query_str: str, top_k: int = 5) -> list[FeatureCombination]:
         results = self.vstore.search(query_str, top_k)
         return results
+
+    def save_as_human_readable_file(self, path: str | Path) -> None:
+        path = Path(path)
+
+        output = []
+        all_keys = self.vstore.get_all_keys()
+        for combo_id in all_keys:
+            combo = self.get_item(combo_id)
+            output.append(f"# Combination ID: {combo.id}")
+            for feat in combo.features:
+                output.append(f"Feature ID: {feat.id}, Description: {feat.description}")
+            output.append("\n\n")
+        path.write_text("\n".join(output), encoding="utf-8")

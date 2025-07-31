@@ -68,18 +68,11 @@
             "targets": [
                 {
                     "command": "get",
-                    "keyName": "num_tests",
-                    "query": "",
-                    "refId": "A",
-                    "type": "command"
-                },
-                {
-                    "command": "get",
                     "datasource": "redis-datasource",
                     "hide": false,
-                    "keyName": "num_unique_tests",
+                    "keyName": "num_individuals",
                     "query": "",
-                    "refId": "B",
+                    "refId": "E",
                     "type": "command"
                 },
                 {
@@ -93,11 +86,18 @@
                 },
                 {
                     "command": "get",
+                    "keyName": "num_tests",
+                    "query": "",
+                    "refId": "A",
+                    "type": "command"
+                },
+                {
+                    "command": "get",
                     "datasource": "redis-datasource",
                     "hide": false,
-                    "keyName": "num_fix_attempts",
+                    "keyName": "num_unique_tests",
                     "query": "",
-                    "refId": "D",
+                    "refId": "B",
                     "type": "command"
                 }
             ],

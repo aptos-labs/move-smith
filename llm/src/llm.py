@@ -1,93 +1,19 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass
-from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Optional, Type, TypeVar
 
-import tiktoken
-from jinja2 import Template
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.messages.ai import AIMessage
-from langchain_core.messages.tool import ToolMessage
-from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
+from litellm import completion
+from litellm.cost_calculator import completion_cost, cost_per_token
+from litellm.utils import token_counter
 from loguru import logger
 from pydantic import BaseModel
 
+from .helper import write_log_file
 from .store import Monitor
-from .utils import FileLog
 
-MILLION = 1_000_000
-
-MODEL_PRICING = {
-    "gpt-4o": {"prompt": 2.50 / MILLION, "completion": 10.00 / MILLION},
-    "gpt-4o-mini": {"prompt": 0.15 / MILLION, "completion": 0.60 / MILLION},
-    "gpt-4.1": {"prompt": 2.00 / MILLION, "completion": 8.00 / MILLION},
-    "gpt-4.1-mini": {"prompt": 0.40 / MILLION, "completion": 1.60 / MILLION},
-    "gpt-4.1-nano": {"prompt": 0.10 / MILLION, "completion": 0.40 / MILLION},
-    "gpt-4.5-preview": {"prompt": 75.00 / MILLION, "completion": 150.00 / MILLION},
-    "codex-mini-latest": {"prompt": 1.50 / MILLION, "completion": 6.00 / MILLION},
-}
-
-
-def num_tokens_from_string(string, model_name) -> int:
-    try:
-        encoding = tiktoken.encoding_for_model(model_name)
-    except KeyError:
-        logger.warning(f"Warning: Model {model_name} not found. Using cl100k_base encoding.")
-        encoding = tiktoken.get_encoding("cl100k_base")
-
-    num_tokens = len(encoding.encode(string))
-    return num_tokens
-
-
-def get_content_hash(content) -> str:
-    """Generate a hash for the content to use as a key."""
-    return hashlib.md5(content.encode("utf-8")).hexdigest()
-
-
-def apply_func(args):
-    func, real_args = args
-    return func(*real_args)
-
-
-def run_in_parallel(jobs, function, args) -> list[Any]:
-    with Pool(jobs) as p:
-        job_args = [(function, a) for a in args]
-        results = list(p.imap(apply_func, job_args))
-    return results
-
-
-class BooleanAnswer(BaseModel):
-    answer: bool
-
-
-class IntegerAnswer(BaseModel):
-    answer: int
-
-
-def turn_idx_to_english(idx: int) -> str:
-    """Turn 0-based index to english ordinal"""
-    if idx == 0:
-        return "first"
-    elif idx == 1:
-        return "second"
-    elif idx == 2:
-        return "third"
-    else:
-        return f"{idx + 1}th"
-
-
-def load_prompt(prompt_file: str | Path, replacement: dict) -> str:
-    prompt_path = Path(prompt_file)
-    content = Path(prompt_path).read_text()
-    template = Template(content)
-    populated_prompt = template.render(replacement)
-    return populated_prompt
+T = TypeVar("T", bound=BaseModel)
 
 
 def load_extra_promts_from_files(files: list[str | Path]) -> str:
@@ -97,26 +23,6 @@ def load_extra_promts_from_files(files: list[str | Path]) -> str:
         content = file_path.read_text(encoding="utf-8")
         prompts.append(content)
     return "\n".join(prompts)
-
-
-def get_llm(model, temperature, _server, base_url=None) -> ChatOpenAI:
-    # if server == "ollama":
-    #     return ChatOllama(model=model, temperature=temperature, keep_alive="12h", base_url=base_url, num_ctx=64000)
-    # elif server == "openai":
-    if "o1" or "o3" in model:
-        return ChatOpenAI(model=model, base_url=base_url)
-    else:
-        return ChatOpenAI(model=model, temperature=temperature, base_url=base_url)
-
-
-def extract_last_markdown_code_block(text: str) -> tuple[bool, str]:
-    """
-    Extracts the last code block from markdown text.
-    """
-    blocks = extract_markdown_code_blocks(text)
-    if blocks:
-        return (True, blocks[-1])
-    return (False, "Failed to extract code from LLM response")
 
 
 def extract_markdown_code_blocks(text: str) -> list[str]:
@@ -138,383 +44,179 @@ def extract_markdown_code_blocks(text: str) -> list[str]:
     return ["\n".join(block) for block in blocks if block]
 
 
-class ModelConfig(BaseModel):
-    model: str
-    temperature: float
-    server: Literal["openai", "ollama"]
-    base_url: Optional[str]
+class Message(BaseModel):
+    role: str
+    content: str
 
-    @staticmethod
-    def get_by_name(name: str) -> ModelConfig:
-        if name == "gpt-4o":
-            return ModelConfig.gpt_4o()
-        elif name == "gpt-4o-mini":
-            return ModelConfig.gpt_4o_mini()
-        elif name == "o3-mini":
-            return ModelConfig.o3_mini()
-        elif name == "gpt-4.1-nano":
-            return ModelConfig.gpt_41_nano()
-        else:
-            raise ValueError(f"Unknown model name: {name}")
+    @classmethod
+    def from_litellm_message(cls, msg) -> Message:
+        return Message(role=msg.role, content=msg.content)
 
-    @staticmethod
-    def gpt_41_nano() -> ModelConfig:
-        return ModelConfig(
-            model="gpt-4.1-nano",
-            temperature=0.5,
-            server="openai",
-            base_url=None,
-        )
+    @classmethod
+    def new_messages(cls, messages: list[tuple[str, str]]) -> list[Message]:
+        return [cls(role=role, content=content) for role, content in messages]
 
-    @staticmethod
-    def gpt_4o() -> ModelConfig:
-        return ModelConfig(
-            model="gpt-4o",
-            temperature=0.5,
-            server="openai",
-            base_url=None,
-        )
+    @classmethod
+    def new_sys_and_user(cls, system: str, user: str) -> list[Message]:
+        return [
+            cls(role="system", content=system),
+            cls(role="user", content=user),
+        ]
 
-    @staticmethod
-    def gpt_4o_mini() -> ModelConfig:
-        return ModelConfig(
-            model="gpt-4o-mini",
-            temperature=0.5,
-            server="openai",
-            base_url=None,
-        )
+    @classmethod
+    def to_dicts(cls, messages: list[Message]) -> list[dict[str, str]]:
+        return [msg.model_dump() for msg in messages]
 
-    @staticmethod
-    def o3_mini() -> ModelConfig:
-        return ModelConfig(
-            model="o3-mini",
-            temperature=0.5,
-            server="openai",
-            base_url=None,
-        )
+    def to_type(self, typ: Type[T]) -> T:
+        return typ.model_validate_json(self.content)
+
+    def extract_last_code_block(self) -> Optional[str]:
+        blocks = extract_markdown_code_blocks(self.content)
+        return blocks[-1] if blocks else None
 
 
 class LLMRecord(BaseModel):
     model: str
-    prompt_tokens: int
-    completion_tokens: int
-    total_tokens: int
-    reasoning_tokens: int
-    prompt: str
-    response: str | dict | list[dict]
-    local_path: Path
+    temperature: float
+    input: list[Message]
+    output: Message
+    cost: float
 
-    def cost_usd(self) -> tuple[float, float, float]:
-        """
-        Returns:
-            tuple[float, float, float]: total_cost, prompt_cost, completion_cost (including reasoning tokens)
-        """
-        if self.model not in MODEL_PRICING:
-            raise ValueError(f"Unknown model: {self.model}")
+    def get_input_token_count(self) -> int:
+        return token_counter(model=self.model, messages=Message.to_dicts(self.input))
 
-        pricing = MODEL_PRICING[self.model]
-
-        prompt_cost = self.prompt_tokens * pricing["prompt"]
-        completion_cost = self.completion_tokens * pricing["completion"] + self.reasoning_tokens * pricing["completion"]
-        total = prompt_cost + completion_cost
-
-        return total, prompt_cost, completion_cost
-
-    def total_cost_usd(self) -> float:
-        total, _, _ = self.cost_usd()
-        return total
-
-    @classmethod
-    def from_file(cls, file_path: str | Path) -> LLMRecord:
-        file_path = Path(file_path)
-        if not file_path.exists():
-            raise FileNotFoundError(f"File not found: {file_path}")
-        content = json.loads(file_path.read_text(encoding="utf-8"))
-        content["local_path"] = file_path
-        return cls(**content)
-
-    @classmethod
-    def from_dir(cls, dir_path: str | Path) -> list[LLMRecord]:
-        dir_path = Path(dir_path)
-        if not dir_path.exists() or not dir_path.is_dir():
-            raise ValueError(f"Path is not a directory: {dir_path}")
-
-        records = []
-        for file in dir_path.glob("llm_record_*.json"):
-            record = cls.from_file(file)
-            records.append(record)
-        return records
+    def get_output_token_count(self) -> int:
+        return token_counter(model=self.model, messages=[self.output.model_dump()])
 
 
 @dataclass
-class LLMManager:
-    file_log: FileLog
-    records: list[LLMRecord]
+class LLMWrapper:
+    log_dir: Path
 
-    @staticmethod
-    def new(wkd: str | Path) -> LLMManager:
-        file_log = FileLog(wkd, extension="json")
-        return LLMManager(file_log=file_log, records=[])
+    @classmethod
+    def new(cls, log_dir: str | Path) -> LLMWrapper:
+        log_dir = Path(log_dir)
+        return cls(log_dir=log_dir)
 
-    def get_model_by_name(self, name: str, temperature: float = 0.5) -> ModelWrapper:
-        config = ModelConfig(model=name, temperature=temperature, server="openai", base_url=None)
-        wrapper = ModelWrapper.from_config(config)
-        if not wrapper:
-            logger.error(f"Failed to get model by name: {name}")
-            exit(1)
-        wrapper.mgr = self
-        return wrapper
-
-    def get_model_by_config(self, config: ModelConfig) -> Optional[ModelWrapper]:
-        wrapper = ModelWrapper.from_config(config)
-        if not wrapper:
-            return None
-        wrapper.mgr = self
-        return wrapper
-
-    def record_prompt(self, prompt: str):
-        self.file_log.new_log("prompt", prompt)
-
-    def record_response(self, response: str):
-        self.file_log.new_log("response", response)
-
-    def record(
-        self,
-        model: str,
-        prompt: str,
-        response: str | dict | list[dict],
-        prompt_tokens: int,
-        completion_tokens: int,
-        reasoning_tokens: int,
-    ):
-        record = LLMRecord(
-            model=model,
-            prompt=prompt,
-            response=response,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=prompt_tokens + completion_tokens,
-            reasoning_tokens=reasoning_tokens,
-            local_path=Path("temp"),
-        )
-        self.save_record(record)
-
-    def record_with_usage(self, model: str, prompt: str, response: str | dict | list[dict], usage: dict):
-        if "completion_tokens_details" in usage:
-            reasoning_tokens = usage["completion_tokens_details"].get("reasoning_tokens", 0)
-        else:
-            reasoning_tokens = 0
-        record = LLMRecord(
-            model=model,
-            prompt=prompt,
-            response=response,
-            prompt_tokens=usage["prompt_tokens"],
-            completion_tokens=usage["completion_tokens"],
-            total_tokens=usage["total_tokens"],
-            reasoning_tokens=reasoning_tokens,
-            local_path=Path("temp"),
-        )
-        self.save_record(record)
-
-    def save_record(self, record: LLMRecord):
-        record.local_path = self.file_log.new_log("llm_record", record.model_dump_json(indent=4))
-        self.records.append(record)
+    def save_record(self, record: LLMRecord) -> Path:
         monitor = Monitor()
         monitor.record_llm(record)
+        return write_log_file(self.log_dir, "llm_record", record.model_dump_json(indent=2))
 
-    def record_tool_use(self, model: str, prompt: str, msg: AIMessage | ToolMessage):
-        if isinstance(msg, AIMessage):
-            if not msg.tool_calls:
-                return
-            content = []
-            for call in msg.tool_calls:
-                d = {
-                    "name": call["name"],
-                    "args": call["args"],
-                }
-                content.append(d)
-            # tool_call_msg = json.dumps(content)
-            usage = msg.response_metadata["token_usage"]
-            self.record_with_usage(
-                model,
-                prompt,
-                content,
-                usage=usage,
-            )
-        if isinstance(msg, ToolMessage):
-            content = msg.content
-            if not isinstance(content, str | dict):
-                return
-            self.record(model, "tool return", content, 0, 0, 0)
+    def invoke(self, model: str, temperature: float, messages: list[Message]) -> Message:
+        response = completion(
+            model=model,
+            messages=Message.to_dicts(messages),
+            temperature=temperature,
+        )
 
+        cost = completion_cost(completion_response=response)
+        output = Message.from_litellm_message(response.choices[0].message)
 
-@dataclass
-class ModelWrapper:
-    model: str
-    llm: ChatOpenAI
-    mgr: Optional[LLMManager] = None
-    code_retry_limit: int = 3
+        record = LLMRecord(
+            model=model,
+            temperature=temperature,
+            input=messages,
+            output=output,
+            cost=float(cost),
+        )
+        self.save_record(record)
+        return record.output
 
-    @staticmethod
-    def from_config(config: ModelConfig) -> Optional[ModelWrapper]:
-        llm = get_llm(config.model, config.temperature, config.server, config.base_url)
-        if not llm:
+    def invoke_structured(
+        self, model: str, temperature: float, messages: list[Message], response_format: Type[T]
+    ) -> Optional[T]:
+        try_cnt = 0
+        max_try = 3
+        while try_cnt < max_try:
+            item = self._invoke_structured(model, temperature, messages, response_format)
+            if item is None:
+                try_cnt += 1
+                logger.error(f"Error generating structured output. Retrying {try_cnt}/{max_try}...")
+                if try_cnt >= max_try:
+                    logger.error("Max retry attempts reached. Returning None.")
+                    return None
+            else:
+                return item
+
+    def _invoke_structured(
+        self, model: str, temperature: float, messages: list[Message], response_format: Type[T]
+    ) -> Optional[T]:
+        response = completion(
+            model=model,
+            messages=Message.to_dicts(messages),
+            temperature=temperature,
+            response_format=response_format,
+        )
+
+        cost = completion_cost(completion_response=response)
+        output = Message.from_litellm_message(response.choices[0].message)
+
+        record = LLMRecord(
+            model=model,
+            temperature=temperature,
+            input=messages,
+            output=output,
+            cost=float(cost),
+        )
+        log_file = self.save_record(record)
+        try:
+            return output.to_type(response_format)
+        except Exception:
+            logger.error(f"Model failed to follow response format, logged to {log_file}")
             return None
-        wrapper = ModelWrapper(llm=llm, model=config.model)
-        return wrapper
 
-    def invoke_strucutred(self, message: str, response_format) -> tuple[Any, Any]:
-        """Return (response, extracted message)"""
-        if self.mgr:
-            self.mgr.record_prompt(message)
-        structured = self.llm.with_structured_output(response_format, include_raw=True)
-        response = structured.invoke(message)
-        parsed = response["parsed"]
-        usage = response["raw"].response_metadata["token_usage"]
-        if self.mgr:
-            self.mgr.record_response(f"{parsed}")
-            self.mgr.record_with_usage(
-                model=self.model,
-                prompt=message,
-                response=parsed.__dict__,
-                usage=usage,
-            )
-        return (response, parsed)
+    def invoke_and_extract_code(
+        self, model: str, temperature: float, messages: list[Message], retry_attempts: int
+    ) -> Optional[str]:
+        retry_cnt = 0
+        while retry_cnt < retry_attempts:
+            msg = self.invoke(model, temperature, messages)
+            code_block = msg.extract_last_code_block()
+            if code_block:
+                return code_block
+            retry_cnt += 1
+        return None
 
-    def invoke_agent(self, message: str, tools, response_format=None, recursion_limit: int = 50) -> tuple[Any, Any]:
-        """Return (response, extracted message)"""
-        if self.mgr:
-            self.mgr.record_prompt(message)
-        agent = create_react_agent(self.llm, tools, response_format=response_format)
-        response = agent.invoke({"messages": [("user", message)]}, {"recursion_limit": recursion_limit})
-
-        last_msg = response["messages"][-1]
-        content = last_msg.content
-        for msg in response["messages"]:
-            if isinstance(msg, AIMessage | ToolMessage) and self.mgr:
-                self.mgr.record_tool_use(
-                    model=self.model,
-                    prompt=message,
-                    msg=msg,
-                )
-
-        if self.mgr:
-            self.mgr.record_response(content)
-            self.mgr.record_with_usage(
-                model=self.model,
-                prompt=message,
-                response=content,
-                usage=last_msg.response_metadata["token_usage"],
-            )
-        if response_format is not None:
-            return (last_msg, response["structured_response"])
-        else:
-            return (last_msg, content)
-
-    def invoke_agent_code(self, message: str, tools, recursion_limit: int = 50) -> tuple[Any, str]:
-        raw_content = ""
-        code = ""
-        retry_cnt = self.code_retry_limit
-        while retry_cnt > 0:
-            _, raw_content = self.invoke_agent(message, tools, recursion_limit=recursion_limit)
-            (r, code) = extract_last_markdown_code_block(raw_content)
-            if r:
-                return (raw_content, code)
-            logger.error("Failed to extract code from LLM response, retrying...")
-            retry_cnt -= 1
-        return (raw_content, code)
-
-    def invoke(self, message: str, system_message: Optional[str] = None) -> tuple[Any, str]:
-        """Return (response, extracted message)"""
-        if self.mgr:
-            self.mgr.record_prompt(message)
-
-        chat_messages = []
-        if system_message:
-            chat_messages.append(SystemMessage(content=system_message))
-        chat_messages.append(HumanMessage(content=message))
-
-        response = self.llm.invoke(chat_messages)
-        content = response.content
-        usage = response.response_metadata["token_usage"]
-        if not isinstance(content, str):
-            logger.error("Failed to get response content of type str")
-            exit(1)
-        if self.mgr:
-            self.mgr.record_response(content)
-            self.mgr.record_with_usage(
-                model=self.model,
-                prompt=message,
-                response=content,
-                usage=usage,
-            )
-        return (response, content)
-
-    def invoke_code(self, message, system_message: Optional[str] = None) -> tuple[str, str]:
-        """Return (raw message, extracted code)"""
-        raw_content = ""
-        code = ""
-        retry_cnt = self.code_retry_limit
-        while retry_cnt > 0:
-            _, raw_content = self.invoke(message, system_message=system_message)
-            (r, code) = extract_last_markdown_code_block(raw_content)
-            if r:
-                return (raw_content, code)
-            logger.error("Failed to extract code from LLM response, retrying...")
-            retry_cnt -= 1
-        return (raw_content, code)
-
-
-@tool
-def multiply(first_int: int, second_int: int) -> int:
-    """Multiply two integers together."""
-    print(f"Calling multiply with {first_int} and {second_int}")
-    return first_int * second_int
-
-
-@tool
-def add(first_int: int, second_int: int) -> int:
-    "Add two integers."
-    print(f"Calling add with {first_int} and {second_int}")
-    return first_int + second_int
-
-
-@tool
-def exponentiate(base: int, exponent: int) -> int:
-    "Exponentiate the base to the exponent power."
-    print(f"Calling exponentiate with {base} and {exponent}")
-    return base**exponent
-
-
-class Answer(BaseModel):
-    answer: str
+    def estimate_cost(self, model: str, messages: list[Message], estimate_output_tokens: int) -> float:
+        input_tokens = token_counter(model=model, messages=Message.to_dicts(messages))
+        in_cost, out_cost = cost_per_token(
+            model=model, prompt_tokens=input_tokens, completion_tokens=estimate_output_tokens
+        )
+        return in_cost + out_cost
 
 
 if __name__ == "__main__":
-    mgr = LLMManager.new("test/llm")
-    # model = mgr.get_model_by_name("gpt-4o-mini")
-    model = mgr.get_model_by_name("o3-mini")
-    if not model:
-        exit(1)
+    import os
 
-    msg = "Write the code to calculate the factorial of a number in Python. The code should be put into a markdown code block."
-    (raw_content, code) = model.invoke_code(msg)
+    from .config import cfg
+
+    os.environ["ANTHROPIC_API_KEY"] = cfg.anthropic_api_key
+    os.environ["OPENAI_API_KEY"] = cfg.openai_api_key
+
+    model = "claude-sonnet-4-20250514"
+
+    llm = LLMWrapper.new("test")
+    msg = llm.invoke(model, 0.7, [Message(role="user", content="Hello!")])
+    print(msg.content)
+
+    code = llm.invoke_and_extract_code(
+        model=model,
+        temperature=0.5,
+        messages=[Message(role="user", content="Write a Python function to add two numbers.")],
+        retry_attempts=3,
+    )
     print(code)
 
-    msg = "What is the capital of France?"
-    (response, answer) = model.invoke_strucutred(msg, response_format=Answer)
-    print(answer)
+    class DivAnswer(BaseModel):
+        quotient: int
+        remainder: int
 
-    tools = [multiply, add, exponentiate]
-    msg = "Raise 3 to the power of 4, add 5 to the result, then multiply by 2. What is the final result? You should make tool calls."
-    (response, content) = model.invoke_agent(msg, tools=tools)
-    print(content)
-
-    (response, answer) = model.invoke_agent(msg, tools=tools, response_format=Answer)
-    print(answer)
-    print(type(answer))
-
-    msg = "If a red house is made of red bricks and a blue house is made of blue bricks, what is a greenhouse made of?"
-    (response, answer) = model.invoke(msg)
-    print(response)
-    print(answer)
+    response = llm.invoke_structured(
+        model=model,
+        temperature=0.5,
+        messages=[Message(role="user", content="Divide 10 by 3.")],
+        response_format=DivAnswer,
+    )
+    print(type(response))
+    print(f"Received={response}")

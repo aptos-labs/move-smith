@@ -88,7 +88,6 @@ class LLMUsageStreamEntry(BaseModel):
     reasoning_tokens: int
     total_tokens: int
     cost_usd: float
-    record_path: str
     timestamp: str
 
 
@@ -176,21 +175,19 @@ class Monitor:
         self.store.client.hincrbyfloat(self.TIME_HASH_KEY, key, time.perf_counter() - start)
 
     def record_llm(self, llm_record) -> None:
-        file_created_time = llm_record.local_path.stat().st_ctime
-        timestamp = datetime.fromtimestamp(file_created_time, timezone.utc).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         entry = LLMUsageStreamEntry(
             model=llm_record.model,
-            prompt_tokens=llm_record.prompt_tokens,
-            completion_tokens=llm_record.completion_tokens,
-            reasoning_tokens=llm_record.reasoning_tokens,
-            total_tokens=llm_record.total_tokens,
-            cost_usd=llm_record.total_cost_usd(),
-            record_path=llm_record.local_path.as_posix(),
+            prompt_tokens=0,
+            completion_tokens=0,
+            reasoning_tokens=0,
+            total_tokens=0,
+            cost_usd=llm_record.cost,
             timestamp=timestamp,
         )
         self.store.client.xadd(self.LLM_USAGE_STREAM_KEY, entry.model_dump())
-        self.store.client.incrbyfloat(self.TOTAL_COST_KEY, entry.cost_usd)
+        self.store.client.incrbyfloat(self.TOTAL_COST_KEY, llm_record.cost)
 
     def __record_coverage_stream(self, key: str, coverage: AggregatedCoverage) -> None:
         entry = CoverageStreamEntry(

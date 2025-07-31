@@ -6,10 +6,11 @@ from typing import Optional
 from loguru import logger
 from pydantic import BaseModel
 
-from .config import APTOS_CORE_DIR, DATA_DIR, cfg
-from .feature import Feature, FeatureType
-from .feature_store import FeatureStore
-from .llm import LLMManager, run_in_parallel
+from ..config import APTOS_CORE_DIR, DATA_DIR, cfg
+from ..feature import Feature, FeatureType
+from ..feature_store import FeatureComboStore
+from ..helper import run_in_parallel
+from .common import COMMON_PROMPT, common_invoke_llm
 
 FEATURE_RUST_FILE = DATA_DIR / "feature_rust.json"
 RUST_DOC_DIR = APTOS_CORE_DIR / "target/doc"
@@ -99,46 +100,43 @@ def process_doc_item(base_dir: Path, docs: dict, index: str) -> Optional[list[Fe
     content += f"Code:\n```\n{code}\n```\n"
 
     logger.info(f"Extracting feature from {doc_item['name']}")
-    llm_mgr = LLMManager.new(cfg.logs_dir)
-    model = llm_mgr.get_model_by_name(cfg.models.extract.name, cfg.models.extract.temperature)
-    msg = f"""
-    Below is a Rust function in the Aptos Move compiler implementation.
+    msg = f"""Below is a Rust function in the Aptos Move compiler/runtime implementation:
 
-    ```
-    {content}
-    ```
+```
+{content}
+```
 
-    Please summarize the Move feature(s) implemented by this function.
+Note that if the code change is only internal to the compiler or runtime, and not easily understandable by Move users, you should not generate a description.
 
-    Summarize each feature in a single imperative sentence as if you are telling a Move developer to use this feature.
-    For example, if the function checks for whether an inline function has a lambda argument, the feature should be "Create inline functions with lambda arguments".
+{COMMON_PROMPT}"""
 
-    Normally a function implements many subtle sub-features of a larger feature, so please pay attention to the details in the code.
+    response = common_invoke_llm(
+        name=doc_item["name"],
+        prompt=msg,
+        estimated_cost_limit=0.01,
+    )
 
-    If part of the functino is interacting with the compiler infrastructure, please ignore it.
-    Only focus on the features that Move developers can use in their code.
-    """
-
-    (_response, summaries) = model.invoke_strucutred(msg, response_format=FeatureSummaries)
-    if not summaries.features:
+    if response is None:
         logger.warning(f"No features summarized for {doc_item['name']}")
         return None
+
     features = []
-    for summary in summaries.features:
-        features.append(Feature.new_feature(description=summary, content=content, type=FeatureType.SOURCE_CODE))
+    for desc in response.descriptions:
+        features.append(Feature.new_feature(description=desc, content=content, type=FeatureType.SOURCE_CODE))
+
     logger.trace(f"Extracted {len(features)} features from {doc_item['name']}")
     return features
 
 
-def extract_features_from_rust(regenerate: bool) -> FeatureStore:
+def extract_features_from_rust(regenerate: bool) -> FeatureComboStore:
     if FEATURE_RUST_FILE.exists() and not regenerate:
         logger.info(f"Loading features from {FEATURE_RUST_FILE}")
-        feature_store = FeatureStore()
-        feature_store.load_features_from_file(FEATURE_TRANSACTIONAL_FILE)
-        num_features = feature_store.num_features()
+        feature_combo_store = FeatureComboStore("rust")
+        feature_combo_store.load_individual_features_from_file(FEATURE_RUST_FILE)
+        num_features = len(feature_combo_store.get_all_keys())
 
         logger.info(f"Loaded {num_features} features from {FEATURE_RUST_FILE}")
-        return feature_store
+        return feature_combo_store
 
     if regenerate:
         logger.info("Regenerating features for Rust code")
@@ -154,11 +152,11 @@ def extract_features_from_rust(regenerate: bool) -> FeatureStore:
             args.append((APTOS_CORE_DIR, docs, idx))
     features_list = run_in_parallel(cfg.fuzz.jobs, process_doc_item, args)
 
-    feature_store = FeatureStore()
+    feature_combo_store = FeatureComboStore("rust")
     for features in features_list:
         if features:
             for feature in features:
-                feature_store.add_feature(feature)
-    feature_store.save_local(FEATURE_RUST_FILE, overwrite=True)
-    logger.info(f"Saved {feature_store.num_features()} features to {FEATURE_RUST_FILE}")
-    return feature_store
+                feature_combo_store.add_individual_feature(feature)
+    feature_combo_store.save_local(FEATURE_RUST_FILE, overwrite=True)
+    logger.info(f"Saved {len(feature_combo_store.get_all_keys())} features to {FEATURE_RUST_FILE}")
+    return feature_combo_store

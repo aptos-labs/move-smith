@@ -1,16 +1,18 @@
 [fuzz]
 jobs = 32
-cost_usd_limit = 3.0
+cost_usd_limit = 5.0
 generations = 100
 features = [
     "data/feature_rust_with_embeddings.json",
     "data/feature_transactional_with_embeddings.json",
+    "data/feature_markdown.json",
+    "data/feature_pr.json",
 ]
 save_all_tests = false
 save_all_compilable = true
 fix_attempt_limit = 2
 enable_static_fixer = true
-enable_static_fixer_llm = true
+enable_static_fixer_llm = false
 enable_dynamic_fixer_hint = true
 enable_feature_rewriter = true
 
@@ -26,32 +28,29 @@ static_error_fixes = ["prompts/static_error_fixes"]
 mutations = ["prompts/mutations"]
 
 [fuzz.feature_combination]
-init = 30           # Initial population size
+init = 20           # Initial population size
 mu = 200            # Population size
 lam = 30            # Offspring size
 tests_per_combo = 1
 
 [fuzz.mutation]
-mutation_rate = 0.5
 combo_size_max = 10
+mutation_rate = 0.7
 cross_over_rate = 0.3
 
-semantic_mutation_rate = 0.3
-merge_mutation_rate = 0.3
-list_mutation_rate = 0.3
-
-[fuzz.feature]
-init = 10
-mu = 10             # Population size
-lam = 10            # Offspring size
-mutation_rate = 0.1
+semantic_mutation_rate = 0.5
+merge_mutation_rate = 0.5
+list_mutation_rate = 0.5
 
 [models.default]
 # name = "gpt-4.1-nano"
-name = "gpt-4.1-mini"
+# name = "gpt-4.1-mini"
 # name = "gpt-4.1"
+name = "claude-3-5-haiku-20241022"
 temperature = 0.8
 
 [models.extract]
-name = "gpt-4.1"
+# name = "gpt-4.1"
+# name = "claude-sonnet-4-20250514"
+name = "claude-3-5-haiku-20241022"
 temperature = 0.5
