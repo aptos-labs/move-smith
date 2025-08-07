@@ -2,7 +2,7 @@ from loguru import logger
 
 from .config import cfg
 from .feature import Feature, FeatureCombination
-from .llm import LLMWrapper, Message, load_extra_promts_from_files
+from .llm import LLMWrapper, Message, load_extra_prompts_from_files
 from .prompt_store import PromptStore, PromptStoreName
 
 
@@ -11,8 +11,8 @@ def generate_new_tests(combo: FeatureCombination, num_tests: int = 1) -> list[st
 
     features_str = get_feature_prompt(combo)
 
-    system_msg = load_extra_promts_from_files(cfg.prompt.generation_system)
-    prefix = load_extra_promts_from_files(cfg.prompt.generation_prefix)
+    system_msg = load_extra_prompts_from_files(cfg.prompt.generation_system)
+    prefix = load_extra_prompts_from_files(cfg.prompt.generation_prefix)
 
     prefix = f"You should follow the following guidelines and example:\n{prefix}" if prefix else ""
 

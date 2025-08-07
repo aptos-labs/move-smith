@@ -5,7 +5,8 @@ from pathlib import Path
 from loguru import logger
 
 from .config import cfg
-from .feature import FeatureCombination
+from .feature import Feature, FeatureCombination, FeatureType
+from .feature_extraction.pr import extract_feature_from_diff_block
 from .feature_store import FeatureComboStore
 from .fixer import fix_test_with_error_message, static_fix_syntax, static_fix_syntax_llm
 from .generate_test import generate_new_tests
@@ -15,6 +16,7 @@ from .pr_analysis import PRInfo
 from .runner import run_one_test
 from .store import Monitor
 from .task import Task
+from .test_enhancer import enhance_existing_move_files
 
 SAVED_PR_TESTS_DIR = "pr_generated_tests"
 SAVED_PR_TASK_FILE = "pr_task.json"
@@ -24,6 +26,62 @@ SAVED_CONCEPTS_FILE = "pr_concepts.txt"
 SAVED_SELECTED_FEATURES_FILE = "pr_selected_features.txt"
 
 NEW_COMBO_STORE_NAME = "pr_initial_store"
+
+SAVED_PR_FEATURES_FILE = "pr_generated_features.json"
+
+
+def extract_move_files_from_pr(pr_info: PRInfo) -> list[str]:
+    """Extract list of .move files changed in the PR."""
+    move_files = []
+    for file_change in pr_info.files_changed:
+        if file_change.filename.endswith(".move"):
+            move_files.append(file_change.filename)
+    return move_files
+
+
+def generate_pr_features(pr_info: PRInfo) -> tuple[list[Feature], list[Feature]]:
+    """Generate features from PR concepts and diff blocks."""
+    logger.info(f"Generating features from PR #{pr_info.number}")
+
+    # 1. Convert concepts from PR analysis to Features
+    concepts = analyze_pr_for_concepts(pr_info)
+    concept_features = []
+    for concept in concepts:
+        feature = Feature.new_feature(
+            description=concept,
+            content=f"PR #{pr_info.number} concept: {pr_info.title}\nDescription: {pr_info.description}\nURL: {pr_info.url}",
+            type=FeatureType.PR,
+        )
+        concept_features.append(feature)
+    logger.info(f"Created {len(concept_features)} features from PR concepts")
+
+    # 2. Generate 1 feature per diff block
+    diff_features = []
+    for file_change in pr_info.files_changed:
+        feature = extract_feature_from_diff_block(pr_info, file_change)
+        if feature:
+            diff_features.append(feature)
+    logger.info(f"Created {len(diff_features)} features from diff blocks")
+
+    return concept_features, diff_features
+
+
+def save_pr_features(features: list[Feature]) -> FeatureComboStore:
+    """Save PR-generated features to a FeatureComboStore."""
+    logger.info(f"Saving {len(features)} PR-generated features")
+
+    store = FeatureComboStore("pr_generated_features")
+    for feature in features:
+        store.add_individual_feature(feature)
+
+    # Save to files
+    features_file = cfg.work_dir / SAVED_PR_FEATURES_FILE
+    store.save_local(features_file, overwrite=True)
+    readable_file = features_file.with_suffix(".md")
+    store.save_as_human_readable_file(readable_file)
+
+    logger.success(f"Saved PR features to {features_file} and {readable_file}")
+    return store
 
 
 def analyze_pr_for_concepts(pr_info: PRInfo) -> list[str]:
@@ -56,6 +114,48 @@ that comprehensive tests should cover."""
     ]
     logger.info(f"Identified {len(concepts)} key concepts from PR analysis")
     return concepts
+
+
+def find_relevant_features_for_diff_features(
+    diff_features: list[Feature], combo_store: FeatureComboStore
+) -> dict[str, list[FeatureCombination]]:
+    """Find relevant features for each diff-extracted feature."""
+    logger.info(f"Finding relevant features for {len(diff_features)} diff-extracted features")
+
+    relevant_features_map = {}
+    features_per_diff_feature = 5  # Limit per diff feature
+    similarity_pool_size = features_per_diff_feature * 10
+
+    for diff_feature in diff_features:
+        logger.debug(f"Processing diff feature: {diff_feature.description[:100]}...")
+
+        candidate_features = combo_store.search_with_str(diff_feature.description, top_k=similarity_pool_size)
+        logger.debug(f"Found {len(candidate_features)} candidate features for diff feature")
+
+        random.shuffle(candidate_features)
+
+        selected_features = []
+        processed_count = 0
+        batch_size = 10
+
+        while len(selected_features) < features_per_diff_feature and processed_count < len(candidate_features):
+            batch_end = min(processed_count + batch_size, len(candidate_features))
+            batch_features = candidate_features[processed_count:batch_end]
+            if not batch_features:
+                break
+
+            batch_selected = _select_relevant_features_with_llm(diff_feature.description, batch_features)
+            selected_features.extend(batch_selected)
+            processed_count = batch_end
+
+            if len(selected_features) >= features_per_diff_feature:
+                break
+
+        selected_features = selected_features[:features_per_diff_feature]
+        relevant_features_map[diff_feature.id] = selected_features
+        logger.success(f"Selected {len(selected_features)} relevant features for diff feature")
+
+    return relevant_features_map
 
 
 def find_relevant_features(concepts: list[str], combo_store: FeatureComboStore) -> list[FeatureCombination]:
@@ -143,6 +243,86 @@ Select the most relevant feature numbers:"""
 
     logger.debug(f"LLM selected {len(selected_features)} features for concept '{concept}' from batch of {len(combos)}")
     return selected_features
+
+
+def generate_combinations_with_base_features(
+    pr_features: list[Feature], existing_features: list[FeatureCombination], new_combo_store: FeatureComboStore
+):
+    """Generate feature combinations with each PR feature as a base."""
+    logger.info(
+        f"Generating combinations with {len(pr_features)} PR base features and {len(existing_features)} existing features"
+    )
+
+    combinations_per_pr_feature = 3  # Generate 3 combinations per PR feature
+
+    for pr_feature in pr_features:
+        logger.debug(f"Generating combinations for base PR feature: {pr_feature.description[:100]}...")
+
+        # Create descriptions for existing features
+        combo_descriptions = []
+        for i, combo in enumerate(existing_features):
+            combo_descriptions.append(f"<feature_{i+1}>\n{combo.dump_for_llm()}\n</>")
+        combo_text = "\n".join(combo_descriptions)
+
+        system_msg = """You are an expert at creating Move test combinations.
+
+You will receive:
+1. A BASE FEATURE (from the current PR) that will be included in every combination
+2. Available existing features to combine with
+
+Generate combinations that test the base feature with complementary existing features.
+
+Respond with feature numbers to combine with the base feature (e.g., "1, 3" or "2, 5, 7").
+Each line should be one combination."""
+
+        user_msg = f"""BASE FEATURE (included automatically):
+{pr_feature.description}
+
+Available features to combine with:
+{combo_text}
+
+Generate {combinations_per_pr_feature} different combinations. Each line should contain feature numbers to add to the base feature."""
+
+        llm = LLMWrapper.new(cfg.logs_dir / "init_combo_base_selection")
+        msgs = Message.new_sys_and_user(system_msg, user_msg)
+        response = llm.invoke(cfg.models.init.name, cfg.models.init.temperature, msgs)
+
+        # Parse response and create combinations
+        combinations_created = 0
+        for line in response.content.split("\n"):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            numbers = re.findall(r"\b(\d+)\b", line)
+            try:
+                indices = [int(num) - 1 for num in numbers if 1 <= int(num) <= len(existing_features)]
+
+                # Create combination with PR feature as base
+                features_to_combine = [pr_feature]  # Start with PR feature
+                for idx in indices:
+                    features_to_combine.extend(existing_features[idx].features)
+
+                if len(features_to_combine) > 0:
+                    combo = FeatureCombination.new_combination(features_to_combine)
+                    new_combo_store.add_combo(combo)
+                    combinations_created += 1
+                    logger.debug(f"Created combination with PR base + {len(indices)} existing features: {combo.id}")
+
+                    if combinations_created >= combinations_per_pr_feature:
+                        break
+            except (ValueError, IndexError) as e:
+                logger.warning(f"Failed to parse combination from line: {line} - {e}")
+                continue
+
+        # Ensure at least one combination per PR feature (just the PR feature alone)
+        if combinations_created == 0:
+            combo = FeatureCombination.new_combination([pr_feature])
+            new_combo_store.add_combo(combo)
+            logger.debug(f"Created single PR feature combination: {combo.id}")
+
+    total_combos = new_combo_store.vstore.num_items()
+    logger.success(f"Generated {total_combos} feature combinations with PR base features")
 
 
 def generate_feature_combinations(combos: list[FeatureCombination], new_combo_store: FeatureComboStore):
@@ -392,34 +572,65 @@ def run_from_pr(pr_number: int):
     pr_info = PRInfo.new_aptos(pr_number)
     logger.success(f"Loaded PR #{pr_info.number}: {pr_info.title}")
 
+    # Step 1: Generate features from PR (concepts + diff blocks)
+    concept_features, diff_features = generate_pr_features(pr_info)
+    all_pr_features = concept_features + diff_features
+    save_pr_features(all_pr_features)
+    logger.success(
+        f"Generated {len(all_pr_features)} features from PR ({len(concept_features)} concepts, {len(diff_features)} diff blocks)"
+    )
+
+    # Extract concepts for logging
+    concepts = [f.description for f in concept_features]
+    (cfg.work_dir / SAVED_CONCEPTS_FILE).write_text("\n".join(concepts), encoding="utf-8")
+
+    # Step 2: Load existing features
     logger.info("Loading existing features...")
-    combo_store = FeatureComboStore("pr_analysis_running")
+    existing_combo_store = FeatureComboStore("pr_analysis_running")
     for feat_file in cfg.initial.features:
         if Path(feat_file).exists():
-            combo_store.load_combo_store_from_file(feat_file)
+            existing_combo_store.load_combo_store_from_file(feat_file)
             logger.debug(f"Loaded features from {feat_file}")
-    total_features = combo_store.vstore.num_items()
-    logger.success(f"Loaded {total_features} existing features")
+    total_existing = existing_combo_store.vstore.num_items()
+    logger.success(f"Loaded {total_existing} existing features")
 
-    if total_features == 0:
+    if total_existing == 0:
         logger.error("No existing features found. Please run feature extraction first.")
         return
 
-    concepts = analyze_pr_for_concepts(pr_info)
-    (cfg.work_dir / SAVED_CONCEPTS_FILE).write_text("\n".join(concepts), encoding="utf-8")
-
-    relevant_features = find_relevant_features(concepts, combo_store)
-    features_list = [f.dump_for_llm() for f in relevant_features]
+    # Step 3: Find relevant existing features based on concepts
+    relevant_existing_features_for_concepts = find_relevant_features(concepts, existing_combo_store)
+    features_list = [f.dump_for_llm() for f in relevant_existing_features_for_concepts]
     (cfg.work_dir / SAVED_SELECTED_FEATURES_FILE).write_text("\n===========\n".join(features_list), encoding="utf-8")
+    logger.success(f"Found {len(relevant_existing_features_for_concepts)} relevant existing features for concepts")
 
+    # Step 4: Find relevant existing features for each diff-extracted feature
+    relevant_features_for_diff = find_relevant_features_for_diff_features(diff_features, existing_combo_store)
+    logger.success(f"Found relevant features for {len(relevant_features_for_diff)} diff-extracted features")
+
+    # Step 5: Generate combinations with PR features as base
     new_combo_store = FeatureComboStore(NEW_COMBO_STORE_NAME)
-    generate_feature_combinations(relevant_features, new_combo_store)
+    all_relevant_features = relevant_existing_features_for_concepts.copy()
+    for diff_relevant in relevant_features_for_diff.values():
+        all_relevant_features.extend(diff_relevant)
+    generate_combinations_with_base_features(all_pr_features, all_relevant_features, new_combo_store)
 
+    # Step 6: Generate and fix tests from combinations
     num_tests = generate_and_fix_tests(new_combo_store)
 
     if num_tests == 0:
         logger.error("No compilable tests were generated. Exiting.")
         return
+
+    # Step 7: Enhance existing .move files with new test cases and apply fixing
+    combo_keys = new_combo_store.get_all_keys()
+    combo_items = []
+    for key in combo_keys:
+        combo_items.append(new_combo_store.get_item(key))
+
+    # Pass relevant features for diff-extracted features to the enhancer
+    enhanced_count = enhance_existing_move_files(pr_info, combo_items, relevant_features_for_diff)
+    logger.success(f"Enhanced and validated {enhanced_count} existing Move files")
 
     save_store_and_create_task(pr_info, new_combo_store)
 
@@ -432,8 +643,18 @@ def run_from_pr(pr_number: int):
     print(f"Feature combinations saved to: {(cfg.work_dir / SAVED_PR_SEED_FEATURE_STORE_FILE).with_suffix('.md')}")
 
     print("------")
+    print(f"Generated {len(all_pr_features)} PR-specific features")
+    print(f"PR features saved to: {(cfg.work_dir / SAVED_PR_FEATURES_FILE).with_suffix('.md')}")
+    print(f"Found {len(relevant_existing_features)} relevant existing features")
+
+    print("------")
     print(f"Generated {num_tests} compilable tests")
     print(f"Tests saved to: {cfg.work_dir / SAVED_PR_TESTS_DIR}")
+    if enhanced_count > 0:
+        print(f"Enhanced and validated {enhanced_count} existing Move files")
+        print(f"Enhanced files saved to: {cfg.work_dir / 'enhanced_move_files'}")
+        print("Enhanced files went through the same fixing process as newly generated tests")
+
     print("To see coverage results for the generated tests, run:")
     print(
         f"python -m src.main coverage -d {cfg.work_dir / SAVED_PR_TESTS_DIR} -o {cfg.work_dir}/coverage -b data/baseline.lcov"

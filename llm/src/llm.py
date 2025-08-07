@@ -16,7 +16,7 @@ from .store import Monitor
 T = TypeVar("T", bound=BaseModel)
 
 
-def load_extra_promts_from_files(files: list[str | Path]) -> str:
+def load_extra_prompts_from_files(files: list[str | Path]) -> str:
     prompts = []
     for file in files:
         file_path = Path(file)

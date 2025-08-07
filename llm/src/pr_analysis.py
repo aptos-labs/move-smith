@@ -71,6 +71,7 @@ class PRInfo:
     description: str
     url: str
     files_changed: list[FileChange]
+    move_files_content: list[tuple[str, str]] = None  # (filename, content) pairs
 
     @classmethod
     def new_aptos(cls, pr_number: int) -> PRInfo:
@@ -105,12 +106,26 @@ class PRInfo:
                 )
             )
 
+        # Download .move file content
+        move_files_content = []
+        for file_change in files_changed:
+            if file_change.filename.endswith('.move') and file_change.status != 'removed':
+                try:
+                    file_content = repo.get_contents(file_change.filename, ref=pr.head.sha)
+                    content = file_content.decoded_content.decode('utf-8')
+                    move_files_content.append((file_change.filename, content))
+                    logger.info(f"Downloaded content for {file_change.filename} ({len(content)} chars)")
+                except Exception as e:
+                    logger.warning(f"Could not download content for {file_change.filename}: {e}")
+                    continue
+
         return cls(
             number=pr.number,
             title=pr.title,
             description=pr.body or "No description provided",
             url=pr.html_url,
             files_changed=files_changed,
+            move_files_content=move_files_content,
         )
 
     def get_all_diffs(self) -> str:

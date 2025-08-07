@@ -1,5 +1,5 @@
 [fuzz]
-jobs = 32
+jobs = 4
 cost_usd_limit = 5.0
 generations = 100
 features = [
@@ -49,6 +49,7 @@ number_of_features_per_concept = 3
 soft_final_number_of_combos = 20
 generation_attempt_limit = 3
 fix_attempt_limit = 3
+max_enhancement_features = 10
 features = ["data/feature_pr.json"]
 
 
@@ -66,7 +67,7 @@ name = "claude-3-5-haiku-20241022"
 temperature = 0.5
 
 [models.init]
-name = "gpt-4.1-mini"
+# name = "gpt-4.1-mini"
 # name = "claude-sonnet-4-20250514"
-# name = "claude-3-5-haiku-20241022"
+name = "claude-3-5-haiku-20241022"
 temperature = 0.5
