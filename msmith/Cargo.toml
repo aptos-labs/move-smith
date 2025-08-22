@@ -77,10 +77,10 @@ path = "src/debug.rs"
 name = "msmith"
 path = "src/cli/main.rs"
 
-# [[bin]]
-# name = "msmith-local"
-# path = "src/cli/main.rs"
-# required-features = ["local_deps"]
+[[bin]]
+name = "msmith-local"
+path = "src/cli/main.rs"
+required-features = ["local_deps"]
 
 [[bin]]
 name = "msmith-legacy"

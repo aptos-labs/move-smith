@@ -11,8 +11,10 @@ cargo-fuzz = true
 afl = "*"
 honggfuzz = "0.5"
 libfuzzer-sys = "0.4.7"
-msmith = { path = "../msmith" }
-# msmith = { path = "../msmith", default-features = false, features = ["local_deps"] }
+# msmith = { path = "../msmith" }
+msmith = { path = "../msmith", default-features = false, features = [
+    "local_deps",
+] }
 once_cell = "1.19.0"
 rand = "0.8.5"
 
@@ -73,8 +75,8 @@ doc = false
 bench = false
 
 [[bin]]
-name = "hfuzz-ref"
-path = "fuzz_targets/hfuzz_ref.rs"
+name = "hfuzz-dynref"
+path = "fuzz_targets/hfuzz_dynref.rs"
 test = false
 doc = false
 bench = false

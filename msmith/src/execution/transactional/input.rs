@@ -22,7 +22,7 @@ use move_vm_runtime::config::VMConfig;
 use move_vm_runtime_legacy::config::VMConfig;
 #[cfg(feature = "local_deps")]
 use move_vm_runtime_local::config::VMConfig;
-use std::path::PathBuf;
+use std::{collections::BTreeSet, path::PathBuf};
 use tempfile::TempDir;
 
 #[derive(Default, Clone)]
@@ -106,11 +106,13 @@ impl RunConfig {
 
             let mut vm_config = self.vm_config.clone().unwrap_or(VMConfig::default());
             vm_config.paranoid_type_checks = true;
-            TestRunConfig::CompilerV2 {
+            TestRunConfig {
                 language_version: LanguageVersion::V2_2,
                 experiments,
                 vm_config,
                 use_masm: false,
+                echo: false,
+                cross_compilation_targets: BTreeSet::new(),
             }
         }
     }
@@ -127,6 +129,7 @@ pub enum CommonRunConfig {
     V2Extra,
     All,
     RefCheck,
+    DynRefCheck,
 }
 
 impl CommonRunConfig {
@@ -231,6 +234,26 @@ impl CommonRunConfig {
                     mode: ExecutionMode::V2Only,
                     v2_setting: Some(V2Setting::Optimization),
                     vm_config: None,
+                },
+            ],
+            DynRefCheck => vec![
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::Optimization),
+                    vm_config: {
+                        let mut config = VMConfig::default();
+                        // config.paranoid_ref_checks = false;
+                        Some(config)
+                    },
+                },
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::Optimization),
+                    vm_config: {
+                        let mut config = VMConfig::default();
+                        // config.paranoid_ref_checks = true;
+                        Some(config)
+                    },
                 },
             ],
         }
