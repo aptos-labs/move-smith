@@ -68,6 +68,9 @@ pub struct Run {
         default_value = "canonicalized"
     )]
     pub output: OutputMode,
+    /// Work directory to copy the file to instead of using a temporary directory
+    #[arg(short = 'w', long, value_name = "WORK_DIR")]
+    pub work_dir: Option<PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone)]

@@ -34,6 +34,11 @@ pub fn handle_run(env: &MoveSmithEnv, cmd: &Run) {
     };
     let run_config = env.cli.global_options.run.clone().unwrap_or_default();
     input_builder.with_common_runs(&run_config);
+
+    if let Some(work_dir) = &cmd.work_dir {
+        input_builder.set_work_dir(work_dir.clone());
+    }
+
     let input = input_builder.build();
 
     println!("Loaded code from file: {:?}", cmd.file);

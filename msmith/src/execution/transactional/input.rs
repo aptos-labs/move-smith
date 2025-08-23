@@ -11,11 +11,11 @@ use move_model_legacy::metadata::LanguageVersion;
 #[cfg(feature = "local_deps")]
 use move_model_local::metadata::LanguageVersion;
 #[cfg(feature = "git_deps")]
-use move_transactional_test_runner::vm_test_harness::TestRunConfig;
+use move_transactional_test_runner::{tasks::SyntaxChoice, vm_test_harness::TestRunConfig};
 #[cfg(feature = "legacy_deps")]
 use move_transactional_test_runner_legacy::vm_test_harness::TestRunConfig;
 #[cfg(feature = "local_deps")]
-use move_transactional_test_runner_local::vm_test_harness::TestRunConfig;
+use move_transactional_test_runner_local::{tasks::SyntaxChoice, vm_test_harness::TestRunConfig};
 #[cfg(feature = "git_deps")]
 use move_vm_runtime::config::VMConfig;
 #[cfg(feature = "legacy_deps")]
@@ -114,6 +114,8 @@ impl RunConfig {
                 echo: false,
                 cross_compilation_targets: BTreeSet::new(),
             }
+            .cross_compile_into(SyntaxChoice::ASM, true)
+            .cross_compile_into(SyntaxChoice::Source, true)
         }
     }
 }
@@ -265,6 +267,7 @@ pub struct TransactionalInput {
     pub file: Option<PathBuf>,
     pub code: String,
     pub runs: Vec<RunConfig>,
+    pub work_dir: Option<PathBuf>,
 }
 
 #[derive(Default)]
@@ -272,6 +275,7 @@ pub struct TransactionalInputBuilder {
     file: Option<PathBuf>,
     code: String,
     runs: Vec<RunConfig>,
+    work_dir: Option<PathBuf>,
 }
 
 impl TransactionalInputBuilder {
@@ -315,6 +319,11 @@ impl TransactionalInputBuilder {
         self
     }
 
+    pub fn set_work_dir(&mut self, work_dir: PathBuf) -> &mut Self {
+        self.work_dir = Some(work_dir);
+        self
+    }
+
     pub fn build(&mut self) -> TransactionalInput {
         if self.runs.is_empty() {
             self.with_default_run();
@@ -323,6 +332,7 @@ impl TransactionalInputBuilder {
             file: self.file.clone(),
             code: self.code.clone(),
             runs: self.runs.clone(),
+            work_dir: self.work_dir.clone(),
         }
     }
 }
@@ -342,7 +352,26 @@ impl Report for TransactionalInput {
 }
 
 impl TransactionalInput {
-    pub fn get_file_path(&self) -> (PathBuf, TempDir) {
-        create_tmp_move_file(&self.code, None)
+    pub fn get_file_path(&self) -> (PathBuf, Option<TempDir>) {
+        match &self.work_dir {
+            Some(work_dir) => {
+                std::fs::create_dir_all(work_dir).unwrap();
+
+                let filename = self
+                    .file
+                    .as_ref()
+                    .and_then(|f| f.file_name())
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("temp.move");
+
+                let file_path = work_dir.join(filename);
+                std::fs::write(&file_path, &self.code).unwrap();
+                (file_path, None)
+            },
+            None => {
+                let (file_path, temp_dir) = create_tmp_move_file(&self.code, None);
+                (file_path, Some(temp_dir))
+            },
+        }
     }
 }

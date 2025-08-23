@@ -27,7 +27,7 @@ impl Executor<TransactionalResult> for TransactionalExecutor {
     type Input = TransactionalInput;
 
     fn execute_one(&self, input: &TransactionalInput) -> TransactionalResult {
-        let (path, dir) = input.get_file_path();
+        let (path, temp_dir) = input.get_file_path();
 
         let mut result_builder = TransactionalResultBuilder::new();
 
@@ -41,7 +41,11 @@ impl Executor<TransactionalResult> for TransactionalExecutor {
         }
         let duration = start.elapsed();
         let output = result_builder.build(duration);
-        dir.close().unwrap();
+
+        if let Some(dir) = temp_dir {
+            dir.close().unwrap();
+        }
+
         output
     }
 }
