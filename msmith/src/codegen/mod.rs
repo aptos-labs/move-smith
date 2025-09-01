@@ -676,6 +676,7 @@ impl CodeGenerator for Expression {
             E::Reference(r) => r.emit_code_lines(),
             E::Dereference(d) => d.emit_code_lines(),
             E::Block(b) => b.emit_code_lines(),
+            E::IfElse(ite) => ite.emit_code_lines(),
         }
     }
 }
@@ -1061,6 +1062,46 @@ impl CodeGenerator for Dereference {
 impl CodeGenerator for Use {
     fn emit_code_lines(&self) -> Vec<String> {
         vec![format!("use {};", self.name.full_name())]
+    }
+}
+
+impl CodeGenerator for Branch {
+    fn emit_code_lines(&self) -> Vec<String> {
+        self.body.emit_code_lines()
+    }
+}
+
+impl CodeGenerator for IfElse {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = vec!["if".to_string()];
+        let condition_lines =
+            put_inside_pair_of("(", ")", self.condition.emit_code_lines(), INDENTATION_SIZE);
+        adaptive_append_inline(
+            &mut code,
+            condition_lines,
+            INDENTATION_SIZE,
+            LINE_WRAP_LIMIT,
+            true,
+        );
+        adaptive_append_inline(
+            &mut code,
+            self.branches.first().unwrap().emit_code_lines(),
+            INDENTATION_SIZE,
+            LINE_WRAP_LIMIT,
+            true,
+        );
+
+        if let Some(else_branch) = self.branches.get(1) {
+            code.last_mut().unwrap().push_str(" else");
+            adaptive_append_inline(
+                &mut code,
+                else_branch.emit_code_lines(),
+                INDENTATION_SIZE,
+                LINE_WRAP_LIMIT,
+                true,
+            );
+        }
+        code
     }
 }
 

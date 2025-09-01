@@ -48,6 +48,8 @@ pub enum MoveAST {
     Producers(Producers),
     Reference(Reference),
     Dereference(Dereference),
+    IfElse(IfElse),
+    Branch(Branch),
 }
 
 impl ASTNode for MoveAST {}
@@ -365,10 +367,35 @@ pub enum Expression {
     Reference(Reference),
     Dereference(Dereference),
     Block(Block),
+    IfElse(IfElse),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unit;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IfElse {
+    pub condition: Box<Expression>,
+    pub branches: Vec<Branch>,
+    pub typ: Type,
+}
+
+impl Typed for IfElse {
+    fn ty(&self) -> Type {
+        self.typ.clone()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Branch {
+    pub body: Box<Expression>,
+}
+
+impl Typed for Branch {
+    fn ty(&self) -> Type {
+        self.body.ty()
+    }
+}
 
 impl Typed for Expression {
     fn ty(&self) -> Type {
@@ -389,6 +416,7 @@ impl Typed for Expression {
             Expression::Reference(r) => r.ty(),
             Expression::Dereference(d) => d.ty(),
             Expression::Block(b) => b.ty(),
+            Expression::IfElse(i) => i.ty(),
         }
     }
 }

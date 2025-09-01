@@ -301,9 +301,24 @@ pub fn random_type_from_curr_scope(
     env: &mut StatePool<MoveAST>,
     selectors: Vec<TypeSelector>,
 ) -> Result<Type> {
+    let mod_info = get_per_module_info(env);
+    let has_enum = mod_info.has_enum;
+    let has_struct = mod_info.has_struct;
+    let new_selectors = selectors
+        .into_iter()
+        .map(|mut s| {
+            if !has_enum {
+                s.enum_weight = 0;
+            }
+            if !has_struct {
+                s.struct_weight = 0;
+            }
+            s
+        })
+        .collect();
     let curr_scope = get_curr_scope(env);
     let named_infos = get_named_infos(env);
-    let mut chosen_type = named_infos.random_type(&curr_scope, u, selectors);
+    let mut chosen_type = named_infos.random_type(&curr_scope, u, new_selectors);
     if let Ok(Type::Generic(GenericType::Function(func_type))) = &mut chosen_type {
         let (func_name, _) = new_id_from_curr_scope(env, IdKind::Function);
         func_type.name = func_name;
