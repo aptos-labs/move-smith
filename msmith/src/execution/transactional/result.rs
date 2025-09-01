@@ -5,8 +5,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeSet, env, error::Error, fmt::Display, fs, hash::Hash, panic::PanicHookInfo,
-    path::PathBuf, time::Duration,
+    backtrace::Backtrace, collections::BTreeSet, env, error::Error, fmt::Display, fs, hash::Hash,
+    panic::PanicHookInfo, path::PathBuf, time::Duration,
 };
 
 const SUCCESS_MSG: &str = "Success";
@@ -431,7 +431,10 @@ impl Display for TransactionalResult {
 
 impl ExecutionResult for TransactionalResult {
     fn from_panic(panic: &PanicHookInfo) -> Self {
-        let log = format!("panicked: {}", panic.location().unwrap());
+        let loc = format!("panicked: {}", panic.location().unwrap());
+        let backtrace = Backtrace::force_capture();
+
+        let log = format!("panicked at '{}'\n{}", loc, backtrace);
         Self {
             log,
             status: ResultStatus::Panic,
