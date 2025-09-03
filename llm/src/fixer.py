@@ -123,9 +123,50 @@ If the code is correct, please reply with "CORRECT" within a markdown code block
     return response
 
 
-def fix_test_with_error_message(test_to_fix: str, error_msg: str) -> str:
+def is_expected_negative_test_error(error_msg: str, expected_behaviors: list[str], error_patterns: list[str]) -> bool:
+    """Use LLM to determine if an error matches expected negative test patterns."""
+    if not expected_behaviors and not error_patterns:
+        return False
+
+    behaviors_text = "\n".join([f"- {behavior}" for behavior in expected_behaviors])
+    patterns_text = "\n".join([f"- {pattern}" for pattern in error_patterns])
+
+    system_msg = """You are an expert Move compiler analyst. Determine if a compilation/runtime error matches expected negative test patterns.
+
+Respond with only "YES" if the error clearly matches the expected patterns, "NO" otherwise."""
+
+    user_msg = f"""Expected behaviors that should cause errors:
+{behaviors_text}
+
+Expected error patterns:
+{patterns_text}
+
+Actual error message:
+{error_msg}
+
+Does this error match the expected negative test patterns? Respond YES or NO only."""
+
+    llm = LLMWrapper.new(cfg.logs_dir / "negative_test_validator")
+    msgs = Message.new_sys_and_user(system_msg, user_msg)
+
+    try:
+        response = llm.invoke(cfg.models.default.name, cfg.models.default.temperature, msgs)
+        return response.content.strip().upper().startswith("YES")
+    except Exception:
+        return False
+
+
+def fix_test_with_error_message(
+    test_to_fix: str, error_msg: str, expected_behaviors: list[str] = None, error_patterns: list[str] = None
+) -> str:
     if not cfg.fuzz.enable_dynamic_fixer_hint:
         return ""
+
+    # Check if this is an acceptable negative test error
+    if (expected_behaviors or error_patterns) and is_expected_negative_test_error(
+        error_msg, expected_behaviors or [], error_patterns or []
+    ):
+        return test_to_fix  # Don't fix, this error is expected
 
     store = PromptStore()
     prompts = store.get_related_prompts(PromptStoreName.DYNAMIC_ERROR_FIXES, error_msg, top_k=5)

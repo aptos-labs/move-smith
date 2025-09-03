@@ -6,6 +6,8 @@ logs/
 test/
 **/work*/
 bench*/
+data/
+eval.sh
 
 .secrets.toml
 

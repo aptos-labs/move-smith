@@ -1,8 +1,11 @@
+import json
 import random
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from loguru import logger
+from pydantic import BaseModel
 
 from .config import cfg
 from .feature import Feature, FeatureCombination, FeatureType
@@ -28,6 +31,17 @@ SAVED_SELECTED_FEATURES_FILE = "pr_selected_features.txt"
 NEW_COMBO_STORE_NAME = "pr_initial_store"
 
 SAVED_PR_FEATURES_FILE = "pr_generated_features.json"
+SAVED_NEGATIVE_TEST_INFO_FILE = "pr_negative_test_info.json"
+
+
+class NegativeTestInfo(BaseModel):
+    needs_negative_tests: bool
+    expected_behaviors: list[str]
+    error_patterns: list[str]
+
+    def save_to_file(self, file_path: Path) -> None:
+        """Save negative test info to JSON file."""
+        file_path.write_text(self.model_dump_json(indent=2))
 
 
 def extract_move_files_from_pr(pr_info: PRInfo) -> list[str]:
@@ -82,6 +96,62 @@ def save_pr_features(features: list[Feature]) -> FeatureComboStore:
 
     logger.success(f"Saved PR features to {features_file} and {readable_file}")
     return store
+
+
+def analyze_pr_for_negative_tests(pr_info: PRInfo) -> NegativeTestInfo:
+    """Analyze PR to determine if negative tests are needed."""
+    logger.info(f"Analyzing PR #{pr_info.number} for negative test requirements")
+
+    # Conservative approach: only consider negative tests if PR has .exp files
+    if not pr_info.exp_files_content:
+        logger.info("No .exp files found, no negative tests needed")
+        return NegativeTestInfo(needs_negative_tests=False, expected_behaviors=[], error_patterns=[])
+
+    # Prepare content for analysis
+    pr_summary = f"Title: {pr_info.title}\n\nDescription: {pr_info.description}\n"
+
+    exp_content = "\n\n".join([f"File: {filename}\n{content}" for filename, content in pr_info.exp_files_content])
+    move_content = "\n\n".join([f"File: {filename}\n{content}" for filename, content in pr_info.move_files_content])
+
+    system_msg = """You are an expert at analyzing Move compiler changes and test expectations.
+Given a Pull Request with .exp files that show expected errors, determine if this PR requires negative tests
+that are EXPECTED to fail with specific error patterns.
+
+Analyze the .exp files to determine:
+1. needs_negative_tests: true if the .exp files clearly show error patterns that indicate this PR is testing error conditions, false otherwise
+2. expected_behaviors: list of descriptions of behaviors that should be wrong (causing compilation or runtime errors) 
+3. error_patterns: list of specific error patterns from the .exp files (mention patterns of the error message or error code)
+
+Be CONSERVATIVE - only set needs_negative_tests to true if the .exp files contain errors."""
+
+    user_msg = f"""Analyze this Pull Request and determine if negative tests are needed:
+
+PR Summary:
+{pr_summary}
+
+Move Files Content:
+{move_content}
+
+Expected Output Files (.exp):
+{exp_content}
+
+Please analyze and provide the structured response."""
+
+    llm = LLMWrapper.new(cfg.logs_dir / "negative_test_analysis")
+    msgs = Message.new_sys_and_user(system_msg, user_msg)
+
+    negative_test_info = llm.invoke_structured(
+        cfg.models.init.name, cfg.models.init.temperature, msgs, NegativeTestInfo
+    )
+
+    if negative_test_info is None:
+        logger.warning("Failed to get structured response, falling back to no negative tests")
+        negative_test_info = NegativeTestInfo(needs_negative_tests=False, expected_behaviors=[], error_patterns=[])
+
+    logger.info(
+        f"Negative test analysis: needs={negative_test_info.needs_negative_tests}, behaviors={len(negative_test_info.expected_behaviors)}, patterns={len(negative_test_info.error_patterns)}"
+    )
+    return negative_test_info
 
 
 def analyze_pr_for_concepts(pr_info: PRInfo) -> list[str]:
@@ -253,8 +323,6 @@ def generate_combinations_with_base_features(
         f"Generating combinations with {len(pr_features)} PR base features and {len(existing_features)} existing features"
     )
 
-    combinations_per_pr_feature = 3  # Generate 3 combinations per PR feature
-
     for pr_feature in pr_features:
         logger.debug(f"Generating combinations for base PR feature: {pr_feature.description[:100]}...")
 
@@ -281,7 +349,7 @@ Each line should be one combination."""
 Available features to combine with:
 {combo_text}
 
-Generate {combinations_per_pr_feature} different combinations. Each line should contain feature numbers to add to the base feature."""
+Generate {cfg.initial.combinations_per_pr_feature} different combinations. Each line should contain feature numbers to add to the base feature."""
 
         llm = LLMWrapper.new(cfg.logs_dir / "init_combo_base_selection")
         msgs = Message.new_sys_and_user(system_msg, user_msg)
@@ -309,7 +377,7 @@ Generate {combinations_per_pr_feature} different combinations. Each line should 
                     combinations_created += 1
                     logger.debug(f"Created combination with PR base + {len(indices)} existing features: {combo.id}")
 
-                    if combinations_created >= combinations_per_pr_feature:
+                    if combinations_created >= cfg.initial.combinations_per_pr_feature:
                         break
             except (ValueError, IndexError) as e:
                 logger.warning(f"Failed to parse combination from line: {line} - {e}")
@@ -382,7 +450,7 @@ Please provide combinations as lists of feature numbers (e.g., "1, 3, 5"), each 
     logger.success(f"Generated {num_new_combos} feature combinations")
 
 
-def generate_and_fix_tests(combo_store: FeatureComboStore) -> int:
+def generate_and_fix_tests(combo_store: FeatureComboStore, negative_test_info: NegativeTestInfo = None) -> int:
     combination_keys = combo_store.get_all_keys()
 
     """Generate tests for combinations and attempt to fix compilation errors."""
@@ -391,7 +459,7 @@ def generate_and_fix_tests(combo_store: FeatureComboStore) -> int:
     tests_dir = cfg.work_dir / SAVED_PR_TESTS_DIR
     tests_dir.mkdir(parents=True, exist_ok=True)
 
-    args = [(key,) for key in combination_keys]
+    args = [(key, negative_test_info) for key in combination_keys]
     results = run_in_parallel(cfg.fuzz.jobs, _generate_and_fix_one_test, args)
     successful_tests = [res for res in results if res]
 
@@ -399,7 +467,7 @@ def generate_and_fix_tests(combo_store: FeatureComboStore) -> int:
     return len(successful_tests)
 
 
-def _generate_and_fix_one_test(combo_key: str) -> bool:
+def _generate_and_fix_one_test(combo_key: str, negative_test_info: NegativeTestInfo = None) -> bool:
     combo_store = FeatureComboStore(NEW_COMBO_STORE_NAME)
     combo = combo_store.get_item(combo_key)
 
@@ -453,7 +521,12 @@ def _generate_and_fix_one_test(combo_key: str) -> bool:
                             f"Attempting to fix compilation errors for combination {combo.id}"
                             f" (attempt {fix_attempt + 1}/{cfg.initial.fix_attempt_limit})"
                         )
-                        fixed_code = fix_test_with_error_message(current_code, result.error_message)
+                        # Pass negative test info to fixer
+                        expected_behaviors = negative_test_info.expected_behaviors if negative_test_info else None
+                        error_patterns = negative_test_info.error_patterns if negative_test_info else None
+                        fixed_code = fix_test_with_error_message(
+                            current_code, result.error_message, expected_behaviors, error_patterns
+                        )
 
                         if fixed_code != current_code:
                             current_code = fixed_code
@@ -461,6 +534,29 @@ def _generate_and_fix_one_test(combo_key: str) -> bool:
                         else:
                             logger.debug(f"No fix generated for combination {combo.id} (attempt {fix_attempt + 1})")
                     else:
+                        # Check if this is an acceptable negative test error on final attempt
+                        if (
+                            negative_test_info
+                            and negative_test_info.needs_negative_tests
+                            and negative_test_info.expected_behaviors
+                            and negative_test_info.error_patterns
+                        ):
+                            from .fixer import is_expected_negative_test_error
+
+                            if is_expected_negative_test_error(
+                                result.error_message,
+                                negative_test_info.expected_behaviors,
+                                negative_test_info.error_patterns,
+                            ):
+                                logger.success(
+                                    f"Accepting negative test for combination {combo.id} - expected error pattern matched"
+                                )
+                                file_hash = get_content_hash(current_code)
+                                test_file = tests_dir / f"{file_hash}.move"
+                                test_file.write_text(current_code, encoding="utf-8")
+                                combo_success = True
+                                break
+
                         logger.warning(
                             f"All fix attempts failed for combination {combo.id} generation {gen_attempt + 1}"
                         )
@@ -572,6 +668,10 @@ def run_from_pr(pr_number: int):
     pr_info = PRInfo.new_aptos(pr_number)
     logger.success(f"Loaded PR #{pr_info.number}: {pr_info.title}")
 
+    # Step 0: Analyze if PR needs negative tests
+    negative_test_info = analyze_pr_for_negative_tests(pr_info)
+    negative_test_info.save_to_file(cfg.work_dir / SAVED_NEGATIVE_TEST_INFO_FILE)
+
     # Step 1: Generate features from PR (concepts + diff blocks)
     concept_features, diff_features = generate_pr_features(pr_info)
     all_pr_features = concept_features + diff_features
@@ -616,7 +716,7 @@ def run_from_pr(pr_number: int):
     generate_combinations_with_base_features(all_pr_features, all_relevant_features, new_combo_store)
 
     # Step 6: Generate and fix tests from combinations
-    num_tests = generate_and_fix_tests(new_combo_store)
+    num_tests = generate_and_fix_tests(new_combo_store, negative_test_info)
 
     if num_tests == 0:
         logger.error("No compilable tests were generated. Exiting.")
@@ -645,7 +745,12 @@ def run_from_pr(pr_number: int):
     print("------")
     print(f"Generated {len(all_pr_features)} PR-specific features")
     print(f"PR features saved to: {(cfg.work_dir / SAVED_PR_FEATURES_FILE).with_suffix('.md')}")
-    print(f"Found {len(relevant_existing_features)} relevant existing features")
+    print(f"Found {len(relevant_existing_features_for_concepts)} relevant existing features")
+    if negative_test_info.needs_negative_tests:
+        print(
+            f"Negative test analysis: {len(negative_test_info.expected_behaviors)} expected behaviors, {len(negative_test_info.error_patterns)} error patterns"
+        )
+        print(f"Negative test info saved to: {cfg.work_dir / SAVED_NEGATIVE_TEST_INFO_FILE}")
 
     print("------")
     print(f"Generated {num_tests} compilable tests")

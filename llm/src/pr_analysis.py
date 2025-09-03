@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -72,6 +72,7 @@ class PRInfo:
     url: str
     files_changed: list[FileChange]
     move_files_content: list[tuple[str, str]] = None  # (filename, content) pairs
+    exp_files_content: list[tuple[str, str]] = field(default_factory=list)  # (filename, content) pairs for .exp files
 
     @classmethod
     def new_aptos(cls, pr_number: int) -> PRInfo:
@@ -108,6 +109,7 @@ class PRInfo:
 
         # Download .move file content
         move_files_content = []
+        exp_files_content = []
         for file_change in files_changed:
             if file_change.filename.endswith('.move') and file_change.status != 'removed':
                 try:
@@ -115,6 +117,17 @@ class PRInfo:
                     content = file_content.decoded_content.decode('utf-8')
                     move_files_content.append((file_change.filename, content))
                     logger.info(f"Downloaded content for {file_change.filename} ({len(content)} chars)")
+                    
+                    # Try to download corresponding .exp file
+                    exp_filename = file_change.filename.replace('.move', '.exp')
+                    try:
+                        exp_file_content = repo.get_contents(exp_filename, ref=pr.head.sha)
+                        exp_content = exp_file_content.decoded_content.decode('utf-8')
+                        exp_files_content.append((exp_filename, exp_content))
+                        logger.info(f"Downloaded .exp file for {exp_filename} ({len(exp_content)} chars)")
+                    except Exception as exp_e:
+                        logger.debug(f"No .exp file found for {file_change.filename}: {exp_e}")
+                        
                 except Exception as e:
                     logger.warning(f"Could not download content for {file_change.filename}: {e}")
                     continue
@@ -126,6 +139,7 @@ class PRInfo:
             url=pr.html_url,
             files_changed=files_changed,
             move_files_content=move_files_content,
+            exp_files_content=exp_files_content,
         )
 
     def get_all_diffs(self) -> str:
