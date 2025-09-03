@@ -114,8 +114,8 @@ impl RunConfig {
                 echo: false,
                 cross_compilation_targets: BTreeSet::new(),
             }
-            .cross_compile_into(SyntaxChoice::ASM, true)
-            .cross_compile_into(SyntaxChoice::Source, true)
+            .cross_compile_into(SyntaxChoice::ASM, true, None)
+            .cross_compile_into(SyntaxChoice::Source, true, None)
         }
     }
 }
