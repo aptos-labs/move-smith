@@ -25,6 +25,7 @@ def run_move_file(base_dir: Path, file: Path, total: int):
             cwd=base_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            env={"TO_IGNORE_PATH": "NONE"},
             text=True,
         )
         ok = "Failure" not in result.stdout

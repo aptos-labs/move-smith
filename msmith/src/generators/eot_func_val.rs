@@ -15,6 +15,7 @@ use framework::{
     AnyConstraint, GenLabel, Generator, GeneratorEntry, LabelledGenerator, Register, StatePool,
     Subtree,
 };
+use log::trace;
 
 #[derive(Default)]
 pub struct EOTFuncValGenerator;
@@ -50,7 +51,9 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncValGenerator {
             _ => panic!("EOTFuncValGenerator::subtrees: constraint does not have a function type"),
         };
 
-        let (name, _scope, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function);
+        let (name, lambda_scope, parent_scope) =
+            new_id_from_curr_scope_and_push_scope(env, IdKind::Lambda);
+        trace!("Generating lambda -- {name}, {lambda_scope:?}, parent scope: {parent_scope:?}");
         func_type.name = name.clone();
 
         let mut parameters = vec![];
@@ -95,10 +98,10 @@ impl Generator<MoveAST, AnyConstraint> for EOTFuncValGenerator {
 
         let subtrees = vec![Subtree::new_generator_subtree(
             BlockGenerator::label(),
-            AnyConstraint::new().with("is_function_body", true),
+            constraint.clone().with("is_function_body", true),
         )];
 
-        Ok((subtrees, AnyConstraint::new().with("signature", signature)))
+        Ok((subtrees, constraint.clone().with("signature", signature)))
     }
 
     fn compose(

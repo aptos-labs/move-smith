@@ -5,6 +5,7 @@
 *.log
 *.svg
 *.txt
+*.md
 coverage*/
 output/
 *logs/

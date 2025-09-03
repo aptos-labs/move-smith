@@ -1,7 +1,7 @@
 use crate::{
     generators::ExprOfTypeGenerator,
-    move_ast::{Expression, MoveAST},
-    states::{get_curr_scope, get_named_infos, Type, Typed},
+    move_ast::{Expression, MoveAST, Variable},
+    states::{get_curr_scope, get_current_info, get_named_infos, Type, Typed},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -27,17 +27,30 @@ impl Register<GeneratorEntry> for EOTVariableGenerator {
     }
 }
 
+fn get_usable_variables(
+    env: &StatePool<MoveAST>,
+    constraint: &AnyConstraint,
+) -> Option<Vec<Variable>> {
+    let will_mut = constraint.get::<bool>("will_mut").unwrap_or(&false);
+    let curr_scope = get_curr_scope(env);
+    let in_lambda = get_current_info(env).is_in_lambda();
+    let typ = constraint.get::<Type>("type")?;
+
+    let vars = if in_lambda {
+        get_named_infos(env).get_initialized_vars_for_lambda(&curr_scope, typ, *will_mut)
+    } else {
+        get_named_infos(env).get_initialized_vars_of_type(&curr_scope, typ)
+    };
+    trace!(
+        "[Finding usable vars] in_lambda: {in_lambda}, will_mut: {will_mut}: found {} usable vars",
+        vars.len()
+    );
+    Some(vars)
+}
+
 impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
     fn check_constraint(&self, env: &StatePool<MoveAST>, constraint: &AnyConstraint) -> bool {
-        match constraint.get::<Type>("type") {
-            Some(typ) => {
-                let curr_scope = get_curr_scope(env);
-                let vars = get_named_infos(env).get_initialized_vars_of_type(&curr_scope, typ);
-                trace!("Finding vars of type {typ:?}: {vars:?}");
-                !vars.is_empty()
-            },
-            None => false,
-        }
+        get_usable_variables(env, constraint).map_or(false, |v| !v.is_empty())
     }
 
     fn subtrees(
@@ -46,9 +59,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTVariableGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let picked_typ = constraint.get::<Type>("type").unwrap();
-        let curr_scope = get_curr_scope(env);
-        let vars = get_named_infos(env).get_initialized_vars_of_type(&curr_scope, picked_typ);
+        let vars = get_usable_variables(env, constraint).unwrap();
         let chosen_var = u.choose(&vars)?.clone();
 
         let subtree = Subtree::new_single_candidate(chosen_var.into());

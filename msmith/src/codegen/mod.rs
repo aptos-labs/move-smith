@@ -1101,7 +1101,7 @@ impl CodeGenerator for IfElse {
                 true,
             );
         }
-        code
+        put_inside_pair_of("(", ")", code, NO_INDENTATION)
     }
 }
 

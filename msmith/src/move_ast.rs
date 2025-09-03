@@ -661,6 +661,15 @@ impl Typed for SingleVariable {
     }
 }
 
+impl Named for Variable {
+    fn name(&self) -> Id {
+        match self {
+            Variable::SingleVariable(v) => v.name(),
+            Variable::DotVariable(v) => v.name(),
+        }
+    }
+}
+
 impl SingleVariable {
     pub fn new(name: &Id, typ: &Type) -> Self {
         SingleVariable {

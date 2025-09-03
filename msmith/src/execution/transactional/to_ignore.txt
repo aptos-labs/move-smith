@@ -15,14 +15,11 @@ exceeded maximal
 too many arguments captured in lambda
 ARITHMETIC_ERROR
 still mutably borrowed
-cannot be modified inside of a lambda
 does not have the `drop` ability
 cannot drop
-captured value cannot be a reference
 error: undeclared
 borrowed
 error: lambda lifting is not allowed in scripts
 error: inline function cannot be used as a function value
-STLOC_UNSAFE_TO_DESTROY_ERROR
 MOVELOC_EXISTS_BORROW_ERROR
 LINKER_ERROR

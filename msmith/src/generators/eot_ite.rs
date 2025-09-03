@@ -27,7 +27,7 @@ impl Register<GeneratorEntry> for EOTIfElseGenerator {
 
 impl Generator<MoveAST, AnyConstraint> for EOTIfElseGenerator {
     fn check_constraint(&self, env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        !almost_reached_max_expr_depth(env, 3)
+        !almost_reached_max_expr_depth(env, 1)
     }
 
     fn subtrees(

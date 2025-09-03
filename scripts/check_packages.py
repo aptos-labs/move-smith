@@ -14,7 +14,7 @@ def compile_move_project(directory: Path, total: int):
         return None
 
     print(f"Processing: {directory}")
-    aptos_bin = Path("~/aptos-core/target/cli/aptos").expanduser()
+    aptos_bin = Path("~/aptos-core/target/release/aptos").expanduser()
     try:
         result = subprocess.run(
             [aptos_bin.as_posix(), "move", "compile", "--language-version", "2.2"],

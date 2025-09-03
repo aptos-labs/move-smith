@@ -46,9 +46,14 @@ impl Generator<MoveAST, AnyConstraint> for EOTReferenceGenerator {
             },
         };
         let inner_type = ref_type.get_inner_type().clone();
+
+        let mut gen_constraint = AnyConstraint::new().with("type", inner_type.clone());
+        if matches!(ref_type, ReferenceType::Mutable(_)) {
+            gen_constraint.insert("will_mut", true);
+        }
         let subtrees = vec![Subtree::new_generator_subtree(
             ExprOfTypeGenerator::label(),
-            constraint.clone().with("type", inner_type.clone()),
+            gen_constraint,
         )];
         Ok((subtrees, AnyConstraint::new().with("ref_type", ref_type)))
     }

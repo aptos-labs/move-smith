@@ -46,7 +46,9 @@ impl Generator<MoveAST, AnyConstraint> for IfElseGenerator {
 
         // Determine the result type for if-else expression
         let result_type = constraint.get::<Type>("type").cloned().unwrap_or_else(|| {
-            let selector = TypeSelectorBuilder::all_yes(get_config(env)).build();
+            let selector = TypeSelectorBuilder::all_yes(get_config(env))
+                .unit(5)
+                .build();
             random_type_from_curr_scope(u, env, vec![selector]).unwrap()
         });
 
@@ -55,12 +57,12 @@ impl Generator<MoveAST, AnyConstraint> for IfElseGenerator {
             AnyConstraint::new().with("type", result_type.clone()),
         ));
 
-        let has_else = bool::arbitrary(u)?;
+        let has_else = !result_type.is_unit() || bool::arbitrary(u)?;
 
         if has_else {
             subtrees.push(Subtree::new_generator_subtree(
                 BranchGenerator::label(),
-                AnyConstraint::new().with("type", result_type.clone()),
+                constraint.clone().with("type", result_type.clone()),
             ));
         }
 

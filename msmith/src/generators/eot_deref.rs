@@ -60,7 +60,10 @@ impl Generator<MoveAST, AnyConstraint> for EOTDereferenceGenerator {
         };
         let subtrees = vec![Subtree::new_generator_subtree(
             ExprOfTypeGenerator::label(),
-            AnyConstraint::new().with("type", ref_type),
+            constraint
+                .clone()
+                .with("type", ref_type)
+                .with("will_mut", mutable),
         )];
         Ok((subtrees, AnyConstraint::new()))
     }

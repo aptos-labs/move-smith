@@ -37,7 +37,6 @@ impl Generator<MoveAST, AnyConstraint> for BranchGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let typ = constraint.get::<Type>("type").unwrap();
         let scope = constraint.get::<Scope>("scope");
         if let Some(scope) = scope {
             push_scope(env, scope.clone());
@@ -49,14 +48,12 @@ impl Generator<MoveAST, AnyConstraint> for BranchGenerator {
         if use_block_as_body {
             subtrees.push(Subtree::new_generator_subtree(
                 BlockGenerator::label(),
-                AnyConstraint::new()
-                    .with("type", typ.clone())
-                    .with("is_function_body", false),
+                constraint.clone().with("is_function_body", false),
             ));
         } else {
             subtrees.push(Subtree::new_generator_subtree(
                 ExprOfTypeGenerator::label(),
-                AnyConstraint::new().with("type", typ.clone()),
+                constraint.clone(),
             ));
         };
         Ok((

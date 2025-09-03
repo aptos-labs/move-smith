@@ -281,10 +281,41 @@ impl NamedInfoPool {
                     return None;
                 }
 
-                Some(match info.dot_var {
-                    Some(ref dot_var) => dot_var.clone().into(),
-                    None => SingleVariable::new(&info.name(), &info.ty()).into(),
-                })
+                Some(info.to_variable())
+            })
+            .collect::<Vec<Variable>>()
+    }
+
+    pub fn get_initialized_vars_for_lambda(
+        &self,
+        scope: &Scope,
+        wanted: &Type,
+        will_mut: bool,
+    ) -> Vec<Variable> {
+        self._get_usable_vars_iter(scope.clone())
+            .filter_map(|info| {
+                let ty = info.ty();
+
+                // Lambda cannot capture references
+                if ty.is_reference() {
+                    return None;
+                }
+
+                if ty != *wanted {
+                    return None;
+                }
+
+                // Lambda cannot mutate captured vars
+                if will_mut {
+                    if !info
+                        .parent_scope()
+                        .is_in_scope(&scope.get_nearest_lambda_scope().unwrap())
+                    {
+                        return None;
+                    }
+                }
+
+                Some(info.to_variable())
             })
             .collect::<Vec<Variable>>()
     }

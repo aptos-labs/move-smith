@@ -62,7 +62,7 @@ EOTEnumGenerator = 5
 
 ######## Statement ########
 StatementGenerator = 1
-StmtAssignDerefGenerator = 3
+StmtAssignDerefGenerator = 2
 StmtExprGenerator = 5
 LetAssignGenerator = 5
 LetCallGenerator = 3

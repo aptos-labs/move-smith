@@ -146,6 +146,7 @@ pub enum IdKind {
     TypeParameter,
     Field,
     Address,
+    Lambda,
 
     // Block IDs are only used to keep track of scope.
     Block,
@@ -167,6 +168,7 @@ impl IdKind {
             _ if name.starts_with("field") => IdKind::Field,
             _ if name.starts_with("_block") => IdKind::Block,
             _ if name.starts_with("_address") => IdKind::Address,
+            _ if name.starts_with("_lambda") => IdKind::Lambda,
             _ => panic!("Unknown Id kind: {}", name),
         }
     }
@@ -186,6 +188,7 @@ impl IdKind {
             IdKind::Field => "field",
             IdKind::Block => "_block",
             IdKind::Address => "_address",
+            IdKind::Lambda => "_lambda",
         }
         .to_string()
     }
@@ -277,6 +280,20 @@ impl Scope {
         }
         parents.push(self.clone());
         parents
+    }
+
+    /// Find the last lambda scope from self
+    /// e.g. Module1::function1::_lambda1::_block1::_lambda2::_block2
+    /// will return Some(Module1::function1::_lambda1::_block1::_lambda2
+    pub fn get_nearest_lambda_scope(&self) -> Option<Scope> {
+        let pieces = self.to_pieces();
+        for i in (0..pieces.len()).rev() {
+            if pieces[i].starts_with("_lambda") {
+                let lambda_scope = pieces[0..=i].join("::");
+                return Some(Scope(Some(lambda_scope)));
+            }
+        }
+        None
     }
 }
 

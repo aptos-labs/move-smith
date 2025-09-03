@@ -164,7 +164,11 @@ where
         let selected_label = &usable_generators[selected_idx];
         trace!("Selected generator: {selected_label:?}");
 
-        let state_hook_generators = self.generators.generators_from(base_label, false);
+        let mut state_hook_generators = vec![base_label.clone()];
+        if selected_label != base_label {
+            state_hook_generators.push(selected_label.clone());
+        }
+
         trace!("State hook generators: {state_hook_generators:?}");
         trace!("Running all update_pre for base label: {base_label}");
         for g in &state_hook_generators {
