@@ -5,7 +5,7 @@ use crate::{
     states::{
         types::{EnumType, EnumVariantType, GenericType, Type},
         CurrScope, Depth, GenerationConfig, Id, IdKind, IdPool, Named, NamedInfoPool, PerFuncInfo,
-        PerModuleInfo, PerTestInfo, Scope, TypeSelector,
+        PerModuleInfo, PerTestInfo, Scope, TypeSelector, FunctionKind,
     },
 };
 use anyhow::Result;
@@ -84,6 +84,11 @@ pub fn almost_reached_max_expr_depth(env: &StatePool<MoveAST>, increment: usize)
         .unwrap()
         .expr_depth
         .will_reached_depth_limit(increment)
+}
+
+#[inline]
+pub fn is_in_spec(env: &StatePool<MoveAST>) -> bool {
+    env.get::<PerModuleInfo>().unwrap().in_spec
 }
 
 /// Create a new id from the current scope and use the new scope as current scope
@@ -320,7 +325,7 @@ pub fn random_type_from_curr_scope(
     let named_infos = get_named_infos(env);
     let mut chosen_type = named_infos.random_type(&curr_scope, u, new_selectors);
     if let Ok(Type::Generic(GenericType::Function(func_type))) = &mut chosen_type {
-        let (func_name, _) = new_id_from_curr_scope(env, IdKind::Function);
+        let (func_name, _) = new_id_from_curr_scope(env, IdKind::Function(FunctionKind::Normal));
         func_type.name = func_name;
     }
     chosen_type

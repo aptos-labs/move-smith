@@ -1,6 +1,9 @@
 use crate::{
     move_ast::{Function, MoveAST, Visibility},
-    states::{get_config_mut, new_id_from_curr_scope_and_push_scope, pop_scope, IdKind, Type},
+    states::{
+        ids::FunctionKind,
+        get_config_mut, new_id_from_curr_scope_and_push_scope, pop_scope, IdKind, Type
+    },
     BlockGenerator, SignatureGenerator,
 };
 use anyhow::Result;
@@ -36,7 +39,7 @@ impl Generator<MoveAST, AnyConstraint> for FunctionGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let (name, scope, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function);
+        let (name, scope, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function(FunctionKind::Normal));
         let signature_constraint = constraint.clone().with("name", name).with("scope", scope);
         let mut subtrees = vec![];
         subtrees.push(Subtree::new_generator_subtree(

@@ -112,7 +112,26 @@ impl Id {
     }
 
     pub fn is_func(&self) -> bool {
-        self.kind == IdKind::Function
+        matches!(self.kind, IdKind::Function(_))
+    }
+
+    pub fn is_normal_func(&self) -> bool {
+        matches!(self.kind, IdKind::Function(FunctionKind::Normal))
+    }
+
+    pub fn is_producer_func(&self) -> bool {
+        matches!(self.kind, IdKind::Function(FunctionKind::Producer))
+    }
+
+    pub fn is_runner_func(&self) -> bool {
+        matches!(self.kind, IdKind::Function(FunctionKind::Runner))
+    }
+
+    pub fn get_function_kind(&self) -> Option<&FunctionKind> {
+        match &self.kind {
+            IdKind::Function(kind) => Some(kind),
+            _ => None,
+        }
     }
 
     pub fn is_struct(&self) -> bool {
@@ -130,6 +149,15 @@ impl fmt::Display for Id {
     }
 }
 
+/// The types of functions.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub enum FunctionKind {
+    #[default]
+    Normal,
+    Producer,
+    Runner,
+}
+
 /// The types of IDs.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub enum IdKind {
@@ -138,7 +166,7 @@ pub enum IdKind {
     Struct,
     Enum,
     EnumVariant,
-    Function,
+    Function(FunctionKind),
     Module,
     Script,
     Constant,
@@ -150,6 +178,9 @@ pub enum IdKind {
 
     // Block IDs are only used to keep track of scope.
     Block,
+    
+    // Spec block IDs
+    Spec,
 }
 
 impl IdKind {
@@ -159,7 +190,9 @@ impl IdKind {
             _ if name.starts_with("Struct") => IdKind::Struct,
             _ if name.starts_with("Enum") => IdKind::Enum,
             _ if name.starts_with("Variant") => IdKind::EnumVariant,
-            _ if name.starts_with("function") => IdKind::Function,
+            _ if name.starts_with("function") => IdKind::Function(FunctionKind::Normal),
+            _ if name.starts_with("producer") => IdKind::Function(FunctionKind::Producer),
+            _ if name.starts_with("runner") => IdKind::Function(FunctionKind::Runner),
             _ if name.starts_with("Module") => IdKind::Module,
             _ if name.starts_with("Script") => IdKind::Script,
             _ if name.starts_with("CONST") => IdKind::Constant,
@@ -169,6 +202,7 @@ impl IdKind {
             _ if name.starts_with("_block") => IdKind::Block,
             _ if name.starts_with("_address") => IdKind::Address,
             _ if name.starts_with("_lambda") => IdKind::Lambda,
+            _ if name.starts_with("_spec") => IdKind::Spec,
             _ => panic!("Unknown Id kind: {}", name),
         }
     }
@@ -179,7 +213,11 @@ impl IdKind {
             IdKind::Struct => "Struct",
             IdKind::Enum => "Enum",
             IdKind::EnumVariant => "Variant",
-            IdKind::Function => "function",
+            IdKind::Function(kind) => match kind {
+                FunctionKind::Normal => "function",
+                FunctionKind::Producer => "producer",
+                FunctionKind::Runner => "runner",
+            },
             IdKind::Module => "Module",
             IdKind::Script => "Script",
             IdKind::Constant => "Constant",
@@ -189,6 +227,7 @@ impl IdKind {
             IdKind::Block => "_block",
             IdKind::Address => "_address",
             IdKind::Lambda => "_lambda",
+            IdKind::Spec => "_spec",
         }
         .to_string()
     }

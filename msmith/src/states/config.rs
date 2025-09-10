@@ -87,6 +87,12 @@ pub struct GenerationConfig {
 
     /// Timeout in seconds
     pub generation_timeout_sec: usize, // MoveSmith generation timeout
+
+    /******** Spec Related ********/
+    /// Number of statements in inline spec blocks (spec { assert/assume })
+    pub num_stmts_in_inline_spec: RandomNumber,
+    /// Number of statements in function spec blocks (spec function_name { requires/ensures })
+    pub num_stmts_in_function_spec: RandomNumber,
 }
 
 impl fmt::Debug for GenerationConfig {

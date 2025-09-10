@@ -1,7 +1,6 @@
 use crate::{
-    generators::{ExprOfTypeGenerator, IfElseGenerator},
-    move_ast::{Expression, MoveAST},
-    states::{almost_reached_max_expr_depth, is_in_spec},
+    generators::{InlineSpecGenerator, StatementGenerator},
+    move_ast::{MoveAST, Statement},
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -11,35 +10,35 @@ use framework::{
 };
 
 #[derive(Default)]
-pub struct EOTIfElseGenerator;
+pub struct StmtSpecGenerator;
 
-impl LabelledGenerator for EOTIfElseGenerator {
+impl LabelledGenerator for StmtSpecGenerator {
     fn label() -> GenLabel {
-        GenLabel::new("EOTIfElseGenerator")
+        GenLabel::new_func_body_level("StmtSpecGenerator")
     }
 }
 
-impl Register<GeneratorEntry> for EOTIfElseGenerator {
+impl Register<GeneratorEntry> for StmtSpecGenerator {
     fn register(&self) -> GeneratorEntry {
-        GeneratorEntry::new::<Self>().with_parent::<ExprOfTypeGenerator>()
+        GeneratorEntry::new::<Self>().with_parent::<StatementGenerator>()
     }
 }
 
-impl Generator<MoveAST, AnyConstraint> for EOTIfElseGenerator {
-    fn check_constraint(&self, env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
-        !almost_reached_max_expr_depth(env, 1) && !is_in_spec(env)
+impl Generator<MoveAST, AnyConstraint> for StmtSpecGenerator {
+    fn check_constraint(&self, _env: &StatePool<MoveAST>, _constraint: &AnyConstraint) -> bool {
+        true
     }
 
     fn subtrees(
         &self,
         _u: &mut Unstructured,
         _env: &mut StatePool<MoveAST>,
-        constraint: &AnyConstraint,
+        _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
         Ok((
             vec![Subtree::new_generator_subtree(
-                IfElseGenerator::label(),
-                constraint.clone(),
+                InlineSpecGenerator::label(),
+                AnyConstraint::new(),
             )],
             AnyConstraint::new(),
         ))
@@ -52,8 +51,8 @@ impl Generator<MoveAST, AnyConstraint> for EOTIfElseGenerator {
         _constraint: AnyConstraint,
         asts: Vec<MoveAST>,
     ) -> Result<MoveAST> {
-        let ite = asts.into_iter().next().unwrap().into_ifelse().unwrap();
-        Ok(Expression::IfElse(ite).into())
+        let spec_block = asts.into_iter().next().unwrap().into_specblock().unwrap();
+        Ok(MoveAST::Statement(Statement::Spec(spec_block)))
     }
 
     fn check_ast(
@@ -63,8 +62,10 @@ impl Generator<MoveAST, AnyConstraint> for EOTIfElseGenerator {
         _comp_constraint: &AnyConstraint,
         ast: &MoveAST,
     ) -> bool {
-        ast.as_expression()
-            .map(|e| e.as_ifelse().is_some())
-            .unwrap_or(false)
+        if let Some(Statement::Spec(_)) = ast.as_statement() {
+            true
+        } else {
+            false
+        }
     }
 }

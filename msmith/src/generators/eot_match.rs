@@ -3,7 +3,7 @@ use crate::{
     move_ast::{Expression, MoveAST},
     states::{
         almost_reached_max_expr_depth, get_config, get_current_info, get_per_module_info,
-        random_type_from_curr_scope, TypeSelectorBuilder,
+        is_in_spec, random_type_from_curr_scope, TypeSelectorBuilder,
     },
 };
 use anyhow::Result;
@@ -33,6 +33,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTMatchGenerator {
         get_per_module_info(env).has_enum
             && !almost_reached_max_expr_depth(env, 2)
             && get_current_info(env).match_nesting_depth <= 3
+            && !is_in_spec(env)
     }
 
     fn subtrees(

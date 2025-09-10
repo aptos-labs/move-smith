@@ -1,5 +1,5 @@
 use crate::{
-    generators::{EnumGenerator, ModuleGenerator, StructGenerator},
+    generators::{EnumGenerator, ModuleGenerator, SpecBlockGenerator, StructGenerator},
     move_ast::MoveAST,
 };
 use arbitrary::Unstructured;
@@ -11,6 +11,7 @@ use framework::{
 pub struct PerModuleInfo {
     pub has_struct: bool,
     pub has_enum: bool,
+    pub in_spec: bool,
 }
 
 impl PerModuleInfo {
@@ -34,13 +35,18 @@ impl Register<StateEntry> for PerModuleInfo {
                 StructGenerator::label(),
                 EnumGenerator::label(),
                 ModuleGenerator::label(),
+                SpecBlockGenerator::label(),
             ],
         }
     }
 }
 
 impl State<MoveAST> for PerModuleInfo {
-    fn update_pre(&mut self, _u: &mut Unstructured, _generator: &GenLabel) {}
+    fn update_pre(&mut self, _u: &mut Unstructured, generator: &GenLabel) {
+        if generator == &SpecBlockGenerator::label() {
+            self.in_spec = true;
+        }
+    }
 
     fn update_post(&mut self, _u: &mut Unstructured, _new_ast: &MoveAST, generator: &GenLabel) {
         if generator == &ModuleGenerator::label() {
@@ -53,6 +59,10 @@ impl State<MoveAST> for PerModuleInfo {
 
         if generator == &EnumGenerator::label() {
             self.has_enum = true;
+        }
+
+        if generator == &SpecBlockGenerator::label() {
+            self.in_spec = false;
         }
     }
 }

@@ -40,6 +40,10 @@ num_elem_in_tuple = { min = 1, target = 4, max = 50 }
 num_runs_per_func = { min = 1, target = 3, max = 10 }
 generation_timeout_sec = 5
 
+######## Spec Related ########
+num_stmts_in_inline_spec = { min = 1, target = 2, max = 3 }
+num_stmts_in_function_spec = { min = 1, target = 2, max = 3 }
+
 [priorities]
 ######## Expression ########
 ExpressionGenerator = 1
@@ -64,6 +68,7 @@ EOTEnumGenerator = 5
 StatementGenerator = 1
 StmtAssignDerefGenerator = 2
 StmtExprGenerator = 5
+StmtSpecGenerator = 3
 LetAssignGenerator = 5
 LetCallGenerator = 3
 LetDeclGenerator = 2
@@ -94,3 +99,10 @@ ProducerGenerator = 1
 ProducersGenerator = 1
 RunnerGenerator = 1
 RunnersGenerator = 1
+
+######## Spec ########
+SpecBlockGenerator = 1
+InlineSpecGenerator = 1
+FunctionSpecGenerator = 1
+SpecPredicateGenerator = 1
+SpecPredicateExpressionGenerator = 1

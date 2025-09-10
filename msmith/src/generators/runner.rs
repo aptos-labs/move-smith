@@ -5,6 +5,7 @@ use crate::{
         TypeParameters, Visibility,
     },
     states::{
+        ids::FunctionKind,
         new_id_from_curr_scope, new_id_from_curr_scope_and_push_scope, pop_scope, Depth, Id,
         IdKind, Type,
     },
@@ -42,7 +43,7 @@ impl Generator<MoveAST, AnyConstraint> for RunnerGenerator {
         env: &mut StatePool<MoveAST>,
         constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let (new_name, _, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function);
+        let (new_name, _, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function(FunctionKind::Runner));
         env.get_mut::<Depth>().unwrap().expr_depth.set_max_depth(0);
 
         let callable = constraint.get::<Callable>("callable").unwrap();

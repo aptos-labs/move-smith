@@ -1,7 +1,10 @@
 use crate::{
     generators::BlockGenerator,
     move_ast::{Function, MoveAST, Script, Signature, TypeParameters, Visibility},
-    states::{new_id_from_curr_scope_and_push_scope, IdKind, PartialInfo, Type, PARTIAL_SIGNATURE},
+    states::{
+        ids::FunctionKind,
+        new_id_from_curr_scope_and_push_scope, IdKind, PartialInfo, Type, PARTIAL_SIGNATURE
+    },
 };
 use anyhow::Result;
 use arbitrary::Unstructured;
@@ -36,7 +39,7 @@ impl Generator<MoveAST, AnyConstraint> for ScriptGenerator {
         env: &mut StatePool<MoveAST>,
         _constraint: &AnyConstraint,
     ) -> Result<(Vec<Subtree<MoveAST, AnyConstraint>>, AnyConstraint)> {
-        let (func_id, _, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function);
+        let (func_id, _, _) = new_id_from_curr_scope_and_push_scope(env, IdKind::Function(FunctionKind::Normal));
         let signature = Signature {
             name: func_id,
             type_params: TypeParameters::default(),

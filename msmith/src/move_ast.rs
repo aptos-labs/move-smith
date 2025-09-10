@@ -50,6 +50,9 @@ pub enum MoveAST {
     Dereference(Dereference),
     IfElse(IfElse),
     Branch(Branch),
+    SpecBlock(SpecBlock),
+    SpecPredicate(SpecPredicate),
+    FunctionSpecs(FunctionSpecs),
 }
 
 impl ASTNode for MoveAST {}
@@ -79,6 +82,7 @@ pub struct MoveModule {
     pub structs: Vec<Struct>,
     pub enums: Vec<Enum>,
     pub functions: Vec<Function>,
+    pub function_specs: Vec<SpecBlock>,
     pub cmds: Vec<Command>,
 }
 
@@ -347,6 +351,7 @@ pub enum Statement {
     LetDeclare(Vec<SingleVariable>),
     LetAssign(Assignment),
     Expression(Expression),
+    Spec(SpecBlock),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumInto)]
@@ -814,6 +819,45 @@ impl Typed for Dereference {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpecBlock {
+    pub name: Id,
+    pub context: SpecContext,
+    pub statements: Vec<SpecStatement>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpecContext {
+    /// Spec block within a function body
+    InlineSpec,
+    /// Function spec (spec function_name { ... })
+    FunctionSpec { target_function: Signature },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpecStatement {
+    Assert(SpecPredicate),
+    Assume(SpecPredicate),
+    Requires(SpecPredicate),
+    Ensures(SpecPredicate),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpecPredicate {
+    /// Normal Move expression (must be boolean)
+    Expression(Expression),
+    // Future: Forall, Exists, etc.
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionSpecs(pub Vec<SpecBlock>);
+
+impl Typed for SpecBlock {
+    fn ty(&self) -> Type {
+        Type::Unit
+    }
+}
+
 impl Default for Program {
     fn default() -> Self {
         Program {
@@ -829,6 +873,7 @@ impl Default for Program {
                 structs: vec![],
                 enums: vec![],
                 functions: vec![],
+                function_specs: vec![],
                 cmds: vec![],
             }],
             scripts: vec![],

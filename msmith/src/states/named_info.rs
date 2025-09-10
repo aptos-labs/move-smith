@@ -9,6 +9,7 @@ use crate::{
     },
     states::{
         get_defined_vars_from_pattern,
+        ids::FunctionKind,
         types::{Primitive, TupleType, Type, Typed},
         Ability, FunctionType, GenericType, Id, IdKind, Named, ReferenceType, Scope, TypeSelector,
         ROOT_SCOPE,
@@ -543,7 +544,7 @@ impl NamedInfoPool {
             // TODO: put this in config
             let func_type = if *self.type_selection_depth.borrow() >= 3 {
                 Type::Generic(GenericType::Function(FunctionType {
-                    name: Id::new_without_scopes("FunctionTypePlaceholder", IdKind::Function),
+                    name: Id::new_without_scopes("FunctionTypePlaceholder", IdKind::Function(FunctionKind::Normal)),
                     type_params: vec![],
                     params: vec![],
                     return_type: Box::new(Type::Unit),
@@ -572,7 +573,7 @@ impl NamedInfoPool {
                     .collect::<Vec<Type>>();
 
                 Type::Generic(GenericType::Function(FunctionType {
-                    name: Id::new_without_scopes("FunctionTypePlaceholder", IdKind::Function),
+                    name: Id::new_without_scopes("FunctionTypePlaceholder", IdKind::Function(FunctionKind::Normal)),
                     type_params: vec![],
                     params: param_types,
                     return_type: Box::new(ret_type),

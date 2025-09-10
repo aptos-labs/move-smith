@@ -265,6 +265,10 @@ impl CodeGenerator for MoveModule {
             append_code_lines_with_indentation(&mut code, f.emit_code_lines(), INDENTATION_SIZE);
         }
 
+        for spec in &self.function_specs {
+            append_code_lines_with_indentation(&mut code, spec.emit_code_lines(), INDENTATION_SIZE);
+        }
+
         code.push("}\n".to_string());
 
         for c in &self.cmds {
@@ -648,6 +652,7 @@ impl CodeGenerator for Statement {
                 vec![code]
             },
             Statement::Expression(e) => e.emit_code_lines(),
+            Statement::Spec(spec) => spec.emit_code_lines(),
         };
         if !code_lines.is_empty() {
             code_lines.last_mut().unwrap().push(';');
@@ -1102,6 +1107,64 @@ impl CodeGenerator for IfElse {
             );
         }
         put_inside_pair_of("(", ")", code, NO_INDENTATION)
+    }
+}
+
+impl CodeGenerator for SpecBlock {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let mut code = if let SpecContext::FunctionSpec { target_function } = &self.context {
+            vec![format!("spec {} ", &target_function.name.name)]
+        } else {
+            vec!["spec ".to_string()]
+        };
+
+        let mut body_lines = Vec::new();
+
+        // Add spec statements
+        for stmt in &self.statements {
+            body_lines.extend(stmt.emit_code_lines());
+        }
+
+        let body = put_inside_pair_of("{", "}", body_lines, INDENTATION_SIZE);
+        append_block(&mut code, body, INDENTATION_SIZE);
+        code
+    }
+}
+
+impl CodeGenerator for SpecStatement {
+    fn emit_code_lines(&self) -> Vec<String> {
+        let (keyword, predicate) = match self {
+            SpecStatement::Assert(pred) => ("assert", pred),
+            SpecStatement::Assume(pred) => ("assume", pred),
+            SpecStatement::Requires(pred) => ("requires", pred),
+            SpecStatement::Ensures(pred) => ("ensures", pred),
+        };
+
+        // Create the statement on one line: "keyword predicate;"
+        let mut code = vec![format!("{} ", keyword)];
+        adaptive_append_inline(
+            &mut code,
+            predicate.emit_code_lines(),
+            NO_INDENTATION,
+            LINE_WRAP_LIMIT,
+            true,
+        );
+
+        // Add semicolon to the last line
+        if let Some(last_line) = code.last_mut() {
+            last_line.push(';');
+        }
+
+        code
+    }
+}
+
+impl CodeGenerator for SpecPredicate {
+    fn emit_code_lines(&self) -> Vec<String> {
+        match self {
+            SpecPredicate::Expression(expr) => expr.emit_code_lines(),
+            // Future: add forall, exists, etc.
+        }
     }
 }
 
