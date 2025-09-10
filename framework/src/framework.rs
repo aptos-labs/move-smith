@@ -8,7 +8,7 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use arbitrary::Unstructured;
-use log::trace;
+use log::{error, trace};
 use std::{
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
@@ -138,11 +138,12 @@ where
         // The constraint should be at least be well-formed for the base label
         let generator = self.generators.get(base_label).unwrap();
         if !generator.check_constraint(&self.states(), constraint) {
-            return Err(anyhow!(
+            let msg = format!(
                 "Constraint not well-formed for base generator{:?}\n{:?}",
-                base_label,
-                constraint
-            ));
+                base_label, constraint
+            );
+            error!("{}", msg);
+            return Err(anyhow!(msg));
         }
 
         // For all the usable generators, randomly select one that the constraint is well-formed for
@@ -183,11 +184,12 @@ where
             match generator.subtrees(u, &mut self.states_mut(), constraint) {
                 Ok(s) => s,
                 Err(e) => {
-                    return Err(anyhow!(
-                        "Failed to generate subtrees for generator {:?}:\n{:?}",
-                        selected_label,
-                        e
-                    ));
+                    let msg = format!(
+                        "Failed to get subtrees for generator {:?}:\n{:?}",
+                        selected_label, e
+                    );
+                    error!("{}", msg);
+                    return Err(anyhow!(msg));
                 },
             };
 
