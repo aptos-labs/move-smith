@@ -56,9 +56,9 @@ impl TypeSelector {
 
     pub fn number_type_selection_weights() -> Vec<(Type, u32)> {
         vec![
-            (Type::Primitive(Primitive::Number(NumberType::U8)), 30),
-            (Type::Primitive(Primitive::Number(NumberType::U16)), 30),
-            (Type::Primitive(Primitive::Number(NumberType::U32)), 30),
+            (Type::Primitive(Primitive::Number(NumberType::U8)), 50),
+            (Type::Primitive(Primitive::Number(NumberType::U16)), 50),
+            (Type::Primitive(Primitive::Number(NumberType::U32)), 50),
             (Type::Primitive(Primitive::Number(NumberType::U64)), 10),
             (Type::Primitive(Primitive::Number(NumberType::U128)), 1),
             (Type::Primitive(Primitive::Number(NumberType::U256)), 1),

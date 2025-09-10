@@ -17,7 +17,7 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use rayon::prelude::*;
 use std::{fs, path::PathBuf, time::Instant};
 
-const BUFFER_SIZE_START: usize = 1024 * 32;
+const BUFFER_SIZE_START: usize = 1024 * 8;
 
 pub fn handle_generate(_env: &MoveSmithEnv, cmd: &Generate) {
     fs::create_dir_all(&cmd.output_dir).unwrap();
