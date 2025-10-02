@@ -40,13 +40,6 @@ doc = false
 bench = false
 
 [[bin]]
-name = "opt-noopt"
-path = "fuzz_targets/opt_noopt.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
 name = "hfuzz-v1v2"
 path = "fuzz_targets/hfuzz_v1v2.rs"
 test = false
@@ -77,6 +70,13 @@ bench = false
 [[bin]]
 name = "hfuzz-dynref"
 path = "fuzz_targets/hfuzz_dynref.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "hfuzz-inlineopt"
+path = "fuzz_targets/hfuzz_inlineopt.rs"
 test = false
 doc = false
 bench = false

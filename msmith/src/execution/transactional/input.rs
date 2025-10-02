@@ -33,34 +33,84 @@ pub enum ExecutionMode {
     V1V2Comparison,
 }
 
-#[derive(Default, Clone, Debug)]
-pub enum V2Setting {
-    #[default]
-    Optimization,
-    NoOptimization,
-    ExtraOptimization,
-    OptNoSimp,
-    NoV3Ref,
+// #[derive(Default, Clone, Debug)]
+// pub enum V2Setting {
+//     #[default]
+//     Optimization,
+//     NoOptimization,
+//     ExtraOptimization,
+//     OptNoSimp,
+//     NoV3Ref,
+// }
+
+#[derive(Clone, Debug)]
+pub struct V2Setting {
+    pub optimize: bool,
+    pub optimize_extra: bool,
+    pub ast_simplify: bool,
+    pub acquires_check: bool,
+    pub reference_safety_v3: bool,
+    pub inline_optimization: bool,
+}
+
+impl Default for V2Setting {
+    fn default() -> Self {
+        Self {
+            optimize: true,
+            optimize_extra: false,
+            ast_simplify: true,
+            acquires_check: true,
+            reference_safety_v3: true,
+            inline_optimization: false,
+        }
+    }
 }
 
 impl V2Setting {
     pub fn to_experiments(&self) -> Vec<(String, bool)> {
-        match self {
-            Self::Optimization => vec![("optimize".to_string(), true)],
-            Self::NoOptimization => vec![
-                ("optimize".to_string(), false),
-                ("acquires-check".to_string(), false),
-            ],
-            Self::ExtraOptimization => vec![
-                ("optimize".to_string(), true),
-                ("optimize-extra".to_string(), true),
-            ],
-            Self::OptNoSimp => vec![
-                ("optimize".to_string(), true),
-                ("ast-simplify".to_string(), false),
-                ("acquires-check".to_string(), false),
-            ],
-            Self::NoV3Ref => vec![("reference-safety-v3".to_string(), false)],
+        vec![
+            ("optimize".to_string(), self.optimize),
+            ("optimize-extra".to_string(), self.optimize_extra),
+            ("ast-simplify".to_string(), self.ast_simplify),
+            ("acquires-check".to_string(), self.acquires_check),
+            ("reference-safety-v3".to_string(), self.reference_safety_v3),
+            (
+                "inlining-optimization".to_string(),
+                self.inline_optimization,
+            ),
+        ]
+    }
+
+    pub fn opt() -> Self {
+        Self {
+            optimize: true,
+            optimize_extra: false,
+            ast_simplify: true,
+            acquires_check: true,
+            reference_safety_v3: true,
+            inline_optimization: false,
+        }
+    }
+
+    pub fn no_opt() -> Self {
+        Self {
+            optimize: false,
+            optimize_extra: false,
+            ast_simplify: true,
+            acquires_check: false,
+            reference_safety_v3: true,
+            inline_optimization: false,
+        }
+    }
+
+    pub fn extra_opt() -> Self {
+        Self {
+            optimize: true,
+            optimize_extra: true,
+            ast_simplify: true,
+            acquires_check: true,
+            reference_safety_v3: true,
+            inline_optimization: false,
         }
     }
 }
@@ -127,11 +177,9 @@ pub enum CommonRunConfig {
     V2Only,
     V1V2Comparison,
     V2OptLevels,
-    V2NoOptExtra,
     V2Extra,
-    All,
-    RefCheck,
     DynRefCheck,
+    InlineOpt,
 }
 
 impl CommonRunConfig {
@@ -141,7 +189,7 @@ impl CommonRunConfig {
             Default => vec![
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::Optimization),
+                    v2_setting: Some(V2Setting::opt()),
                     vm_config: {
                         let mut config = VMConfig::default();
                         config.use_call_tree_and_instruction_cache = false;
@@ -151,7 +199,7 @@ impl CommonRunConfig {
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::ExtraOptimization),
+                    v2_setting: Some(V2Setting::extra_opt()),
                     vm_config: {
                         let mut config = VMConfig::default();
                         config.use_call_tree_and_instruction_cache = true;
@@ -162,100 +210,70 @@ impl CommonRunConfig {
             ],
             V2Only => vec![RunConfig {
                 mode: ExecutionMode::V2Only,
-                v2_setting: Some(V2Setting::Optimization),
+                v2_setting: Some(V2Setting::opt()),
                 vm_config: None,
             }],
             V1V2Comparison => vec![RunConfig {
                 mode: ExecutionMode::V1V2Comparison,
-                v2_setting: Some(V2Setting::Optimization),
+                v2_setting: Some(V2Setting::opt()),
                 vm_config: None,
             }],
             V2OptLevels => vec![
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::NoOptimization),
+                    v2_setting: Some(V2Setting::no_opt()),
                     vm_config: None,
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::Optimization),
+                    v2_setting: Some(V2Setting::opt()),
                     vm_config: None,
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::ExtraOptimization),
-                    vm_config: None,
-                },
-            ],
-            V2NoOptExtra => vec![
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::NoOptimization),
-                    vm_config: None,
-                },
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::ExtraOptimization),
+                    v2_setting: Some(V2Setting::extra_opt()),
                     vm_config: None,
                 },
             ],
             V2Extra => vec![RunConfig {
                 mode: ExecutionMode::V2Only,
-                v2_setting: Some(V2Setting::ExtraOptimization),
+                v2_setting: Some(V2Setting::extra_opt()),
                 vm_config: None,
             }],
-            All => vec![
-                RunConfig {
-                    mode: ExecutionMode::V1Only,
-                    v2_setting: None,
-                    vm_config: None,
-                },
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::Optimization),
-                    vm_config: None,
-                },
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::NoOptimization),
-                    vm_config: None,
-                },
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::OptNoSimp),
-                    vm_config: None,
-                },
-            ],
-            RefCheck => vec![
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::NoV3Ref),
-                    vm_config: None,
-                },
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::Optimization),
-                    vm_config: None,
-                },
-            ],
             DynRefCheck => vec![
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::Optimization),
+                    v2_setting: Some(V2Setting::opt()),
                     vm_config: {
                         let mut config = VMConfig::default();
-                        // config.paranoid_ref_checks = false;
+                        config.paranoid_ref_checks = false;
                         Some(config)
                     },
                 },
                 RunConfig {
                     mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::Optimization),
+                    v2_setting: Some(V2Setting::opt()),
                     vm_config: {
                         let mut config = VMConfig::default();
-                        // config.paranoid_ref_checks = true;
+                        config.paranoid_ref_checks = true;
                         Some(config)
                     },
+                },
+            ],
+            InlineOpt => vec![
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some({
+                        let mut setting = V2Setting::opt();
+                        setting.inline_optimization = true;
+                        setting
+                    }),
+                    vm_config: None,
+                },
+                RunConfig {
+                    mode: ExecutionMode::V2Only,
+                    v2_setting: Some(V2Setting::opt()),
+                    vm_config: None,
                 },
             ],
         }
