@@ -11,7 +11,7 @@ use move_model_legacy::metadata::LanguageVersion;
 #[cfg(feature = "local_deps")]
 use move_model_local::metadata::LanguageVersion;
 #[cfg(feature = "git_deps")]
-use move_transactional_test_runner::{tasks::SyntaxChoice, vm_test_harness::TestRunConfig};
+use move_transactional_test_runner::vm_test_harness::TestRunConfig;
 #[cfg(feature = "legacy_deps")]
 use move_transactional_test_runner_legacy::vm_test_harness::TestRunConfig;
 #[cfg(feature = "local_deps")]
@@ -164,18 +164,17 @@ impl RunConfig {
                 echo: false,
                 cross_compilation_targets: BTreeSet::new(),
             }
-            .cross_compile_into(SyntaxChoice::ASM, true, None)
-            .cross_compile_into(SyntaxChoice::Source, true, None)
+            // .cross_compile_into(SyntaxChoice::ASM, true, None)
+            // .cross_compile_into(SyntaxChoice::Source, true, None)
         }
     }
 }
 
 #[derive(ValueEnum, Debug, Clone, Default)]
 pub enum CommonRunConfig {
-    #[default]
-    Default,
     V2Only,
     V1V2Comparison,
+    #[default]
     V2OptLevels,
     V2Extra,
     DynRefCheck,
@@ -186,28 +185,6 @@ impl CommonRunConfig {
     pub fn to_run_configs(&self) -> Vec<RunConfig> {
         use CommonRunConfig::*;
         match self {
-            Default => vec![
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::opt()),
-                    vm_config: {
-                        let mut config = VMConfig::default();
-                        config.use_call_tree_and_instruction_cache = false;
-                        config.enable_lazy_loading = false;
-                        Some(config)
-                    },
-                },
-                RunConfig {
-                    mode: ExecutionMode::V2Only,
-                    v2_setting: Some(V2Setting::extra_opt()),
-                    vm_config: {
-                        let mut config = VMConfig::default();
-                        config.use_call_tree_and_instruction_cache = true;
-                        config.enable_lazy_loading = true;
-                        Some(config)
-                    },
-                },
-            ],
             V2Only => vec![RunConfig {
                 mode: ExecutionMode::V2Only,
                 v2_setting: Some(V2Setting::opt()),
