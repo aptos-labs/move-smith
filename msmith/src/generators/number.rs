@@ -118,6 +118,20 @@ impl Generator<MoveAST, AnyConstraint> for NumberGenerator {
             NumberType::U64 => BigUint::from(u64::arbitrary(u)?),
             NumberType::U128 => biguint_from_unstructured(u, 128)?,
             NumberType::U256 => biguint_from_unstructured(u, 256)?,
+            NumberType::I8 => BigUint::from(i8::arbitrary(u)? as u8),
+            NumberType::I16 => BigUint::from(i16::arbitrary(u)? as u16),
+            NumberType::I32 => BigUint::from(i32::arbitrary(u)? as u32),
+            NumberType::I64 => BigUint::from(i64::arbitrary(u)? as u64),
+            NumberType::I128 => {
+                // Generate i128 value and convert to its bit representation
+                let signed = i128::arbitrary(u)?;
+                BigUint::from(signed as u128)
+            },
+            NumberType::I256 => {
+                // For I256, generate a value in the full 256-bit range
+                // The value will be interpreted as a signed two's complement number
+                biguint_from_unstructured(u, 256)?
+            },
         };
 
         // Note: We are not uniformly sampling from the range [min, max].

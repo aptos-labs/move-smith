@@ -9,6 +9,8 @@ use crate::{
         Ability, FunctionType, GenericType, NumberType, Primitive, ReferenceType,
     },
 };
+use num_bigint::BigInt;
+use num_traits::cast::ToPrimitive;
 use std::cell::RefCell;
 
 /// The code put before each generated Move source code.
@@ -820,7 +822,51 @@ impl CodeGenerator for DotVariable {
 
 impl CodeGenerator for NumberLiteral {
     fn emit_code_lines(&self) -> Vec<String> {
-        vec![format!("{}{}", self.value, self.typ.emit_code())]
+        // For signed integers, interpret the BigUint as two's complement and convert to signed representation
+        let formatted_value = match &self.typ {
+            Type::Primitive(Primitive::Number(NumberType::I8)) => {
+                let byte = self.value.to_u8().unwrap_or(0);
+                let signed = byte as i8;
+                signed.to_string()
+            },
+            Type::Primitive(Primitive::Number(NumberType::I16)) => {
+                let bytes = self.value.to_u16().unwrap_or(0);
+                let signed = bytes as i16;
+                signed.to_string()
+            },
+            Type::Primitive(Primitive::Number(NumberType::I32)) => {
+                let bytes = self.value.to_u32().unwrap_or(0);
+                let signed = bytes as i32;
+                signed.to_string()
+            },
+            Type::Primitive(Primitive::Number(NumberType::I64)) => {
+                let bytes = self.value.to_u64().unwrap_or(0);
+                let signed = bytes as i64;
+                signed.to_string()
+            },
+            Type::Primitive(Primitive::Number(NumberType::I128)) => {
+                let bytes = self.value.to_u128().unwrap_or(0);
+                let signed = bytes as i128;
+                signed.to_string()
+            },
+            Type::Primitive(Primitive::Number(NumberType::I256)) => {
+                // Convert BigUint to BigInt, interpreting as two's complement
+                let bit_value = BigInt::from_biguint(num_bigint::Sign::Plus, self.value.clone());
+                // Check if the high bit is set (negative in two's complement)
+                let max_positive: BigInt = BigInt::from(1) << 255;
+                if bit_value >= max_positive {
+                    // Subtract 2^256 to get the negative value
+                    let modulus: BigInt = BigInt::from(1) << 256;
+                    let result: BigInt = bit_value - modulus;
+                    result.to_string()
+                } else {
+                    bit_value.to_string()
+                }
+            },
+            _ => self.value.to_string(),
+        };
+
+        vec![format!("{}{}", formatted_value, self.typ.emit_code())]
     }
 }
 
@@ -988,6 +1034,12 @@ impl CodeGenerator for NumberType {
             N::U64 => "u64".to_string(),
             N::U128 => "u128".to_string(),
             N::U256 => "u256".to_string(),
+            N::I8 => "i8".to_string(),
+            N::I16 => "i16".to_string(),
+            N::I32 => "i32".to_string(),
+            N::I64 => "i64".to_string(),
+            N::I128 => "i128".to_string(),
+            N::I256 => "i256".to_string(),
         }]
     }
 }

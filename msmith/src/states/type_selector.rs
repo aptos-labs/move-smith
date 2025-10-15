@@ -62,6 +62,12 @@ impl TypeSelector {
             (Type::Primitive(Primitive::Number(NumberType::U64)), 10),
             (Type::Primitive(Primitive::Number(NumberType::U128)), 1),
             (Type::Primitive(Primitive::Number(NumberType::U256)), 1),
+            (Type::Primitive(Primitive::Number(NumberType::I8)), 50),
+            (Type::Primitive(Primitive::Number(NumberType::I16)), 50),
+            (Type::Primitive(Primitive::Number(NumberType::I32)), 50),
+            (Type::Primitive(Primitive::Number(NumberType::I64)), 10),
+            (Type::Primitive(Primitive::Number(NumberType::I128)), 1),
+            (Type::Primitive(Primitive::Number(NumberType::I256)), 1),
         ]
     }
 

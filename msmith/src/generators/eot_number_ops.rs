@@ -24,6 +24,23 @@ const OPS: [BinOperator; 10] = [
     BinOperator::BitXor,
 ];
 
+// Signed integers don't support shift and bitwise operations in Move
+const SIGNED_OPS: [BinOperator; 5] = [
+    BinOperator::Add,
+    BinOperator::Sub,
+    BinOperator::Mul,
+    BinOperator::Div,
+    BinOperator::Mod,
+];
+
+fn get_valid_ops_for_type(num_type: &NumberType) -> &'static [BinOperator] {
+    match num_type {
+        NumberType::I8 | NumberType::I16 | NumberType::I32
+        | NumberType::I64 | NumberType::I128 | NumberType::I256 => &SIGNED_OPS,
+        _ => &OPS,
+    }
+}
+
 #[derive(Default)]
 pub struct EOTNumberOpsGenerator;
 
@@ -57,7 +74,8 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
             Some(Type::Primitive(Primitive::Number(num_type))) => num_type.clone(),
             _ => panic!("EOTNumberOpsGenerator::subtrees: constraint does not have a number type"),
         };
-        let op = u.choose(&OPS)?.clone();
+        let valid_ops = get_valid_ops_for_type(&num_typ);
+        let op = u.choose(valid_ops)?.clone();
         let comp_constraint = constraint
             .clone()
             .with("num_type", num_typ.clone())
@@ -104,6 +122,12 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
                     NumberType::U64 => BigUint::from(u32::arbitrary(u)?),
                     NumberType::U128 => BigUint::from(u64::arbitrary(u)?),
                     NumberType::U256 => BigUint::from(u128::arbitrary(u)?),
+                    NumberType::I8 => BigUint::from((u.int_in_range(-63..=63)? as i8) as u8),
+                    NumberType::I16 => BigUint::from(i8::arbitrary(u)? as u16),
+                    NumberType::I32 => BigUint::from(i16::arbitrary(u)? as u32),
+                    NumberType::I64 => BigUint::from(i32::arbitrary(u)? as u64),
+                    NumberType::I128 => BigUint::from(i64::arbitrary(u)? as u128),
+                    NumberType::I256 => BigUint::from(i128::arbitrary(u)? as u128),
                 };
                 let rhs = NumberLiteral {
                     value,
@@ -123,9 +147,31 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
                     NumberType::U64 => u32::MAX / 4,
                     NumberType::U128 => (u64::MAX / 4) as u32,
                     NumberType::U256 => (u128::MAX / 4) as u32,
+                    NumberType::I8 => 4,
+                    NumberType::I16 => (i8::MAX / 4) as u32,
+                    NumberType::I32 => (i16::MAX / 4) as u32,
+                    NumberType::I64 => (i32::MAX / 4) as u32,
+                    NumberType::I128 => (i64::MAX / 4) as u32,
+                    NumberType::I256 => (i128::MAX / 4) as u32,
+                };
+                let value = match &num_typ {
+                    NumberType::I8 | NumberType::I16 | NumberType::I32 | NumberType::I64 | NumberType::I128 | NumberType::I256 => {
+                        // For signed types, generate values in range [-upper, upper]
+                        let signed_val = u.int_in_range(-(upper as i32)..=(upper as i32))?;
+                        match &num_typ {
+                            NumberType::I8 => BigUint::from((signed_val as i8) as u8),
+                            NumberType::I16 => BigUint::from((signed_val as i16) as u16),
+                            NumberType::I32 => BigUint::from(signed_val as u32),
+                            NumberType::I64 => BigUint::from(signed_val as i64 as u64),
+                            NumberType::I128 => BigUint::from(signed_val as i128 as u128),
+                            NumberType::I256 => BigUint::from(signed_val as i128 as u128),
+                            _ => unreachable!(),
+                        }
+                    },
+                    _ => BigUint::from(u.int_in_range(0..=upper)? as u32),
                 };
                 let rhs = NumberLiteral {
-                    value: BigUint::from(u.int_in_range(0..=upper)? as u32),
+                    value,
                     typ: Type::Primitive(Primitive::Number(num_typ.clone())),
                 };
                 subtrees.push(Subtree::new_single_candidate(
@@ -133,6 +179,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
                 ));
             },
             // Only need to make sure RHS is not zero
+            // For signed types, also need to avoid MIN / -1 which can overflow
             BinOperator::Div | BinOperator::Mod => {
                 let mut value = match &num_typ {
                     NumberType::U8 => BigUint::from(u8::arbitrary(u)?),
@@ -141,6 +188,12 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
                     NumberType::U64 => BigUint::from(u64::arbitrary(u)?),
                     NumberType::U128 => BigUint::from(u128::arbitrary(u)?),
                     NumberType::U256 => BigUint::from_bytes_be(u.bytes(32)?),
+                    NumberType::I8 => BigUint::from(i8::arbitrary(u)? as u8),
+                    NumberType::I16 => BigUint::from(i16::arbitrary(u)? as u16),
+                    NumberType::I32 => BigUint::from(i32::arbitrary(u)? as u32),
+                    NumberType::I64 => BigUint::from(i64::arbitrary(u)? as u64),
+                    NumberType::I128 => BigUint::from(i128::arbitrary(u)? as u128),
+                    NumberType::I256 => BigUint::from_bytes_be(u.bytes(32)?),
                 };
                 value = value.max(BigUint::from(1u8));
                 let rhs = NumberLiteral {
@@ -152,6 +205,7 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
                 ));
             },
             // Need to make sure RHS doesn't exceed the bit width of LHS type
+            // Note: Signed integers don't support shift operations in Move
             BinOperator::Shl | BinOperator::Shr => {
                 let num_bits = match num_typ {
                     NumberType::U8 => 8,
@@ -160,6 +214,11 @@ impl Generator<MoveAST, AnyConstraint> for EOTNumberOpsGenerator {
                     NumberType::U64 => 64,
                     NumberType::U128 => 128,
                     NumberType::U256 => 256,
+                    // Signed integers should never reach here due to get_valid_ops_for_type()
+                    NumberType::I8 | NumberType::I16 | NumberType::I32
+                    | NumberType::I64 | NumberType::I128 | NumberType::I256 => {
+                        panic!("Shift operations not supported for signed integers")
+                    }
                 };
                 let num_shift = u.int_in_range(0..=num_bits - 1)? as u32;
                 let rhs = NumberLiteral {
