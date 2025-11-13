@@ -163,6 +163,7 @@ impl RunConfig {
                 use_masm: false,
                 echo: false,
                 cross_compilation_targets: BTreeSet::new(),
+                tracing: false,
             }
             // .cross_compile_into(SyntaxChoice::ASM, true, None)
             // .cross_compile_into(SyntaxChoice::Source, true, None)
